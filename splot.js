@@ -6,7 +6,7 @@
  * объектов (миллионы и десятки миллионов).
  *
  * @author Aydar Akhmetov <aydarkin@gmail.com>
- * @version 1.0.0
+ * @version 1.1.0
  * 09.05.2021
  *
  */
@@ -18,7 +18,7 @@
  *
  * @typedef {Object} SPlotOptions
  *
- * @property {function(): SPlotPolygonInfo} iterationCallback Функция итерирования
+ * @property {function(): SPlotPolygon} iterationCallback Функция итерирования
  *     исходных объектов. Каждый вызов должен возвращать информацию об очередном
  *     исходном объекте в виде структуры типа SplotPolygonInfo (координаты, форму
  *     и цвет полигона, соответствующие проитерированному объекту). Когда исходные
@@ -41,7 +41,7 @@
  *     объектов прерывается, даже если обработаны не все объекты.
  * @property {string} bgColor Фоновый цвет канваса в HEX-формате.
  * @property {string} rulesColor Цвет направляющих в HEX-формате.
- * @property {SPlotCameraView} camera Положение координатной плоскости в области
+ * @property {SPlotCamera} camera Положение координатной плоскости в области
  *     просмотра.
  * @property {WebGLContextAttributes} webGlSettings Инициализирующие настройки контекста
  *     рендеринга WebGL, управляющие производительностью графической системы. По
@@ -54,7 +54,7 @@
  *     полигонов. Полигон - это сплошная фигура на координатной плоскости, отображающая
  *     один исходный объект.
  *
- * @typedef {Object} SPlotPolygonInfo
+ * @typedef {Object} SPlotPolygon
  *
  * @property {number} x Координата центра полигона на оси абсцисс. Может быть
  *     как целым, так и вещественным числом.
@@ -95,7 +95,7 @@
  *     исходных объектов использует внутренний метод, имитирующий итерирование.
  * @property {number} amount Количество имитируемых исходных объектов.
  * @property {Array.<number,number>} shapeQuota Частота появления в итерировании
- *     полигонов трех основных форм - треугольников[0], квадратов[1] и кругов[2].
+ *     различных форм полигонов - треугольников[0], квадратов[1], кругов[2] и т.д.
  *     Пример: массив [3, 2, 5] означает, что частота появления треугольников
  *     = 3/(3+2+5) = 3/10, частота появления квадратов = 2/(3+2+5) = 2/10, частота
  *     появления кругов = 5/(3+2+5) = 5/10.
@@ -106,7 +106,7 @@
 /**
  * Тип - положение координатной плоскости в области просмотра.
  *
- * @typedef {Object} SPlotCameraView
+ * @typedef {Object} SPlotCamera
  *
  * @property {number} x Положение по оси абсцисс.
  * @property {number} y Положение по оси ординат.
@@ -119,7 +119,7 @@
  *     текущего положения координатной плоскости в области просмотра во время событий
  *     перемещения и зуммирования канваса.
  *
- * @typedef {Object} SPlotTransformationInfo
+ * @typedef {Object} SPlotTransformation
  *
  * @property {Array.<number>} matrix Основная матрица трансформации 3x3 в виде
  *     одномерного массива из 9 элементов.
@@ -136,14 +136,14 @@
 /**
  * Тип - группа полигонов, которую можно отобразить на канвасе за один рендер.
  *
- * @typedef {Object} SPlotPolygonGroupInfo
+ * @typedef {Object} SPlotPolygonGroup
  *
  * @property {Array.<number,number>} vertices Массив вершин всех полигонов группы.
  *     Каждая вершина - это пара чисел (координаты вершины на плоскости).
  *     Координаты могут быть как целыми, так и вещественными числами.
  * @property {Array.<number,number>} indices Массив индексов вершин полигонов группы.
  *     Каждый индекс - это номер вершины в массиве вершин. Индексы описывают все
- *     GL-треугольники, из которых состоят полигоны группы, т.е. каждая
+ *     GL-треугольники, из которых состоят полигоны группы, т.о. каждая
  *     тройка индексов кодирует один GL-треугольник. Индексы - это целые
  *     числа в диапазоне от 0 до 65535, что накладывает ограничение на максимальное
  *     количество вершин, хранимых в группе полигонов (не более 32768 штук).
@@ -153,21 +153,21 @@
  *     Цвет - это целое число в диапазоне от 0 до 255, представляющее собой
  *     индекс цвета в предопределенном массиве цветов.
  * @property {number} amountOfVertices Количество всех вершин в группе полигонов.
- * @property {number} amountOfPrimitiveVertices Количество вершин всех GL-треугольников
+ * @property {number} amountOfGLVertices Количество вершин всех GL-треугольников
  *     группы полигонов.
  */
 
 /**
  * Тип - буферы данных для загрузки в видеопамять.
  *
- * @typedef {Object} SPlotBuffersInfo
+ * @typedef {Object} SPlotBuffers
  *
  * @property {Array.<WebGLBuffer>} vertexBuffers Массив буферов с информацией
  *     о вершинах полигонов.
  * @property {Array.<WebGLBuffer>} colorBuffers Массив буферов с информацией
  *     о цветах вершин полигонов.
  * @property {Array.<WebGLBuffer>} indexBuffers Массив буферов с индексами вершин полигонов.
- * @property {Array.<number,number>} amountOfPrimitiveVertices Количество вершин,
+ * @property {Array.<number,number>} amountOfGLVertices Количество вершин,
  *     образующих GL-треугольники каждого вершинного буфера.
  * @property {Array.<number,number>} amountOfShapes Количество полигонов каждой
  *     формы (сколько треугольников, квадратов, кругов).
@@ -175,10 +175,32 @@
  *     Все указанные выше массивы буферов содержат одинаковое количество элементов.
  * @property {number} amountOfTotalVertices Общее количество вершин всех вершинных
  *     буферов (vertexBuffers).
- * @property {number} amountOfTotalPrimitiveVertices Общее количество вершин всех
+ * @property {number} amountOfTotalGLVertices Общее количество вершин всех
  *     индексных буферов (indexBuffers).
  * @property {Array.<number,number>} sizeInBytes Размеры буферов каждого типа (для
  *     вершин, для цветов, для индексов) в байтах.
+ */
+
+/**
+ * Тип - Информация о вершинах полигона.
+ *
+ * @typedef {Object} SPlotPolygonVertices
+ *
+ * @property {Array.<number>} values Массив вершин полигона. Каждая вершина - это
+ *     пара чисел (координаты вершины на плоскости). Пример: [x1,y1,x2,y2,x3,y3...]
+ * @property {Array.<number>} indices Массив индексов вершин полигона. Каждый индекс -
+ *     это номер вершины в массиве вершин. Индексы описывают все GL-треугольники,
+ *     из которых состоит полигон, т.о. каждая тройка индексов кодирует один GL-треугольник.
+ */
+
+/**
+ * Тип - Информация о форме полигона.
+ *
+ * @typedef {Object} SPlotPolygonShape
+ *
+ * @property {function(): SPlotPolygonVertices} func Функция вычисления координат
+ *     вершин полигона соответствующей формы.
+ * @property {string} caption Название формы полигона.
  */
 
 /**
@@ -186,14 +208,14 @@
  * высокопроизводительного функционала WebGL для работы напрямую с видеокартой клиента.
  * Это позволяет существенно увеличить количество объектов на графике, используя
  * вычислительные мощности клиента максимально эффективно. Метод отрисовки класса SPlot
- * эффективнее стандартных средств рисования на канвасе более чем в 100 раз.
+ * эффективнее стандартных средств рисования на канвасе более чем в 100 раз. График также
+ * можно двигать и зумировать мышью/трекпадом.
  *
  * Последовательность работы класса - перебор всех исходных объектов и формирование
  * для каждого объекта фигуры на графике (с определенными положением, формой и цветом).
  * Каждая фигура на графике представляет собой полигон - цветную замкнутую область,
- * ограниченную вершинами и соединяющими их прямыми линиями. Основных форм полигонов -
- * три (треугольник, квадрат и круг), однако их можно увеличить, дополнив класс
- * методами, создающими новые формы. График можно двигать и зумировать мышью/трекпадом.
+ * ограниченную вершинами и соединяющими их прямыми линиями. Форм полигонов может быть
+ * много - треугольники, квадраты, круги и т.д., их можно дополнять новыми.
  *
  * Каждый полигон при отрисовке кодируется набором примитивных треугольников (GL-
  * треугольников). Чем больше вершин в полигоне - тем больше GL-треугольников
@@ -346,48 +368,66 @@ class SPlot {
      * @public
      */
 
+    /** @type {function(): SPlotPolygon} */
     this.iterationCallback = null;
 
+    /** @type {Array.<string>} */
     this.polygonPalette = [
       '#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00',
       '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080'
     ];
 
+    /** @type {SPlotGridSize} */
     this.gridSize = {
-      width: 32000,
-      height: 16000
+      width: 32_000,
+      height: 16_000
     };
 
-    this.polygonSize = 4;
+    /** @type {number} */
+    this.polygonSize = 20;
 
+    /** @type {number} */
     this.circleApproxLevel = 12;
 
+    /** @type {SPlotDebugMode} */
     this.debugMode = {
       isEnable: false,
       output: 'console'
     };
 
+    /** @type {SPlotDemoMode} */
     this.demoMode = {
       isEnable: false,
-      amount: 1000000,
-      shapeQuota: [3, 3, 3],
+      amount: 1_000_000,
+      /**
+       * По умолчанию в режиме демонстрационных данных будут поровну отображаться
+       * полигоны всех возможных форм. Соответствующие значения shapeQuota
+       * инициализируются при регистрации функций создания форм (ниже по коду).
+       */
+      shapeQuota: [],
       index: 0
     };
 
+    /** @type {boolean} */
     this.forceRun = false;
 
-    this.maxAmountOfPolygons = 1000000000;
+    /** @type {number} */
+    this.maxAmountOfPolygons = 1_000_000_000;
 
+    /** @type {string} */
     this.bgColor = '#ffffff';
 
+    /** @type {string} */
     this.rulesColor = '#c0c0c0';
 
+    /** @type {SPlotCamera} */
     this.camera = {
       x: this.gridSize.width / 2,
       y: this.gridSize.height / 2,
       zoom: 1
     };
 
+    /** @type {WebGLContextAttributes} */
     this.webGlSettings = {
       alpha: false,
       depth: false,
@@ -476,7 +516,7 @@ class SPlot {
      * @type {Array.<number,number>}
      * @private
      */
-    this._USEFUL_CONST = [];
+    this._USEFUL_CONSTS = [];
 
     /**
      * Признак активного рендеринга.
@@ -487,7 +527,7 @@ class SPlot {
 
     /**
      * Данные трансформации.
-     * @type {SPlotTransformationInfo}
+     * @type {SPlotTransformation}
      * @private
      */
     this._transormation = {
@@ -501,7 +541,7 @@ class SPlot {
 
     /**
      * Предельное количество вершин в группе полигонов, которое еще допускает
-     *     добавление одного самого многовершинного полигона.
+     * добавление одного самого многовершинного полигона.
      * @type {number}
      * @private
      */
@@ -509,32 +549,37 @@ class SPlot {
 
     /**
      * Буферы WebGL и системная и статистическая информация.
-     * @type {SPlotBuffersInfo}
+     * @type {SPlotBuffers}
      * @private
      */
     this._buffers = {
       vertexBuffers: [],
       colorBuffers: [],
       indexBuffers: [],
-      amountOfPrimitiveVertices: [],
+      amountOfGLVertices: [],
       amountOfShapes: [],
       amountOfBufferGroups: 0,
       amountOfTotalVertices: 0,
-      amountOfTotalPrimitiveVertices: 0,
+      amountOfTotalGLVertices: 0,
       sizeInBytes: [0, 0, 0]
     };
 
     /**
      * Набор функций, создающих полигоны.
-     * @type {Array.<function()>}
+     * @type {Array.<SPlotPolygonShape>}
      * @private
      */
-    this._addPolygon = [];
+    this._getVertices = [];
 
-    // Инициализация методов создания трех основных форм полигонов.
-    this._addPolygon[0] = this._addPolygonTriangle;
-    this._addPolygon[1] = this._addPolygonSquare;
-    this._addPolygon[2] = this._addPolygonCircle;
+    /**
+     * Регистрация функций создания полигонов трех базовых форм - треугольники,
+     * квадраты, круги. Наличие этих базовых форм в указанном порядке является
+     * обязательным для корректной работы приложения. В дальнейшем остальные формы
+     * могут регистрироватья в любом количестве, в любой последовательности.
+     */
+    this.registerPolygonShape(this._getVerticesOfTriangle, 'Треугольник');
+    this.registerPolygonShape(this._getVerticesOfSquare, 'Квадрат');
+    this.registerPolygonShape(this._getVerticesOfCircle, 'Круг');
 
     // Создание и инициализация объектов рендеринга WebGL.
     this._createWebGl(canvasId);
@@ -574,6 +619,30 @@ class SPlot {
   }
 
   /**
+   * Регистрирует новую форму полигонов. Регистрация означает возможность
+   * дальнейшего создания полигонов данной формы.
+   *
+   * @private
+   * @param {function(): SPlotPolygonVertices} polygonFunc Функция вычисления координат
+   *     вершин полигона соответствующей формы.
+   * @param {string} polygonCaption Название формы полигона.
+   * @return {number} Индекс новой формы.
+   */
+  registerPolygonShape(polygonFunc, polygonCaption) {
+
+    // Занесение функции и названия формы в массив. Форма будет кодироваться индексом в этом массиве.
+    this._getVertices.push({
+      func: polygonFunc,
+      caption: polygonCaption
+    });
+
+    // Добавление новой формы в массив частот появления форм в режиме демонстрационных данных.
+    this.demoMode.shapeQuota.push(1);
+
+    return this._getVertices.length - 1;
+  }
+
+  /**
    * Устанавливает необходимые перед запуском рендера параметры экземпляра и WebGL.
    *
    * @public
@@ -588,7 +657,7 @@ class SPlot {
     this._amountOfPolygons = 0;
 
     // Обнуление счетчиков форм полигонов.
-    for (let i = 0; i < this._addPolygon.length; i++) {
+    for (let i = 0; i < this._getVertices.length; i++) {
       this._buffers.amountOfShapes[i] = 0;
     }
 
@@ -696,7 +765,7 @@ class SPlot {
   }
 
   /**
-   * Вычисляет набор вспомогательных констант _USEFUL_CONST[].
+   * Вычисляет набор вспомогательных констант _USEFUL_CONSTS[].
    * Они хранят результаты алгебраических и тригонометрических вычислений,
    * используемых в расчетах вершин полигонов и матриц трансформации. Такие константы
    * позволяют вынести затратные для процессора операции за пределы многократно
@@ -708,27 +777,27 @@ class SPlot {
   _setUsefulConstants() {
 
     // Константы, зависящие от размера полигона.
-    this._USEFUL_CONST[0] = this.polygonSize / 2;
-    this._USEFUL_CONST[1] = this._USEFUL_CONST[0] / Math.cos(Math.PI / 6);
-    this._USEFUL_CONST[2] = this._USEFUL_CONST[0] * Math.tan(Math.PI / 6);
+    this._USEFUL_CONSTS[0] = this.polygonSize / 2;
+    this._USEFUL_CONSTS[1] = this._USEFUL_CONSTS[0] / Math.cos(Math.PI / 6);
+    this._USEFUL_CONSTS[2] = this._USEFUL_CONSTS[0] * Math.tan(Math.PI / 6);
 
     // Константы, зависящие от степени детализации круга и размера полигона.
-    this._USEFUL_CONST[3] = new Float32Array(this.circleApproxLevel);
-    this._USEFUL_CONST[4] = new Float32Array(this.circleApproxLevel);
+    this._USEFUL_CONSTS[3] = new Float32Array(this.circleApproxLevel);
+    this._USEFUL_CONSTS[4] = new Float32Array(this.circleApproxLevel);
 
     for (let i = 0; i < this.circleApproxLevel; i++) {
       const angle = 2 * Math.PI * i / this.circleApproxLevel;
-      this._USEFUL_CONST[3][i] = this._USEFUL_CONST[0] * Math.cos(angle);
-      this._USEFUL_CONST[4][i] = this._USEFUL_CONST[0] * Math.sin(angle);
+      this._USEFUL_CONSTS[3][i] = this._USEFUL_CONSTS[0] * Math.cos(angle);
+      this._USEFUL_CONSTS[4][i] = this._USEFUL_CONSTS[0] * Math.sin(angle);
     }
 
     // Константы, зависящие от размера канваса.
-    this._USEFUL_CONST[5] = 2 / this._canvas.width;
-    this._USEFUL_CONST[6] = 2 / this._canvas.height;
-    this._USEFUL_CONST[7] = 2 / this._canvas.clientWidth;
-    this._USEFUL_CONST[8] = -2 / this._canvas.clientHeight;
-    this._USEFUL_CONST[9] = this._canvas.getBoundingClientRect().left;
-    this._USEFUL_CONST[10] = this._canvas.getBoundingClientRect().top;
+    this._USEFUL_CONSTS[5] = 2 / this._canvas.width;
+    this._USEFUL_CONSTS[6] = 2 / this._canvas.height;
+    this._USEFUL_CONSTS[7] = 2 / this._canvas.clientWidth;
+    this._USEFUL_CONSTS[8] = -2 / this._canvas.clientHeight;
+    this._USEFUL_CONSTS[9] = this._canvas.getBoundingClientRect().left;
+    this._USEFUL_CONSTS[10] = this._canvas.getBoundingClientRect().top;
   }
 
   /**
@@ -829,7 +898,7 @@ class SPlot {
       console.time('Длительность');
     }
 
-    /** @type {SPlotPolygonGroupInfo} */
+    /** @type {SPlotPolygonGroup} */
     let polygonGroup;
 
     // Итерирование групп полигонов.
@@ -850,10 +919,10 @@ class SPlot {
       this._buffers.amountOfBufferGroups++;
 
       // Определение количества вершин GL-треугольников текущей группы буферов.
-      this._buffers.amountOfPrimitiveVertices.push(polygonGroup.amountOfPrimitiveVertices);
+      this._buffers.amountOfGLVertices.push(polygonGroup.amountOfGLVertices);
 
       // Определение общего количества вершин GL-треугольников.
-      this._buffers.amountOfTotalPrimitiveVertices += polygonGroup.amountOfPrimitiveVertices;
+      this._buffers.amountOfTotalGLVertices += polygonGroup.amountOfGLVertices;
     }
 
     // Вывод отладочной информации.
@@ -868,21 +937,21 @@ class SPlot {
    * в группе и лимита на общее количество полигонов на канвасе.
    *
    * @private
-   * @return {(SPlotPolygonGroupInfo|null)} Созданная группа полигонов или null,
+   * @return {(SPlotPolygonGroup|null)} Созданная группа полигонов или null,
    *     если формирование всех групп полигонов завершилось.
    */
   _createPolygonGroup() {
 
-    /** @type {SPlotPolygonGroupInfo} */
+    /** @type {SPlotPolygonGroup} */
     let polygonGroup = {
       vertices: [],
       indices: [],
       colors: [],
       amountOfVertices: 0,
-      amountOfPrimitiveVertices: 0
+      amountOfGLVertices: 0
     }
 
-    /** @type {SPlotPolygonInfo} */
+    /** @type {SPlotPolygon} */
     let polygon;
 
     /**
@@ -896,8 +965,8 @@ class SPlot {
     // Итерирование исходных объектов.
     while (polygon = this.iterationCallback()) {
 
-      // На основе формы полигона вызывается метод его добавления к группе полигонов.
-      this._addPolygon[polygon.shape](polygonGroup, polygon, this);
+      // Добавление в группу полигонов нового полигона.
+      this._addPolygon(polygonGroup, polygon);
 
       // Подсчитывается число применений каждой из форм полигонов.
       this._buffers.amountOfShapes[polygon.shape]++;
@@ -957,147 +1026,136 @@ class SPlot {
   }
 
   /**
-   * Создает и добавляет в группу полигонов новый полигон - треугольник.
+   * Вычисляет координаты вершин полигона треугольной формы.
    *
    * @private
-   * @param {SPlotPolygonGroupInfo} polygonGroup Группа полигонов, в которую
-   *     происходит добавление.
-   * @param {SPlotPolygonInfo} polygon Информация о добавляемом полигоне.
-   * @param {SPlot} $this Ссылка на экземпляр класса. Т.к. методы
-   *     создания полигонов вызываются через массив функций создания полигонов
-   *     по необходимому индексу, объект this внутри метода при таком вызове будет
-   *     ссылаться на массив функций, а не на экземпляр класса. Чтобы метод создания
-   *     полигона имел доступ к свойствам экземпляра, в этот метод ссылка на
-   *     экземпляр класса передается явно - одним из аргументов.
+   * @param {number} x Положение центра полигона на оси абсцисс.
+   * @param {number} y Положение центра полигона на оси ординат.
+   * @param {Array.<number,number>} consts Набор вспомогательных констант, используемых
+   *     для вычисления вершин полигона.
+   * @return {SPlotPolygonVertices} Информация о вершинах нового полигона.
    */
-  _addPolygonTriangle(polygonGroup, polygon, $this) {
+  _getVerticesOfTriangle(x, y, consts) {
 
-    // Нахождение координат вершин треугольника.
-    const x1 = polygon.x - $this._USEFUL_CONST[0];
-    const y1 = polygon.y + $this._USEFUL_CONST[2];
-    const x2 = polygon.x;
-    const y2 = polygon.y - $this._USEFUL_CONST[1];
-    const x3 = polygon.x + $this._USEFUL_CONST[0];
-    const y3 = polygon.y + $this._USEFUL_CONST[2];
+    const [x1, y1] = [x - consts[0], y + consts[2]];
+    const [x2, y2] = [x, y - consts[1]];
+    const [x3, y3] = [x + consts[0], y + consts[2]];
 
-    // Добавление данных о треугольнике в группу полигонов.
-    polygonGroup.vertices.push(x1, y1, x2, y2, x3, y3);
-    polygonGroup.colors.push(polygon.color, polygon.color, polygon.color);
+    const vertices = {
+      values: [x1, y1, x2, y2, x3, y3],
+      indices: [0, 1, 2]
+    }
 
-    // Добавление индексов вершин, образующих GL-треугольник.
-    polygonGroup.indices.push(
-      polygonGroup.amountOfVertices,
-      polygonGroup.amountOfVertices + 1,
-      polygonGroup.amountOfVertices + 2
-    );
-
-    // Треугольник увеличивает количество вершин в группе полигонов на три.
-    polygonGroup.amountOfVertices += 3;
-
-    /**
-     * Количество вершин GL-треугольников в случае добавления треугольника также
-     * увеличивается на три.
-     */
-    polygonGroup.amountOfPrimitiveVertices += 3;
+    return vertices;
   }
 
   /**
-   * Создает и добавляет в группу полигонов новый полигон - квадрат.
+   * Вычисляет координаты вершин полигона квадратной формы.
    *
    * @private
-   * @param {SPlotPolygonGroupInfo} polygonGroup Группа полигонов, в которую
-   *     происходит добавление.
-   * @param {SPlotPolygonInfo} polygon Информация о добавляемом полигоне.
-   * @param {SPlot} $this Ссылка на экземпляр класса. Т.к. методы
-   *     создания полигонов вызываются через массив функций создания полигонов
-   *     по необходимому индексу, объект this внутри метода при таком вызове будет
-   *     ссылаться на массив функций, а не на экземпляр класса. Чтобы метод создания
-   *     полигона имел доступ к свойствам экземпляра, в этот метод ссылка на
-   *     экземпляр класса передается явно - одним из аргументов.
+   * @param {number} x Положение центра полигона на оси абсцисс.
+   * @param {number} y Положение центра полигона на оси ординат.
+   * @param {Array.<number,number>} consts Набор вспомогательных констант, используемых
+   *     для вычисления вершин полигона.
+   * @return {SPlotPolygonVertices} Информация о вершинах нового полигона.
    */
-  _addPolygonSquare(polygonGroup, polygon, $this) {
+  _getVerticesOfSquare(x, y, consts) {
 
-    // Нахождение координат двух ключевых вершин квадрата (верхний левый и правый нижний углы).
-    const x1 = polygon.x - $this._USEFUL_CONST[0];
-    const y1 = polygon.y - $this._USEFUL_CONST[0];
-    const x2 = polygon.x + $this._USEFUL_CONST[0];
-    const y2 = polygon.y + $this._USEFUL_CONST[0];
+    const [x1, y1] = [x - consts[0], y - consts[0]];
+    const [x2, y2] = [x + consts[0], y + consts[0]];
 
-    // Добавление данных о квадрате в группу полигонов.
-    polygonGroup.vertices.push(x1, y1, x2, y1, x2, y2, x1, y2);
-    polygonGroup.colors.push(polygon.color, polygon.color, polygon.color, polygon.color);
+    const vertices = {
+      values: [x1, y1, x2, y1, x2, y2, x1, y2],
+      indices: [0, 1, 2, 0, 2, 3]
+    };
 
-    // Добавление индексов вершин, образующих GL-треугольники квадрата.
-    polygonGroup.indices.push(
-      polygonGroup.amountOfVertices,
-      polygonGroup.amountOfVertices + 1,
-      polygonGroup.amountOfVertices + 2,
-      polygonGroup.amountOfVertices,
-      polygonGroup.amountOfVertices + 2,
-      polygonGroup.amountOfVertices + 3
-    );
-
-    // Квадрат увеличивает количество вершин в группе полигонов на четыре.
-    polygonGroup.amountOfVertices += 4;
-
-    // Количество вершин GL-треугольников в случае добавления квадрата увеличивается на шесть.
-    polygonGroup.amountOfPrimitiveVertices += 6;
+    return vertices;
   }
 
   /**
-   * Создает и добавляет в группу полигонов новый полигон - круг (апроксимирующий круг полигон).
+   * Вычисляет координаты вершин полигона круглой формы.
    *
    * @private
-   * @param {SPlotPolygonGroupInfo} polygonGroup Группа полигонов, в которую
-   *     происходит добавление.
-   * @param {SPlotPolygonInfo} polygon Информация о добавляемом полигоне.
-   * @param {SPlot} $this Ссылка на экземпляр класса. Т.к. методы
-   *     создания полигонов вызываются через массив функций создания полигонов
-   *     по необходимому индексу, объект this внутри метода при таком вызове будет
-   *     ссылаться на массив функций, а не на экземпляр класса. Чтобы метод создания
-   *     полигона имел доступ к свойствам экземпляра, в этот метод ссылка на
-   *     экземпляр класса передается явно - одним из аргументов.
+   * @param {number} x Положение центра полигона на оси абсцисс.
+   * @param {number} y Положение центра полигона на оси ординат.
+   * @param {Array.<number,number>} consts Набор вспомогательных констант, используемых
+   *     для вычисления вершин полигона.
+   * @return {SPlotPolygonVertices} Информация о вершинах нового полигона.
    */
-  _addPolygonCircle(polygonGroupData, polygon, $this) {
+  _getVerticesOfCircle(x, y, consts) {
 
-    // Добавление в группу полигонов центра круга.
-    polygonGroupData.vertices.push(polygon.x, polygon.y);
-    polygonGroupData.colors.push(polygon.color);
+    // Занесение в набор вершин центра круга.
+    const vertices = {
+      values: [x, y],
+      indices: []
+    };
 
-    // Добавление апроксимирующих окружность круга вершин в группу полигонов.
-    for (let i = 0; i < $this.circleApproxLevel; i++) {
-
-      polygonGroupData.vertices.push(
-        polygon.x + $this._USEFUL_CONST[3][i],
-        polygon.y + $this._USEFUL_CONST[4][i]
-      );
-
-      polygonGroupData.colors.push(polygon.color);
-
-      // Добавление индексов вершин, образующих GL-треугольники апроксимирующего круг полигона.
-      polygonGroupData.indices.push(
-        polygonGroupData.amountOfVertices,
-        polygonGroupData.amountOfVertices + i + 1,
-        polygonGroupData.amountOfVertices + i + 2
-      );
+    // Добавление апроксимирующих окружность круга вершин.
+    for (let i = 0; i < consts[3].length; i++) {
+      vertices.values.push(x + consts[3][i], y + consts[4][i]);
+      vertices.indices.push(0, i + 1, i + 2);
     }
 
     /**
      * Последняя вершина последнего GL-треугольника заменяется на первую апроксимирующую
      * окружность круга вершину, замыкая апроксимирущий круг полигон.
      */
-    polygonGroupData.indices.pop();
-    polygonGroupData.indices.push(polygonGroupData.amountOfVertices + 1);
+    vertices.indices[vertices.indices.length - 1] = 1;
 
-    // В группу полигонов попали все апроксимирующие окружность круга вершины и центр круга
-    polygonGroupData.amountOfVertices += ($this.circleApproxLevel + 1);
+    return vertices;
+  }
+
+  /**
+   * Создает и добавляет в группу полигонов новый полигон.
+   *
+   * @private
+   * @param {SPlotPolygonGroup} polygonGroup Группа полигонов, в которую
+   *     происходит добавление.
+   * @param {SPlotPolygon} polygon Информация о добавляемом полигоне.
+   */
+  _addPolygon(polygonGroup, polygon) {
 
     /**
-     * Количество GL-треугольников в случае добавления круга совпадает с количеством
-     * апроксимирующих окружность круга вершин. Соответственно количество вершин
-     * GL-треугольников в три раза больше количества GL-треугольников.
+     * На основе формы полигона и координат его центра вызывается соответсвующая
+     * функция нахождения координат его вершин.
      */
-    polygonGroupData.amountOfPrimitiveVertices += ($this.circleApproxLevel * 3);
+    const vertices = this._getVertices[polygon.shape].func(
+      polygon.x, polygon.y, this._USEFUL_CONSTS
+    );
+
+    // Количество вершин - это количество пар чисел в массиве вершин.
+    const amountOfVertices = Math.trunc(vertices.values.length / 2);
+
+    // Нахождение индекса первой добавляемой в группу полигонов вершины.
+    const indexOfLastVertex = polygonGroup.amountOfVertices;
+
+    /**
+     * Номера индексов вершин - относительные. Для вычисления абсолютных индексов
+     * необходимо прибавить к относительным индексам индекс первой добавляемой
+     * в группу полигонов вершины.
+     */
+    for (let i = 0; i < vertices.indices.length; i++) {
+      vertices.indices[i] += indexOfLastVertex;
+    }
+
+    /**
+     * Добавление в группу полигонов индексов вершин нового полигона и подсчет
+     * общего количества вершин GL-треугольников в группе.
+     */
+    polygonGroup.indices.push(...vertices.indices);
+    polygonGroup.amountOfGLVertices += vertices.indices.length;
+
+    /**
+     * Добавление в группу полигонов самих вершин нового полигона и подсчет
+     * общего количества вершин в группе.
+     */
+    polygonGroup.vertices.push(...vertices.values);
+    polygonGroup.amountOfVertices += amountOfVertices;
+
+    // Добавление цветов вершин - по одному цвету на каждую вершину.
+    for (let i = 0; i < amountOfVertices; i++) {
+      polygonGroup.colors.push(polygon.color);
+    }
   }
 
   /**
@@ -1166,22 +1224,12 @@ class SPlot {
     // Группа "Кол-во объектов".
     console.group('Кол-во объектов: ' + this._amountOfPolygons.toLocaleString());
 
-    console.log('Треугольники: ' + this._buffers.amountOfShapes[0].toLocaleString() +
-      ' [~' + Math.round(100 * this._buffers.amountOfShapes[0] / this._amountOfPolygons) + '%]');
-
-    console.log('Квадраты: ' + this._buffers.amountOfShapes[1].toLocaleString() +
-      ' [~' + Math.round(100 * this._buffers.amountOfShapes[1] / this._amountOfPolygons) + '%]');
-
-    console.log('Круги: ' + this._buffers.amountOfShapes[2].toLocaleString() +
-      ' [~' + Math.round(100 * this._buffers.amountOfShapes[2] / this._amountOfPolygons) + '%]');
-
-    let amountOfOtherShape = this._amountOfPolygons -
-      this._buffers.amountOfShapes[0] -
-      this._buffers.amountOfShapes[1] -
-      this._buffers.amountOfShapes[2];
-
-    console.log('Прочие формы: ' + amountOfOtherShape.toLocaleString() +
-      ' [~' + Math.round(100 * amountOfOtherShape / this._amountOfPolygons) + '%]');
+    for (let i = 0; i < this._getVertices.length; i++) {
+      const shapeCapction = this._getVertices[i].caption;
+      const shapeAmount = this._buffers.amountOfShapes[i];
+      console.log(shapeCapction + ': ' + shapeAmount.toLocaleString() +
+        ' [~' + Math.round(100 * shapeAmount / this._amountOfPolygons) + '%]');
+    }
 
     console.log('Палитра: ' + this.polygonPalette.length + ' цветов');
 
@@ -1212,7 +1260,7 @@ class SPlot {
       this._buffers.amountOfBufferGroups.toLocaleString());
 
     console.log('Кол-во GL-треугольников: ' +
-      (this._buffers.amountOfTotalPrimitiveVertices / 3).toLocaleString());
+      (this._buffers.amountOfTotalGLVertices / 3).toLocaleString());
 
     console.log('Кол-во вершин: ' +
       this._buffers.amountOfTotalVertices.toLocaleString());
@@ -1305,8 +1353,8 @@ class SPlot {
     // Хак получения доступа к объекту this.
     const $this = canvas.scatterplot;
 
-    const t1 = $this.camera.zoom * $this._USEFUL_CONST[5];
-    const t2 = $this.camera.zoom * $this._USEFUL_CONST[6];
+    const t1 = $this.camera.zoom * $this._USEFUL_CONSTS[5];
+    const t2 = $this.camera.zoom * $this._USEFUL_CONSTS[6];
 
     $this._transormation.matrix = [
       t1, 0, 0, 0, -t2, 0, -$this.camera.x * t1 - 1, $this.camera.y * t2 + 1, 1
@@ -1328,11 +1376,11 @@ class SPlot {
     const $this = event.target.scatterplot;
 
     $this.camera.x = $this._transormation.startCameraX + $this._transormation.startPosX -
-      ((event.clientX - $this._USEFUL_CONST[9]) * $this._USEFUL_CONST[7] - 1) * $this._transormation.startInvMatrix[0] -
+      ((event.clientX - $this._USEFUL_CONSTS[9]) * $this._USEFUL_CONSTS[7] - 1) * $this._transormation.startInvMatrix[0] -
       $this._transormation.startInvMatrix[6];
 
     $this.camera.y = $this._transormation.startCameraY + $this._transormation.startPosY -
-      ((event.clientY - $this._USEFUL_CONST[10]) * $this._USEFUL_CONST[8] + 1) * $this._transormation.startInvMatrix[4] -
+      ((event.clientY - $this._USEFUL_CONSTS[10]) * $this._USEFUL_CONSTS[8] + 1) * $this._transormation.startInvMatrix[4] -
       $this._transormation.startInvMatrix[7];
 
     // Рендеринг с новыми параметрами области видимости.
@@ -1367,11 +1415,11 @@ class SPlot {
     $this._transormation.startCameraY = $this.camera.y;
 
     $this._transormation.startPosX =
-      ((event.clientX - $this._USEFUL_CONST[9]) * $this._USEFUL_CONST[7] - 1) *
+      ((event.clientX - $this._USEFUL_CONSTS[9]) * $this._USEFUL_CONSTS[7] - 1) *
       $this._transormation.startInvMatrix[0] + $this._transormation.startInvMatrix[6];
 
     $this._transormation.startPosY =
-      ((event.clientY - $this._USEFUL_CONST[10]) * $this._USEFUL_CONST[8] + 1) *
+      ((event.clientY - $this._USEFUL_CONSTS[10]) * $this._USEFUL_CONSTS[8] + 1) *
       $this._transormation.startInvMatrix[4] + $this._transormation.startInvMatrix[7]
   }
 
@@ -1406,8 +1454,8 @@ class SPlot {
     // Хак получения доступа к объекту this.
     const $this = event.target.scatterplot;
 
-    const clipX = (event.clientX - $this._USEFUL_CONST[9]) * $this._USEFUL_CONST[7] - 1;
-    const clipY = (event.clientY - $this._USEFUL_CONST[10]) * $this._USEFUL_CONST[8] + 1;
+    const clipX = (event.clientX - $this._USEFUL_CONSTS[9]) * $this._USEFUL_CONSTS[7] - 1;
+    const clipY = (event.clientY - $this._USEFUL_CONSTS[10]) * $this._USEFUL_CONSTS[8] + 1;
 
     const preZoomX = (clipX - $this._transormation.matrix[6]) / $this._transormation.matrix[0];
     const preZoomY = (clipY - $this._transormation.matrix[7]) / $this._transormation.matrix[4];
@@ -1462,7 +1510,7 @@ class SPlot {
       this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this._buffers.indexBuffers[i]);
 
       // Отрисовка текущих буферов.
-      this._gl.drawElements(this._gl.TRIANGLES, this._buffers.amountOfPrimitiveVertices[i],
+      this._gl.drawElements(this._gl.TRIANGLES, this._buffers.amountOfGLVertices[i],
         this._gl.UNSIGNED_SHORT, 0);
     }
   }
@@ -1480,25 +1528,30 @@ class SPlot {
   }
 
   /**
-   * Случайным образом возвращает одно из трех чисел - 0, 1 или 2. Несмотря на
-   * случайность каждого конкретного вызова метода, числа возвращаются с
-   * предопределенной частотой. Частота всех трех чисел задается массивом
-   * demoMode.shapeQuota, каждый элемент которого задает частоту выпадания
-   * соответствующего из чисел 0, 1 или 2 на большом количестве вызовов метода.
-   *
+   * Случайным образом возвращает один из индексов числового одномерного массива.
+   * Несмотря на случайность каждого конкретного вызова функции, индексы возвращаются
+   * с предопределенной частотой. Частота "выпаданий" индексов задается соответствующими
+   * значениями элементов. Пример: На массиве [3, 2, 5] функция будет возвращать
+   * индекс 0 с частотой = 3/(3+2+5) = 3/10, индекс 1 с частотой = 2/(3+2+5) = 2/10,
+   * индекс 2 с частотой = 5/(3+2+5) = 5/10.
    * @private
-   * @return {number} Число 0, 1 или 2.
+   * @param {Array.<number>} arr Числовой одномерный массив, индексы которого будут
+   *     возвращаться с предопределенной частотой.
+   * @return {number} Случайный индекс из массива arr.
    */
-  _randomShape() {
+  _randomQuotaIndex(arr) {
 
-    let a = [
-      this.demoMode.shapeQuota[0],
-      this.demoMode.shapeQuota[0] + this.demoMode.shapeQuota[1],
-      this.demoMode.shapeQuota[0] + this.demoMode.shapeQuota[1] + this.demoMode.shapeQuota[2]
-    ];
+    let a = [];
+    a[0] = arr[0];
 
-    let r = Math.floor((Math.random() * a[2])) + 1;
-    let [l, h] = [0, 2];
+    for (let i = 1; i < arr.length; i++) {
+      a[i] = a[i - 1] + arr[i];
+    }
+
+    const lastIndex = a.length - 1;
+
+    let r = Math.floor((Math.random() * a[lastIndex])) + 1;
+    let [l, h] = [0, lastIndex];
 
     while (l < h) {
       const m = l + ((h - l) >> 1);
@@ -1513,7 +1566,7 @@ class SPlot {
    * информацию о полигоне со случаным положением, случайной формой и случайным цветом.
    *
    * @private
-   * @return {(SPlotPolygonInfo|null)} Информация о полигоне или null, если перебор
+   * @return {(SPlotPolygon|null)} Информация о полигоне или null, если перебор
    *     исходных объектов закончился.
    */
   _demoIterationCallback() {
@@ -1522,7 +1575,7 @@ class SPlot {
       return {
         x: this._randomInt(this.gridSize.width),
         y: this._randomInt(this.gridSize.height),
-        shape: this._randomShape(),
+        shape: this._randomQuotaIndex(this.demoMode.shapeQuota),
         color: this._randomInt(this.polygonPalette.length)
       }
     }
