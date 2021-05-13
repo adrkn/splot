@@ -1,5 +1,4 @@
-
-import SPlot from '@/splot'
+import SPlot from './splot'
 import '@/style'
 
 function randomInt(range: number) {
