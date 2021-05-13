@@ -1,602 +1,258 @@
-/**
- *
- * Модуль, описывающий класс SPlot (S[catter]Plot, S[uper]Plot).
- * Класс использует высокопроизводительные графические средства WebGL с целью
- * отображения на графике типа скаттерплот максимально возмоожного количества
- * объектов (миллионы и десятки миллионов).
- *
- * @author Aydar Akhmetov <aydarkin@gmail.com>
- * @version 1.1.0
- * 09.05.2021
- *
- */
 
-'use strict';
+function isObject(val: any) {
+  return (val instanceof Object) && (val.constructor === Object);
+}
+
+type SPlotShapeFunction = (x: number, y: number, consts: Array<any>) => SPlotPolygonVertices
 
 /**
- * Тип - Настройки экземпляра класса SPlot.
- *
- * @typedef {Object} SPlotOptions
- *
- * @property {function(): SPlotPolygon} iterationCallback Функция итерирования
- *     исходных объектов. Каждый вызов должен возвращать информацию об очередном
- *     исходном объекте в виде структуры типа SplotPolygonInfo (координаты, форму
- *     и цвет полигона, соответствующие проитерированному объекту). Когда исходные
- *     объекты закончатся функция должна вернуть null. Этот параметр класса является
- *     единственным обязательным (при условии выключенного режима демо-данных).
- * @property {Array.<string>} polygonPalette Цветовая палитра полигонов. Задается
- *     массивом, каждый элемент которого является строкой с HEX-кодом цвета.
- * @property {SPlotGridSize} gridSize Размер координатной плоскости в пикселях.
- * @property {number} polygonSize Размер полигона на координатной плоскости в пикселях
- *     (сторона для квадрата, диаметр для круга и т.п.)
- * @property {number} circleApproxLevel Степень детализации круга - количество углов
- *     полигона, апроксимирующего окружность круга.
- * @property {SPlotDebugMode} debugMode Параметры режима отладки приложения.
- * @property {SPlotDemoMode} demoMode Параметры режима использования демонстрационных данных.
- * @property {boolean} forceRun Признак того, что рендеринг необходимо начать
- *     сразу после задания настроек экземпляра (по умолчанию рендеринг запускается
- *     только после вызова метода start).
- * @property {number} maxAmountOfPolygons Искусственное ограничение количества
- *     отображаемых полигонов. При достижении этого числа итерирование исходных
- *     объектов прерывается, даже если обработаны не все объекты.
- * @property {string} bgColor Фоновый цвет канваса в HEX-формате.
- * @property {string} rulesColor Цвет направляющих в HEX-формате.
- * @property {SPlotCamera} camera Положение координатной плоскости в области
- *     просмотра.
- * @property {WebGLContextAttributes} webGlSettings Инициализирующие настройки контекста
- *     рендеринга WebGL, управляющие производительностью графической системы. По
- *     умолчанию производительность графической системы максимизируется и пользовательских
- *     предустановок не требуется.
+ * Цвет в HEX-формате.
  */
+type HEXColor = string
 
 /**
- * Тип - полигон. Содержит информацию, необходимую для добавления полигона в группу
- *     полигонов. Полигон - это сплошная фигура на координатной плоскости, отображающая
- *     один исходный объект.
- *
- * @typedef {Object} SPlotPolygon
- *
- * @property {number} x Координата центра полигона на оси абсцисс. Может быть
- *     как целым, так и вещественным числом.
- * @property {number} y Координата центра полигона на оси ординат. Может быть
- *     как целым, так и вещественным числом.
- * @property {number} shape Форма полигона. Форма - это целое число, представляющее
- *     собой индекс формы в предопределенном массиве форм. Основные формы:
- *     0 - треугольник, 1 - квадрат, 2 - круг.
- * @property {number} color Цвет полигона. Цвет - это целое число в диапазоне
- *     от 0 до 255, представляющее собой индекс цвета в предопределенном массиве цветов.
+ * Функция итерирования массива исходных объектов. Каждый вызов такой функции
+ * должен возвращать информацию об очередном полигоне, который необходимо
+ * отобразить (его координаты, форму и цвет). Когда исходные объекты закончатся
+ * функция должна вернуть null.
  */
+type SPlotIterationFunction = () => SPlotPolygon | null
 
-/**
- * Тип - размер координатной плоскости.
- *
- * @typedef {Object} SPlotGridSize
- *
- * @property {number} width Ширина координатной плоскости в пикселях.
- * @property {number} height Высота координатноой плоскости в пикселях.
- */
+type SPlotDebugOutput = 'console' | 'document' | 'file'
 
-/**
- * Тип - параметры режима отладки.
- *
- * @typedef {Object} SPlotDebugMode
- *
- * @property {boolean} isEnable Признак необходимости включения отладочного режима.
- * @property {string="console"} output Место вывода отладочной информации.
- */
+type WebGlShaderType = 'VERTEX_SHADER' | 'FRAGMENT_SHADER'
 
-/**
- * Тип - параметры демонстрационного режима.
- *
- * @typedef {Object} SPlotDemoMode
- *
- * @property {boolean} isEnable Признак необходимости включения демонстрационного
- *     режима. В этом режиме приложение вместо внешней функции итерирования
- *     исходных объектов использует внутренний метод, имитирующий итерирование.
- * @property {number} amount Количество имитируемых исходных объектов.
- * @property {Array.<number,number>} shapeQuota Частота появления в итерировании
- *     различных форм полигонов - треугольников[0], квадратов[1], кругов[2] и т.д.
- *     Пример: массив [3, 2, 5] означает, что частота появления треугольников
- *     = 3/(3+2+5) = 3/10, частота появления квадратов = 2/(3+2+5) = 2/10, частота
- *     появления кругов = 5/(3+2+5) = 5/10.
- * @property {number} index Этот параметр используется для имитации итерирования
- *     и установки пользовательского значения не требует.
- */
+type WebGlBufferType = 'ARRAY_BUFFER' | 'ELEMENT_ARRAY_BUFFER'
 
-/**
- * Тип - положение координатной плоскости в области просмотра.
- *
- * @typedef {Object} SPlotCamera
- *
- * @property {number} x Положение по оси абсцисс.
- * @property {number} y Положение по оси ординат.
- * @property {number} zoom - Степень "приближения" наблюдателя к координатной сетке
- *     (масштаб коодринатной плоскости в области просмотра).
- */
+type WebGlVariableType = 'uniform' | 'attribute'
 
-/**
- * Тип - трансформация. Содержит всю техническую информацию, необходимую для рассчета
- *     текущего положения координатной плоскости в области просмотра во время событий
- *     перемещения и зуммирования канваса.
- *
- * @typedef {Object} SPlotTransformation
- *
- * @property {Array.<number>} matrix Основная матрица трансформации 3x3 в виде
- *     одномерного массива из 9 элементов.
- *
- * Вспомогательные матрицы и координаты, используемые для рассчетов во время составных
- *     событий (перемещение канваса):
- * @property {Array.<number>} startInvMatrix.
- * @property {number} startCameraX
- * @property {number} startCameraY
- * @property {number} startPosX
- * @property {number} startPosY
- */
+type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array
 
-/**
- * Тип - группа полигонов, которую можно отобразить на канвасе за один рендер.
- *
- * @typedef {Object} SPlotPolygonGroup
- *
- * @property {Array.<number,number>} vertices Массив вершин всех полигонов группы.
- *     Каждая вершина - это пара чисел (координаты вершины на плоскости).
- *     Координаты могут быть как целыми, так и вещественными числами.
- * @property {Array.<number,number>} indices Массив индексов вершин полигонов группы.
- *     Каждый индекс - это номер вершины в массиве вершин. Индексы описывают все
- *     GL-треугольники, из которых состоят полигоны группы, т.о. каждая
- *     тройка индексов кодирует один GL-треугольник. Индексы - это целые
- *     числа в диапазоне от 0 до 65535, что накладывает ограничение на максимальное
- *     количество вершин, хранимых в группе полигонов (не более 32768 штук).
- * @property {Array.<number,number>} colors Массив цветов вершин полигонов группы. Каждое
- *     число задает цвет одной вершины в массиве вершин. Чтобы полигон был сплошного
- *     однородного цвета необходимо чтобы все вершины полигона имели одинаковый цвет.
- *     Цвет - это целое число в диапазоне от 0 до 255, представляющее собой
- *     индекс цвета в предопределенном массиве цветов.
- * @property {number} amountOfVertices Количество всех вершин в группе полигонов.
- * @property {number} amountOfGLVertices Количество вершин всех GL-треугольников
- *     группы полигонов.
- */
+type SPlotWebGlVariables = {
+  name: string,
+  type: WebGlVariableType,
+  value: WebGLUniformLocation | GLint
+}
 
-/**
- * Тип - буферы данных для загрузки в видеопамять.
- *
- * @typedef {Object} SPlotBuffers
- *
- * @property {Array.<WebGLBuffer>} vertexBuffers Массив буферов с информацией
- *     о вершинах полигонов.
- * @property {Array.<WebGLBuffer>} colorBuffers Массив буферов с информацией
- *     о цветах вершин полигонов.
- * @property {Array.<WebGLBuffer>} indexBuffers Массив буферов с индексами вершин полигонов.
- * @property {Array.<number,number>} amountOfGLVertices Количество вершин,
- *     образующих GL-треугольники каждого вершинного буфера.
- * @property {Array.<number,number>} amountOfShapes Количество полигонов каждой
- *     формы (сколько треугольников, квадратов, кругов).
- * @property {number} amountOfBufferGroups Количество буферных групп в массиве.
- *     Все указанные выше массивы буферов содержат одинаковое количество элементов.
- * @property {number} amountOfTotalVertices Общее количество вершин всех вершинных
- *     буферов (vertexBuffers).
- * @property {number} amountOfTotalGLVertices Общее количество вершин всех
- *     индексных буферов (indexBuffers).
- * @property {Array.<number,number>} sizeInBytes Размеры буферов каждого типа (для
- *     вершин, для цветов, для индексов) в байтах.
- */
+interface SPlotOptions {
+  iterationCallback?: SPlotIterationFunction,
+  polygonPalette?: HEXColor[],
+  gridSize?: SPlotGridSize,
+  polygonSize?: number,
+  circleApproxLevel?: number,
+  debugMode?: SPlotDebugMode,
+  demoMode?: SPlotDemoMode,
+  forceRun?: boolean,
+  maxAmountOfPolygons?: number,
+  bgColor?: HEXColor,
+  rulesColor?: HEXColor,
+  camera?: SPlotCamera,
+  webGlSettings?: WebGLContextAttributes
+}
 
-/**
- * Тип - Информация о вершинах полигона.
- *
- * @typedef {Object} SPlotPolygonVertices
- *
- * @property {Array.<number>} values Массив вершин полигона. Каждая вершина - это
- *     пара чисел (координаты вершины на плоскости). Пример: [x1,y1,x2,y2,x3,y3...]
- * @property {Array.<number>} indices Массив индексов вершин полигона. Каждый индекс -
- *     это номер вершины в массиве вершин. Индексы описывают все GL-треугольники,
- *     из которых состоит полигон, т.о. каждая тройка индексов кодирует один GL-треугольник.
- */
+interface SPlotPolygon {
+  x: number,
+  y: number,
+  shape: number,
+  color: number
+}
 
-/**
- * Тип - Информация о форме полигона.
- *
- * @typedef {Object} SPlotPolygonShape
- *
- * @property {function(): SPlotPolygonVertices} func Функция вычисления координат
- *     вершин полигона соответствующей формы.
- * @property {string} caption Название формы полигона.
- */
+interface SPlotGridSize {
+  width: number,
+  height: number
+}
 
-/**
- * Класс, отображающий точечный график (скаттерплот) с использованием низкоуровневого
- * высокопроизводительного функционала WebGL для работы напрямую с видеокартой клиента.
- * Это позволяет существенно увеличить количество объектов на графике, используя
- * вычислительные мощности клиента максимально эффективно. Метод отрисовки класса SPlot
- * эффективнее стандартных средств рисования на канвасе более чем в 100 раз. График также
- * можно двигать и зумировать мышью/трекпадом.
- *
- * Последовательность работы класса - перебор всех исходных объектов и формирование
- * для каждого объекта фигуры на графике (с определенными положением, формой и цветом).
- * Каждая фигура на графике представляет собой полигон - цветную замкнутую область,
- * ограниченную вершинами и соединяющими их прямыми линиями. Форм полигонов может быть
- * много - треугольники, квадраты, круги и т.д., их можно дополнять новыми.
- *
- * Каждый полигон при отрисовке кодируется набором примитивных треугольников (GL-
- * треугольников). Чем больше вершин в полигоне - тем больше GL-треугольников
- * используется для рендера. Поэтому наиболее эффективно использовать треугольные
- * формы полигонов, и наименее эффективно - круглые (круги в WebGL это апроксимирующие
- * окружность многоульники).
- *
- * Основной принцип рендера большого количества полигонов - определенное деление
- * их на группы, запись в видеопамять группами буферов и последовательный погрупповой
- * рендер с минимальным взаимодействием с объектами приложения.
- *
- * Для эффективной работы исходные объекты анализируются не в классе, а на уровне
- * исходного приложения. В класс передается только подготовленная информация о каждом
- * полигоне (координаты, форма, цвет). Передача происходит итерационно - по одному
- * полигону на один проанализированный исходный объект. Функция итерирования пишется
- * в коде исходного приложения и передается в класс параметром iterationCallback.
- *
- * Передать в класс опции и выполнить запуск рендера можно тремя способами:
- *
- *    1)   let x = new SPlot(<id канваса>);
- *         x.setup(<опции>);
- *         x.run();
- *
- *    2)   let x = new SPlot(<id канваса>, <опции>);
- *         x.run();
- *
- *    3)   let x = new SPlot(<id канваса>, <опции с параметром форсированного запуска>);
- *
- * Присвоение экземпляра класса переменной является необходимым условием.
- * Все возможные опции класса описаны в типе SPlotOptions.
- * После запуска рендер можно остановить (x.stop()), очистить (x.clear()), запустить
- * повторно и изменить опции (x.setup(<опции>) во время остановки рендера).
- *
- * @example
- * Примеры использования:
- *
- *    1) Запуск с минимальным количеством опций:
- *
- *         let x = new SPlot('canvas-id', {
- *           iterationCallback: readNextObject
- *         });
- *         x.run();
- *
- *    2) Запуск с минимальным количеством опций в демо-режиме:
- *
- *         let x = new SPlot('canvas-id', {
- *           demoMode: {
- *             isEnable: true
- *           }
- *         });
- *         x.run();
- *
- *    3) Запуск в демо-режиме и с выводом отладочной информации:
- *
- *         let x = new SPlot('canvas-id', {
- *           demoMode: {
- *             isEnable: true
- *           },
- *           debugMode: {
- *             isEnable: true
- *           }
- *         });
- *         x.run();
- *
- *    4) Запуск из конструктора (форсированный запуск) с указанием палитры цветов:
- *
- *         let x = new SPlot('canvas-id', {
- *           iterationCallback: readNextObject,
- *           polygonPalette: ['#ff0000', '00ffaa', '#123456', 'd0d0d0'],
- *           forceRun: true
- *         });
- *
- *    5) Запуск с заданием всех доступных опций (см. значение опций в типе SPlotOptions):
- *
- *         let x = new SPlot('canvas-id', {
- *           iterationCallback: readNextObject,
- *           polygonPalette: ['#ff0000', '00ffaa', '#123456', 'd0d0d0'],
- *           gridSize: {
- *             width: 20000,
- *             height: 20000
- *           },
- *           polygonSize: 10,
- *           circleApproxLevel: 14,
- *           debugMode: {
- *             isEnable: true,
- *             output: 'console'
- *           },
- *           demoMode: {
- *             isEnable: true,
- *             amount: 5000000,
- *             shapeQuota: [6, 3, 1]
- *           },
- *           forceRun: true,
- *           maxAmountOfPolygons: 1000000,
- *           bgColor: '#ffffff',
- *           camera: {
- *             x: 5000,
- *             y: 7000,
- *             zoom: 1
- *           },
- *           webGlSettings: {
- *             alpha: false,
- *             depth: false,
- *             stencil: false,
- *             antialias: false,
- *             premultipliedAlpha: false,
- *             preserveDrawingBuffer: false,
- *             powerPreference: 'high-performance',
- *             failIfMajorPerformanceCaveat: false,
- *             desynchronized: false
- *           }
- *         });
- *
- * @todo Реализовать отображение сетки (rules) с плавающей величиной ячейки.
- * @todo Реализовать отображение осей (axes) с плавающими делениями.
- * @todo Ограничить минимальный масштаб границами канваса.
- * @todo Реализовать альтернативный метод загрузки данных о полигонах способом
- *     однократной передачи массива данных.
- * @todo Реализовать альтернативные спосообы вывода отладочной информации (в DOM
- *     исходного приложения).
- * @todo Реализовать альтернативный метод, отбражающий только треугольные полигоны
- *     самым оптимальным способом для максимально возможной производительности
- *     в ущерб универсальности.
- * @todo Реализовать альтернативный метод отображения графика, состоящего только
- *     из GL-точек.
- * @todo Анализ работы алгоритмов на маломощных машинах.
- * @todo Сделать файл README
- */
-class SPlot {
+interface SPlotDebugMode {
+  isEnable?: boolean,
+  output?: SPlotDebugOutput
+}
 
-  /**
-   * Создает экземпляр класса, инициализирует настройки по умолчанию.
-   *
-   * @param {string} canvasId Идентификатор элемента <canvas>, на котором будет
-   *     рисоваться скаттерплот.
-   * @param {SPlotOptions} [options=false] Пользовательские настройки экземпляра.
-   *     Их можно задать в конструкторе или позже - вызовом метода setup.
-   */
-  constructor(canvasId, options = false) {
+interface SPlotDemoMode {
+  isEnable?: boolean,
+  amount?: number,
+  shapeQuota?: number[],
+  index?: number
+}
 
+interface SPlotCamera {
+  x: number,
+  y: number,
+  zoom: number
+}
+
+interface SPlotTransformation {
+  matrix: number[],
+  startInvMatrix: number[],
+  startCameraX: number,
+  startCameraY: number,
+  startPosX: number,
+  startPosY: number
+}
+
+interface SPlotBuffers {
+  vertexBuffers: WebGLBuffer[],
+  colorBuffers: WebGLBuffer[],
+  indexBuffers: WebGLBuffer[],
+  amountOfGLVertices: number[],
+  amountOfShapes: number[],
+  amountOfBufferGroups: number,
+  amountOfTotalVertices: number,
+  amountOfTotalGLVertices: number,
+  sizeInBytes: number[]
+}
+
+interface SPlotPolygonGroup {
+  vertices: number[],
+  indices: number[],
+  colors: number[],
+  amountOfVertices: number,
+  amountOfGLVertices: number
+}
+
+interface SPlotPolygonVertices {
+  values: number[],
+  indices: number[]
+}
+
+export default class SPlot {
+
+  public static instances: { [key: string]: SPlot } = {}
+
+  public iterationCallback?: SPlotIterationFunction
+
+  public polygonPalette: HEXColor[] = [
+    '#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00',
+    '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080'
+  ]
+
+  public gridSize: SPlotGridSize = {
+    width: 32_000,
+    height: 16_000
+  }
+
+  public polygonSize: number = 20
+
+  public circleApproxLevel: number = 12
+
+  public debugMode: SPlotDebugMode = {
+    isEnable: false,
+    output: 'console'
+  }
+
+  public demoMode: SPlotDemoMode = {
+    isEnable: false,
+    amount: 1_000_000,
     /**
-     * Инициализирующие настройки экземпляров класса по умолчанию. Все поля в точности
-     * соответствуют типу настроек SPlotOptions (описан выше). Пользователь может
-     * переопределить любое из этих полей. Необходимым явлется только задание функции
-     * итерирования - iterationCallback. Однако, если включен демо-режим, то задание
-     * функции итерирования не требуется.
-     *
-     * @type {SPlotOptions}
-     * @default
-     * @public
+     * По умолчанию в режиме демонстрационных данных будут поровну отображаться
+     * полигоны всех возможных форм. Соответствующие значения shapeQuota
+     * инициализируются при регистрации функций создания форм (ниже по коду).
      */
+    shapeQuota: [],
+    index: 0
+  }
 
-    /** @type {function(): SPlotPolygon} */
-    this.iterationCallback = null;
+  public forceRun: boolean = false
 
-    /** @type {Array.<string>} */
-    this.polygonPalette = [
-      '#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00',
-      '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080'
-    ];
+  public maxAmountOfPolygons: number = 1_000_000_000
 
-    /** @type {SPlotGridSize} */
-    this.gridSize = {
-      width: 32_000,
-      height: 16_000
-    };
+  public bgColor: HEXColor = '#ffffff'
 
-    /** @type {number} */
-    this.polygonSize = 20;
+  public rulesColor: HEXColor = '#c0c0c0'
 
-    /** @type {number} */
-    this.circleApproxLevel = 12;
+  public camera: SPlotCamera = {
+    x: this.gridSize.width / 2,
+    y: this.gridSize.height / 2,
+    zoom: 1
+  }
 
-    /** @type {SPlotDebugMode} */
-    this.debugMode = {
-      isEnable: false,
-      output: 'console'
-    };
+  public webGlSettings: WebGLContextAttributes = {
+    alpha: false,
+    depth: false,
+    stencil: false,
+    antialias: false,
+    premultipliedAlpha: false,
+    preserveDrawingBuffer: false,
+    powerPreference: 'high-performance',
+    failIfMajorPerformanceCaveat: false,
+    desynchronized: false
+  }
 
-    /** @type {SPlotDemoMode} */
-    this.demoMode = {
-      isEnable: false,
-      amount: 1_000_000,
-      /**
-       * По умолчанию в режиме демонстрационных данных будут поровну отображаться
-       * полигоны всех возможных форм. Соответствующие значения shapeQuota
-       * инициализируются при регистрации функций создания форм (ниже по коду).
-       */
-      shapeQuota: [],
-      index: 0
-    };
+  protected _canvas: HTMLCanvasElement
 
-    /** @type {boolean} */
-    this.forceRun = false;
+  protected _gl!: WebGLRenderingContext
 
-    /** @type {number} */
-    this.maxAmountOfPolygons = 1_000_000_000;
+  protected _variables: { [key: string]: any } = []
 
-    /** @type {string} */
-    this.bgColor = '#ffffff';
+  protected _vertexShaderCodeTemplate: string =
+    'attribute vec2 a_position;\n' +
+    'attribute float a_color;\n' +
+    'uniform mat3 u_matrix;\n' +
+    'varying vec3 v_color;\n' +
+    'void main() {\n' +
+    '  gl_Position = vec4((u_matrix * vec3(a_position, 1)).xy, 0.0, 1.0);\n' +
+    '  SET-VERTEX-COLOR-CODE' +
+    '}\n'
 
-    /** @type {string} */
-    this.rulesColor = '#c0c0c0';
+  protected _fragmentShaderCodeTemplate: string =
+    'precision lowp float;\n' +
+    'varying vec3 v_color;\n' +
+    'void main() {\n' +
+    '  gl_FragColor = vec4(v_color.rgb, 1.0);\n' +
+    '}\n'
 
-    /** @type {SPlotCamera} */
-    this.camera = {
-      x: this.gridSize.width / 2,
-      y: this.gridSize.height / 2,
-      zoom: 1
-    };
+  protected _amountOfPolygons: number = 0
 
-    /** @type {WebGLContextAttributes} */
-    this.webGlSettings = {
-      alpha: false,
-      depth: false,
-      stencil: false,
-      antialias: false,
-      premultipliedAlpha: false,
-      preserveDrawingBuffer: false,
-      powerPreference: 'high-performance',
-      failIfMajorPerformanceCaveat: false,
-      desynchronized: false
-    };
+  protected _debugStyle: string = 'font-weight: bold; color: #ffffff;'
 
-    /**
-     * Объект - канвас, на котором будет рисоваться скаттерплот.
-     * @type {HTMLCanvasElement}
-     * @private
-     */
-    this._canvas = null;
+  protected _USEFUL_CONSTS: any[] = []
 
-    /**
-     * Объект - контекст рендеринга WebGL.
-     * @type {WebGLRenderingContext}
-     * @private
-     */
-    this._gl = null;
+  protected _isRunning: boolean = false
 
-    /**
-     * Объект - программа WebGL.
-     * @type {WebGLProgram}
-     * @private
-     */
-    this._gpuProgram = null;
+  protected _transormation: SPlotTransformation = {
+    matrix: [],
+    startInvMatrix: [],
+    startCameraX: 0,
+    startCameraY: 0,
+    startPosX: 0,
+    startPosY: 0
+  }
 
-    /**
-     * Переменные программы WebGL для связи с приложением.
-     * @type {Array.<string>}
-     * @private
-     */
-    this._variables = ['a_position', 'a_color', 'u_matrix'];
+  protected _maxAmountOfVertexPerPolygonGroup: number = 32768 - (this.circleApproxLevel + 1);
 
-    /**
-     * Шаблон кода вершинного шейдера на языке GLSL. Содержит специальную строку
-     *     'SET-VERTEX-COLOR-CODE', которая перед созданием шейдера заменяется на
-     *     GLSL-код выбора цвета вершин.
-     * @type {string}
-     * @private
-     */
-    this._vertexShaderCodeTemplate =
-      'attribute vec2 a_position;\n' +
-      'attribute float a_color;\n' +
-      'uniform mat3 u_matrix;\n' +
-      'varying vec3 v_color;\n' +
-      'void main() {\n' +
-      '  gl_Position = vec4((u_matrix * vec3(a_position, 1)).xy, 0.0, 1.0);\n' +
-      '  SET-VERTEX-COLOR-CODE' +
-      '}\n';
+  protected _buffers: SPlotBuffers = {
+    vertexBuffers: [],
+    colorBuffers: [],
+    indexBuffers: [],
+    amountOfGLVertices: [],
+    amountOfShapes: [],
+    amountOfBufferGroups: 0,
+    amountOfTotalVertices: 0,
+    amountOfTotalGLVertices: 0,
+    sizeInBytes: [0, 0, 0]
+  }
 
-    /**
-     * Шаблон кода фрагментного шейдера.
-     * @type {string}
-     * @private
-     */
-    this._fragmentShaderCodeTemplate =
-      'precision lowp float;\n' +
-      'varying vec3 v_color;\n' +
-      'void main() {\n' +
-      '  gl_FragColor = vec4(v_color.rgb, 1.0);\n' +
-      '}\n';
+  protected _getVertices: {func: SPlotShapeFunction, caption: string}[] = []
 
-    /**
-     * Количество готовых к рендерингу полигонов.
-     * @type {number}
-     * @private
-     */
-    this._amountOfPolygons = 0;
+  protected _gpuProgram!: WebGLProgram
 
-    /**
-     * Стиль заголовочного текста в консоли браузера.
-     * @type {string}
-     * @private
-     */
-    this._debugStyle = 'font-weight: bold; color: #ffffff;';
+  constructor(canvasId: string, options?: SPlotOptions) {
 
-    /**
-     * Набор вспомогательных констант, ускоряющих производительность.
-     * @type {Array.<number,number>}
-     * @private
-     */
-    this._USEFUL_CONSTS = [];
+    SPlot.instances[canvasId] = this
 
-    /**
-     * Признак активного рендеринга.
-     * @type {boolean}
-     * @private
-     */
-    this._isRunning = false;
+    this._canvas = document.getElementById(canvasId) as HTMLCanvasElement
 
-    /**
-     * Данные трансформации.
-     * @type {SPlotTransformation}
-     * @private
-     */
-    this._transormation = {
-      matrix: [],
-      startInvMatrix: [],
-      startCameraX: 0,
-      startCameraY: 0,
-      startPosX: 0,
-      startPosY: 0
-    };
-
-    /**
-     * Предельное количество вершин в группе полигонов, которое еще допускает
-     * добавление одного самого многовершинного полигона.
-     * @type {number}
-     * @private
-     */
-    this._maxAmountOfVertexPerPolygonGroup = 32768 - (this.circleApproxLevel + 1);
-
-    /**
-     * Буферы WebGL и системная и статистическая информация.
-     * @type {SPlotBuffers}
-     * @private
-     */
-    this._buffers = {
-      vertexBuffers: [],
-      colorBuffers: [],
-      indexBuffers: [],
-      amountOfGLVertices: [],
-      amountOfShapes: [],
-      amountOfBufferGroups: 0,
-      amountOfTotalVertices: 0,
-      amountOfTotalGLVertices: 0,
-      sizeInBytes: [0, 0, 0]
-    };
-
-    /**
-     * Набор функций, создающих полигоны.
-     * @type {Array.<SPlotPolygonShape>}
-     * @private
-     */
-    this._getVertices = [];
-
-    /**
-     * Регистрация функций создания полигонов трех базовых форм - треугольники,
-     * квадраты, круги. Наличие этих базовых форм в указанном порядке является
-     * обязательным для корректной работы приложения. В дальнейшем остальные формы
-     * могут регистрироватья в любом количестве, в любой последовательности.
-     */
-    this.registerPolygonShape(this._getVerticesOfTriangle, 'Треугольник');
-    this.registerPolygonShape(this._getVerticesOfSquare, 'Квадрат');
-    this.registerPolygonShape(this._getVerticesOfCircle, 'Круг');
-
-    // Создание и инициализация объектов рендеринга WebGL.
-    this._createWebGl(canvasId);
-
-    /**
-     * Канвас, на котором будет происходить рендеринг, получает ссылку на экземпляр
-     * класса. Это дает возможность внешним обработчикам событий канваса обращаться
-     * к методам экземпляра. В частности, обработчики событий мыши на канвасе могут
-     * вызывать методы расчета трансформаций и метод рендера экземпляра. Объект this
-     * внутри обработчиков событий недоступен.
-     */
-    this._canvas.scatterplot = this;
-
-    // Если при создании экземпляра были заданы настройки, то они применяются.
     if (options) {
-      this.setup(options);
+
+      this._setOptions(options)
+
+      if (this.forceRun) {
+        this.setup(options)
+      }
     }
+
+    this.registerPolygonShape(this._getVerticesOfTriangle, 'Треугольник')
+    this.registerPolygonShape(this._getVerticesOfSquare, 'Квадрат')
+    this.registerPolygonShape(this._getVerticesOfCircle, 'Круг')
   }
 
   /**
@@ -605,12 +261,9 @@ class SPlot {
    * @private
    * @param {string} canvasId Идентификатор элемента <canvas>.
    */
-  _createWebGl(canvasId) {
+  _createWebGl() {
 
-    this._canvas = document.getElementById(canvasId);
-
-    // Инициализация контекста рендеринга WebGL.
-    this._gl = this._canvas.getContext('webgl', this.webGlSettings);
+    this._gl = this._canvas.getContext('webgl', this.webGlSettings) as WebGLRenderingContext
 
     // Выравнивание области рендеринга в соответствии с размером канваса.
     this._canvas.width = this._canvas.clientWidth;
@@ -618,17 +271,7 @@ class SPlot {
     this._gl.viewport(0, 0, this._canvas.width, this._canvas.height);
   }
 
-  /**
-   * Регистрирует новую форму полигонов. Регистрация означает возможность
-   * дальнейшего создания полигонов данной формы.
-   *
-   * @private
-   * @param {function(): SPlotPolygonVertices} polygonFunc Функция вычисления координат
-   *     вершин полигона соответствующей формы.
-   * @param {string} polygonCaption Название формы полигона.
-   * @return {number} Индекс новой формы.
-   */
-  registerPolygonShape(polygonFunc, polygonCaption) {
+  registerPolygonShape(polygonFunc: SPlotShapeFunction, polygonCaption: string) {
 
     // Занесение функции и названия формы в массив. Форма будет кодироваться индексом в этом массиве.
     this._getVertices.push({
@@ -637,7 +280,7 @@ class SPlot {
     });
 
     // Добавление новой формы в массив частот появления форм в режиме демонстрационных данных.
-    this.demoMode.shapeQuota.push(1);
+    this.demoMode.shapeQuota!.push(1);
 
     return this._getVertices.length - 1;
   }
@@ -646,12 +289,14 @@ class SPlot {
    * Устанавливает необходимые перед запуском рендера параметры экземпляра и WebGL.
    *
    * @public
-   * @param {SPlotOtions} options Пользовательские настройки экземпляра.
+   * @param {SPlotOptions} options Пользовательские настройки экземпляра.
    */
-  setup(options) {
+  setup(options: SPlotOptions) {
 
     // Применение пользовательских настроек.
     this._setOptions(options);
+
+    this._createWebGl()
 
     // Обнуление счетчика полигонов.
     this._amountOfPolygons = 0;
@@ -713,7 +358,7 @@ class SPlot {
    * @private
    * @param {SPlotOtions} options Пользовательские настройки экземпляра.
    */
-  _setOptions(options) {
+  _setOptions(options: SPlotOptions) {
 
     /**
      * Копирование пользовательских настроек в соответсвующие поля экземпляра.
@@ -722,17 +367,17 @@ class SPlot {
      * настроек.
      */
     for (let option in options) {
-      if (this.hasOwnProperty(option)) {
-        if ((Object.prototype.toString.call(options[option]).slice(8, -1) === 'Object') &&
-          (Object.prototype.toString.call(this[option]).slice(8, -1) === 'Object')) {
-          for (let nestedOption in options[option]) {
-            if (this[option].hasOwnProperty(nestedOption)) {
-              this[option][nestedOption] = options[option][nestedOption];
-            }
+
+      if (!this.hasOwnProperty(option)) continue
+
+      if (isObject((options as any)[option]) && isObject((this as any)[option]) ) {
+        for (let nestedOption in (options as any)[option]) {
+          if ((this as any)[option].hasOwnProperty(nestedOption)) {
+            (this as any)[option][nestedOption] = (options as any)[option][nestedOption];
           }
-        } else {
-          this[option] = options[option];
         }
+      } else {
+        (this as any)[option] = (options as any)[option];
       }
     }
 
@@ -800,18 +445,10 @@ class SPlot {
     this._USEFUL_CONSTS[10] = this._canvas.getBoundingClientRect().top;
   }
 
-  /**
-   * Создает шейдер WebGL.
-   *
-   * @private
-   * @param {string="VERTEX_SHADER","FRAGMENT_SHADER"} shaderType Тип шейдера - вершинный или фрагментный.
-   * @param {string} shaderCode Код шейдера на языке GLSL.
-   * @return {WebGLShader} Созданный объект шейдера WebGL.
-   */
-  _createWebGlShader(shaderType, shaderCode) {
+  _createWebGlShader(shaderType: WebGlShaderType, shaderCode: string) {
 
     // Создание, привязка кода и компиляция шейдера.
-    const shader = this._gl.createShader(this._gl[shaderType]);
+    const shader = this._gl.createShader(this._gl[shaderType]) as WebGLShader;
     this._gl.shaderSource(shader, shaderCode);
     this._gl.compileShader(shader);
 
@@ -837,10 +474,10 @@ class SPlot {
    * @param {WebGLShader} fragmentShader Фрагментный шейдер.
    * @return {WebGLProgram} Созданный объект программы WebGL.
    */
-  _createWebGlProgram(vertexShader, fragmentShader) {
+  _createWebGlProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader) {
 
     // Создание я привязка программы WebGL.
-    let gpuProgram = this._gl.createProgram();
+    let gpuProgram = this._gl.createProgram() as WebGLProgram;
     this._gl.attachShader(gpuProgram, vertexShader);
     this._gl.attachShader(gpuProgram, fragmentShader);
     this._gl.linkProgram(gpuProgram);
@@ -852,25 +489,12 @@ class SPlot {
     return gpuProgram;
   }
 
-  /**
-   * Делает программу WebGL активной.
-   *
-   * @private
-   * @param {WebGLProgram} gpuProgram Объект программы WebGL.
-   */
-  _setWebGlProgram(gpuProgram) {
+  _setWebGlProgram(gpuProgram: WebGLProgram) {
     this._gl.useProgram(gpuProgram);
     this._gpuProgram = gpuProgram;
   }
 
-  /**
-   * Устанавливает связь переменной приложения с программой WebGl.
-   *
-   * @private
-   * @param {string="uniform","attribute"} varType Тип переменной.
-   * @param {string} varName Имя переменной.
-   */
-  _setWebGlVariable(varType, varName) {
+  _setWebGlVariable(varType: WebGlVariableType, varName: string) {
     if (varType === 'uniform') {
       this._variables[varName] = this._gl.getUniformLocation(this._gpuProgram, varName);
     } else if (varType === 'attribute') {
@@ -963,7 +587,7 @@ class SPlot {
     if (this._amountOfPolygons >= this.maxAmountOfPolygons) return null;
 
     // Итерирование исходных объектов.
-    while (polygon = this.iterationCallback()) {
+    while (polygon = this.iterationCallback!()) {
 
       // Добавление в группу полигонов нового полигона.
       this._addPolygon(polygonGroup, polygon);
@@ -1011,13 +635,13 @@ class SPlot {
    *     для цветов, для индексов). Используется для раздельного подсчета памяти,
    *     занимаемой каждым типом буфера.
    */
-  _addWbGlBuffer(buffers, type, data, key) {
+  _addWbGlBuffer(buffers: WebGLBuffer[], type: WebGlBufferType, data: TypedArray, key: number) {
 
     // Определение индекса нового элемента в массиве буферов WebGL.
     const index = this._buffers.amountOfBufferGroups;
 
     // Создание и заполнение данными нового буфера.
-    buffers[index] = this._gl.createBuffer();
+    buffers[index] = this._gl.createBuffer()!;
     this._gl.bindBuffer(this._gl[type], buffers[index]);
     this._gl.bufferData(this._gl[type], data, this._gl.STATIC_DRAW);
 
@@ -1025,17 +649,7 @@ class SPlot {
     this._buffers.sizeInBytes[key] += data.length * data.BYTES_PER_ELEMENT;
   }
 
-  /**
-   * Вычисляет координаты вершин полигона треугольной формы.
-   *
-   * @private
-   * @param {number} x Положение центра полигона на оси абсцисс.
-   * @param {number} y Положение центра полигона на оси ординат.
-   * @param {Array.<number,number>} consts Набор вспомогательных констант, используемых
-   *     для вычисления вершин полигона.
-   * @return {SPlotPolygonVertices} Информация о вершинах нового полигона.
-   */
-  _getVerticesOfTriangle(x, y, consts) {
+  _getVerticesOfTriangle(x: number, y: number, consts: any[]): SPlotPolygonVertices {
 
     const [x1, y1] = [x - consts[0], y + consts[2]];
     const [x2, y2] = [x, y - consts[1]];
@@ -1049,17 +663,7 @@ class SPlot {
     return vertices;
   }
 
-  /**
-   * Вычисляет координаты вершин полигона квадратной формы.
-   *
-   * @private
-   * @param {number} x Положение центра полигона на оси абсцисс.
-   * @param {number} y Положение центра полигона на оси ординат.
-   * @param {Array.<number,number>} consts Набор вспомогательных констант, используемых
-   *     для вычисления вершин полигона.
-   * @return {SPlotPolygonVertices} Информация о вершинах нового полигона.
-   */
-  _getVerticesOfSquare(x, y, consts) {
+  _getVerticesOfSquare(x: number, y: number, consts: any[]): SPlotPolygonVertices {
 
     const [x1, y1] = [x - consts[0], y - consts[0]];
     const [x2, y2] = [x + consts[0], y + consts[0]];
@@ -1072,20 +676,10 @@ class SPlot {
     return vertices;
   }
 
-  /**
-   * Вычисляет координаты вершин полигона круглой формы.
-   *
-   * @private
-   * @param {number} x Положение центра полигона на оси абсцисс.
-   * @param {number} y Положение центра полигона на оси ординат.
-   * @param {Array.<number,number>} consts Набор вспомогательных констант, используемых
-   *     для вычисления вершин полигона.
-   * @return {SPlotPolygonVertices} Информация о вершинах нового полигона.
-   */
-  _getVerticesOfCircle(x, y, consts) {
+  _getVerticesOfCircle(x: number, y: number, consts: any[]): SPlotPolygonVertices {
 
     // Занесение в набор вершин центра круга.
-    const vertices = {
+    const vertices: SPlotPolygonVertices = {
       values: [x, y],
       indices: []
     };
@@ -1113,7 +707,7 @@ class SPlot {
    *     происходит добавление.
    * @param {SPlotPolygon} polygon Информация о добавляемом полигоне.
    */
-  _addPolygon(polygonGroup, polygon) {
+  _addPolygon(polygonGroup: SPlotPolygonGroup, polygon: SPlotPolygon) {
 
     /**
      * На основе формы полигона и координат его центра вызывается соответсвующая
@@ -1164,7 +758,7 @@ class SPlot {
    * @private
    * @param {SPlotOtions} options Пользовательские настройки экземпляра.
    */
-  _reportMainInfo(options) {
+  _reportMainInfo(options: SPlotOptions) {
 
     console.log('%cВключен режим отладки ' + this.constructor.name +
       ' [#' + this._canvas.id + ']', this._debugStyle + ' background-color: #cc0000;');
@@ -1179,16 +773,17 @@ class SPlot {
     console.dir('Открытая консоль браузера и другие активные средства контроля разработки существенно снижают производительность высоконагруженных приложений. Для объективного анализа производительности все подобные средства должны быть отключены, а консоль браузера закрыта. Некоторые данные отладочной информации в зависимости от используемого браузера могут не отображаться или отображаться некорректно. Средство отладки протестировано в браузере Google Chrome v.90');
 
     console.groupEnd();
-
+/*
     // Группа "Видеосистема".
     console.group('%cВидеосистема', this._debugStyle);
 
     let ext = this._gl.getExtension('WEBGL_debug_renderer_info');
-    console.log('Графическая карта: ' + this._gl.getParameter(ext.UNMASKED_RENDERER_WEBGL));
+    let graphicsCardName = (ext) ? this._gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '[неизвестно]'
+    console.log('Графическая карта: ' + graphicsCardName);
     console.log('Версия GL: ' + this._gl.getParameter(this._gl.VERSION));
 
     console.groupEnd();
-
+*/
     // Группа "Настройка параметров экземпляра".
     console.group('%cНастройка параметров экземпляра', this._debugStyle);
 
@@ -1199,7 +794,7 @@ class SPlot {
     console.log('Размер плоскости: ' + this.gridSize.width + ' x ' + this.gridSize.height + ' px');
     console.log('Размер полигона: ' + this.polygonSize + ' px');
     console.log('Апроксимация окружности: ' + this.circleApproxLevel + ' углов');
-    console.log('Функция перебора: ' + this.iterationCallback.name);
+    console.log('Функция перебора: ' + this.iterationCallback!.name);
 
     console.groupEnd();
   }
@@ -1303,18 +898,10 @@ class SPlot {
     return code;
   }
 
-  /**
-   * Конвертирует цвет из HEX-представления ("#ffffff") в представление цвета для
-   * GLSL-кода (RGB с диапазонами значений от 0 до 1).
-   *
-   * @private
-   * @param {string} hexColor Код шейдера в HEX-формате.
-   * @return {Array.<number>} Массив из трех чисел в диапазоне от 0 до 1.
-   */
-  _convertColor(hexColor) {
+  _convertColor(hexColor: HEXColor) {
 
     let k = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hexColor);
-    let [r, g, b] = [parseInt(k[1], 16) / 255, parseInt(k[2], 16) / 255, parseInt(k[3], 16) / 255];
+    let [r, g, b] = [parseInt(k![1], 16) / 255, parseInt(k![2], 16) / 255, parseInt(k![3], 16) / 255];
 
     return [r, g, b];
   }
@@ -1348,10 +935,7 @@ class SPlot {
    *     мыши (_handleMouseWheel). Во втором варианте использование объекта this
    *     невозможно.
    */
-  _updateTransMatrix(canvas) {
-
-    // Хак получения доступа к объекту this.
-    const $this = canvas.scatterplot;
+  _updateTransMatrix($this: SPlot) {
 
     const t1 = $this.camera.zoom * $this._USEFUL_CONSTS[5];
     const t2 = $this.camera.zoom * $this._USEFUL_CONSTS[6];
@@ -1370,10 +954,10 @@ class SPlot {
    * @private
    * @param {MouseEvent} event Событие мыши/трекпада.
    */
-  _handleMouseMove(event) {
+  _handleMouseMove(event: MouseEvent) {
 
     // Хак получения доступа к объекту this.
-    const $this = event.target.scatterplot;
+    const $this = SPlot.instances[ (event.target as HTMLElement).id ]
 
     $this.camera.x = $this._transormation.startCameraX + $this._transormation.startPosX -
       ((event.clientX - $this._USEFUL_CONSTS[9]) * $this._USEFUL_CONSTS[7] - 1) * $this._transormation.startInvMatrix[0] -
@@ -1395,15 +979,15 @@ class SPlot {
    * @private
    * @param {MouseEvent} event Событие мыши/трекпада.
    */
-  _handleMouseDown(event) {
+  _handleMouseDown(event: MouseEvent) {
 
     event.preventDefault();
 
     // Хак получения доступа к объекту this.
-    const $this = event.target.scatterplot;
+    const $this = SPlot.instances[(event.target as HTMLElement).id]
 
-    event.target.addEventListener('mousemove', $this._handleMouseMove);
-    event.target.addEventListener('mouseup', $this._handleMouseUp);
+    event.target!.addEventListener('mousemove', $this._handleMouseMove as EventListener);
+    event.target!.addEventListener('mouseup', $this._handleMouseUp as EventListener);
 
     $this._transormation.startInvMatrix = [
       1 / $this._transormation.matrix[0], 0, 0, 0, 1 / $this._transormation.matrix[4],
@@ -1430,13 +1014,13 @@ class SPlot {
    * @private
    * @param {MouseEvent} event Событие мыши/трекпада.
    */
-  _handleMouseUp(event) {
+  _handleMouseUp(event: MouseEvent) {
 
     // Хак получения доступа к объекту this.
-    const $this = event.target.scatterplot;
+    const $this = SPlot.instances[(event.target as HTMLElement).id]
 
-    event.target.removeEventListener('mousemove', $this._handleMouseMove);
-    event.target.removeEventListener('mouseup', $this._handleMouseUp);
+    event.target!.removeEventListener('mousemove', $this._handleMouseMove as EventListener);
+    event.target!.removeEventListener('mouseup', $this._handleMouseUp as EventListener);
   }
 
   /**
@@ -1447,12 +1031,12 @@ class SPlot {
    * @private
    * @param {MouseEvent} event Событие мыши/трекпада.
    */
-  _handleMouseWheel(event) {
+  _handleMouseWheel(event: WheelEvent) {
 
     event.preventDefault();
 
     // Хак получения доступа к объекту this.
-    const $this = event.target.scatterplot;
+    const $this = SPlot.instances[(event.target as HTMLElement).id]
 
     const clipX = (event.clientX - $this._USEFUL_CONSTS[9]) * $this._USEFUL_CONSTS[7] - 1;
     const clipY = (event.clientY - $this._USEFUL_CONSTS[10]) * $this._USEFUL_CONSTS[8] + 1;
@@ -1463,7 +1047,7 @@ class SPlot {
     const newZoom = $this.camera.zoom * Math.pow(2, event.deltaY * -0.01);
     $this.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
 
-    $this._updateTransMatrix(event.target);
+    $this._updateTransMatrix($this);
 
     const postZoomX = (clipX - $this._transormation.matrix[6]) / $this._transormation.matrix[0];
     const postZoomY = (clipY - $this._transormation.matrix[7]) / $this._transormation.matrix[4];
@@ -1486,7 +1070,7 @@ class SPlot {
     this._gl.clear(this._gl.COLOR_BUFFER_BIT);
 
     // Обновление матрицы трансформации.
-    this._updateTransMatrix(this._canvas);
+    this._updateTransMatrix(this);
 
     // Привязка матрицы трансформации к переменной шейдера.
     this._gl.uniformMatrix3fv(this._variables['u_matrix'], false, this._transormation.matrix);
@@ -1523,7 +1107,7 @@ class SPlot {
    * @param {number} range Верхний предел диапазона случайного выбора.
    * @return {number} Сгенерированное случайное число.
    */
-  _randomInt(range) {
+  _randomInt(range: number) {
     return Math.floor(Math.random() * range);
   }
 
@@ -1539,7 +1123,7 @@ class SPlot {
    *     возвращаться с предопределенной частотой.
    * @return {number} Случайный индекс из массива arr.
    */
-  _randomQuotaIndex(arr) {
+  _randomQuotaIndex(arr: number[]) {
 
     let a = [];
     a[0] = arr[0];
@@ -1570,12 +1154,12 @@ class SPlot {
    *     исходных объектов закончился.
    */
   _demoIterationCallback() {
-    if (this.demoMode.index < this.demoMode.amount) {
-      this.demoMode.index++;
+    if (this.demoMode.index! < this.demoMode.amount!) {
+      this.demoMode.index! ++;
       return {
         x: this._randomInt(this.gridSize.width),
         y: this._randomInt(this.gridSize.height),
-        shape: this._randomQuotaIndex(this.demoMode.shapeQuota),
+        shape: this._randomQuotaIndex(this.demoMode.shapeQuota!),
         color: this._randomInt(this.polygonPalette.length)
       }
     }
