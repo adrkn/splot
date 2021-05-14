@@ -5,8 +5,8 @@
  * @param val - Проверяемая переменная.
  * @returns Результат проверки.
  */
-function isObject(val: any): boolean {
-  return (val instanceof Object) && (val.constructor === Object)
+function isObject(obj: any): boolean {
+  return (Object.prototype.toString.call(obj) === '[object Object]')
 }
 
 /**
@@ -17,6 +17,23 @@ function isObject(val: any): boolean {
  */
 function randomInt(range: number): number {
   return Math.floor(Math.random() * range)
+}
+
+/**
+ * Преобразует объект в строку JSON. Имеет отличие от стандартной функции JSON.stringify - поля объекта, имеющие
+ * значения функций не пропускаются, а преобразуются в название функции.
+ *
+ * @param obj - Целевой объект.
+ * @returns Строка JSON, отображающая объект.
+ */
+function jsonStringify(obj: any): string {
+  return JSON.stringify(
+    obj,
+    function (key, value) {
+      return (typeof value === 'function') ? value.name : value
+    },
+    ' '
+  )
 }
 
 /**
@@ -280,7 +297,7 @@ export default class SPlot {
   public static instances: { [key: string]: SPlot } = {}
 
   // Функция по умолчанию для итерирования объектов не задается.
-  public iterationCallback?: SPlotIterationFunction
+  public iterationCallback: SPlotIterationFunction | undefined = undefined
 
   // Цветовая палитра полигонов по умолчанию.
   public polygonPalette: HEXColor[] = [
@@ -1013,13 +1030,22 @@ export default class SPlot {
     console.group('%cНастройка параметров экземпляра', this.debugMode.groupStyle)
     {
       console.dir(this)
-      console.log('Заданы параметры:\n', JSON.stringify(options, null, ' '))
+      console.log('Пользовательские настройки:\n', jsonStringify(options))
       console.log('Канвас: #' + this.canvas.id)
       console.log('Размер канваса: ' + this.canvas.width + ' x ' + this.canvas.height + ' px')
       console.log('Размер плоскости: ' + this.gridSize.width + ' x ' + this.gridSize.height + ' px')
       console.log('Размер полигона: ' + this.polygonSize + ' px')
       console.log('Апроксимация окружности: ' + this.circleApproxLevel + ' углов')
-      console.log('Функция перебора: ' + this.iterationCallback!.name)
+
+      /**
+       * @todo Обработать этот вывод в зависимости от способа получения данных о полигонах. Ввести типы - заданная
+       * функция итерирования, демо-итерирование, переданный массив данных.
+       */
+      if (this.demoMode.isEnable) {
+        console.log('Способ получения данных: ' + 'демонстрационная функция итерирования')
+      } else {
+        console.log('Способ получения данных: ' + 'пользовательская функция итерирования')
+      }
     }
     console.groupEnd()
   }
@@ -1046,7 +1072,7 @@ export default class SPlot {
             ' [~' + Math.round(100 * shapeAmount / this.amountOfPolygons) + '%]')
         }
 
-        console.log('Палитра: ' + this.polygonPalette.length + ' цветов')
+        console.log('Кол-во цветов в палитре: ' + this.polygonPalette.length)
       }
       console.groupEnd()
 
