@@ -1,45 +1,102 @@
 
-function isObject(val: any) {
+/**
+ * Проверяет является ли переменная экземпляром какого-либоо класса.
+ *
+ * @param val - Проверяемая переменная.
+ * @returns Результат проверки.
+ */
+function isObject(val: any): boolean {
   return (val instanceof Object) && (val.constructor === Object)
 }
 
 /**
- * Генерирует случайное целое число в диапазоне от 0 до заданного предела. Сам
- * предел в диапазон не входит: [0...range-1].
+ * Возвращает случайное целое число в диапазоне: [0...range-1].
  *
- * @private
- * @param {number} range Верхний предел диапазона случайного выбора.
- * @return {number} Сгенерированное случайное число.
+ * @param range - Верхний предел диапазона случайного выбора.
+ * @returns Случайное число.
  */
-function randomInt(range: number) {
-  return Math.floor(Math.random() * range);
+function randomInt(range: number): number {
+  return Math.floor(Math.random() * range)
 }
 
+/**
+ * Тип функции, вычисляющей координаты вершин полигона определенной формы.
+ *
+ * @param x - Положение центра полигона на оси абсцисс.
+ * @param y - Положение центра полигона на оси ординат.
+ * @param consts - Набор вспомогательных констант, используемых для вычисления вершин.
+ * @returns Данные о вершинах полигона.
+ */
 type SPlotCalcShapeFunc = (x: number, y: number, consts: Array<any>) => SPlotPolygonVertices
 
 /**
- * Цвет в HEX-формате.
+ * Тип цвета в HEX-формате ("#ffffff").
  */
 type HEXColor = string
 
 /**
- * Функция итерирования массива исходных объектов. Каждый вызов такой функции
- * должен возвращать информацию об очередном полигоне, который необходимо
- * отобразить (его координаты, форму и цвет). Когда исходные объекты закончатся
+ * Тип функции итерирования массива исходных объектов. Каждый вызов такой функции должен возвращать информацию об
+ * очередном полигоне, который необходимо отобразить (его координаты, форму и цвет). Когда исходные объекты закончатся
  * функция должна вернуть null.
  */
 type SPlotIterationFunction = () => SPlotPolygon | null
 
-type SPlotDebugOutput = 'console' | 'document' | 'file'
+/**
+ * Тип места вывода системной информации при активированном режиме отладки приложения.
+ * Значение "console" устанавливает в качестве места вывода консоль браузера.
+ *
+ * @todo Добавить место вывода - HTML документ (значение "document")
+ * @todo Добавить место вывода - файл (значение "file")
+ */
+type SPlotDebugOutput = 'console'
 
+/**
+ * Тип шейдера WebGL.
+ * Значение "VERTEX_SHADER" задает вершинный шейдер.
+ * Значение "FRAGMENT_SHADER" задает фрагментный шейдер.
+ */
 type WebGlShaderType = 'VERTEX_SHADER' | 'FRAGMENT_SHADER'
 
+/**
+ * Тип буфера WebGL.
+ * Значение "ARRAY_BUFFER" задает буфер содержащий вершинные атрибуты.
+ * Значение "ELEMENT_ARRAY_BUFFER" задает буфер использующийся для индексирования элементов.
+ */
 type WebGlBufferType = 'ARRAY_BUFFER' | 'ELEMENT_ARRAY_BUFFER'
 
-type WebGlVariableType = 'uniform' | 'attribute'
+/**
+ * Тип переменной WebGL.
+ * Значение "uniform" задает общую для всех вершинных шейдеров переменную.
+ * Значение "attribute" задает уникальную переменную для каждого вершинного шейдера.
+ * Значение "varying" задает уникальную переменную с общей областью видимости для вершинного и фрагментного шейдеров.
+ */
+type WebGlVariableType = 'uniform' | 'attribute' | 'varying'
 
-type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array
+/**
+ * Тип массива данных, занимающих в памяти непрерывный объем.
+ */
+type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array |
+  Uint16Array | Uint32Array | Float32Array | Float64Array
 
+/**
+ * Тип для настроек приложения.
+ *
+ * @param iterationCallback - Функция итерирования исходных объектов.
+ * @param polygonPalette - Цветовая палитра полигонов.
+ * @param gridSize - Размер координатной плоскости в пикселях.
+ * @param polygonSize - Размер полигона на графике в пикселях (сторона для квадрата, диаметр для круга и т.п.)
+ * @param circleApproxLevel - Степень детализации круга - количество углов полигона, апроксимирующего окружность круга.
+ * @param debugMode - Параметры режима отладки приложения.
+ * @param demoMode - Параметры режима использования демонстрационных данных.
+ * @param forceRun - Признак того, что рендеринг необходимо начать сразу после задания настроек экземпляра (по умолчанию
+ *     рендеринг запускается только после вызова метода start).
+ * @param maxAmountOfPolygons - Искусственное ограничение количества отображаемых полигонов. При достижении этого числа
+ *     итерирование исходных объектов прерывается, даже если обработаны не все объекты.
+ * @param bgColor - Фоновый цвет канваса.
+ * @param rulesColor - Цвет направляющих.
+ * @param camera - Положение координатной плоскости в области просмотра.
+ * @param webGlSettings - Инициализирующие настройки контекста рендеринга WebGL.
+ */
 interface SPlotOptions {
   iterationCallback?: SPlotIterationFunction,
   polygonPalette?: HEXColor[],
@@ -56,6 +113,17 @@ interface SPlotOptions {
   webGlSettings?: WebGLContextAttributes
 }
 
+/**
+ * Тип для информации о полигоне. Содержит данные, необходимые для добавления полигона в группу полигонов. Полигон - это
+ * сплошная фигура на координатной плоскости, однозначно представляющая один исходный объект.
+ *
+ * @param x - Координата центра полигона на оси абсцисс. Может быть как целым, так и вещественным числом.
+ * @param y - Координата центра полигона на оси ординат. Может быть как целым, так и вещественным числом.
+ * @param shape - Форма полигона. Форма - это индекс в массиве форм {@link shapes}. Основные формы: 0 - треугольник, 1 -
+ *     квадрат, 2 - круг.
+ * @param color - Цвет полигона. Цвет - это индекс в диапазоне от 0 до 255, представляющий собой индекс цвета в
+ *     предопределенном массиве цветов {@link polygonPalette}.
+ */
 interface SPlotPolygon {
   x: number,
   y: number,
@@ -63,16 +131,43 @@ interface SPlotPolygon {
   color: number
 }
 
+/**
+ * Тип для размера координатной плоскости.
+ *
+ * @param width - Ширина координатной плоскости в пикселях.
+ * @param height - Высота координатноой плоскости в пикселях.
+ */
 interface SPlotGridSize {
   width: number,
   height: number
 }
 
+/**
+ * Тип для параметров режима отладки.
+ *
+ * @param isEnable - Признак включения отладочного режима.
+ * @param output - Место вывода отладочной информации.
+ * @param headerStyle - Стиль для заголовка всего отладочного блока.
+ * @param groupStyle - Стиль для заголовка группировки отладочных данных.
+ */
 interface SPlotDebugMode {
   isEnable?: boolean,
-  output?: SPlotDebugOutput
+  output?: SPlotDebugOutput,
+  headerStyle?: string,
+  groupStyle?: string
 }
 
+/**
+ * Тип для параметров режима отображения демонстрационных данных.
+ *
+ * @param isEnable - Признак включения демо-режима. В этом режиме приложение вместо внешней функции итерирования
+ *     исходных объектов использует внутренний метод, имитирующий итерирование.
+ * @param amount - Количество имитируемых исходных объектов.
+ * @param shapeQuota - Частота появления в итерировании различных форм полигонов - треугольников[0], квадратов[1],
+ *     кругов[2] и т.д. Пример: массив [3, 2, 5] означает, что частота появления треугольников = 3/(3+2+5) = 3/10,
+ *     частота появления квадратов = 2/(3+2+5) = 2/10, частота появления кругов = 5/(3+2+5) = 5/10.
+ * @param index - Параметр используемый для имитации итерирования. Задания пользовательского значения не требует.
+ */
 interface SPlotDemoMode {
   isEnable?: boolean,
   amount?: number,
@@ -80,12 +175,30 @@ interface SPlotDemoMode {
   index?: number
 }
 
+/**
+ * Тип для положения координатной плоскости в области просмотра.
+ *
+ * @param x - Координата графика на оси абсцисс.
+ * @param y - Координата графика на оси ординат.
+ * @param zoom - Степень "приближения" наблюдателя к графику (масштаб коодринатной плоскости в области просмотра).
+ */
 interface SPlotCamera {
   x: number,
   y: number,
   zoom: number
 }
 
+/**
+ * Тип для трансформации. Содержит всю техническую информацию, необходимую для рассчета текущего положения координатной
+ * плоскости в области просмотра во время событий перемещения и зумирования канваса.
+ *
+ * @param matrix - Основная матрица трансформации 3x3 в виде одномерного массива из 9 элементов.
+ * @param startInvMatrix - Вспомогательная матрица трансформации.
+ * @param startCameraX - Вспомогательная точка трансформации.
+ * @param startCameraY - Вспомогательная точка трансформации.
+ * @param startPosX - Вспомогательная точка трансформации.
+ * @param startPosY - Вспомогательная точка трансформации.
+ */
 interface SPlotTransformation {
   matrix: number[],
   startInvMatrix: number[],
@@ -95,18 +208,47 @@ interface SPlotTransformation {
   startPosY: number
 }
 
+/**
+ * Тип для информации о буферах, формирующих данные для загрузки в видеопамять.
+ *
+ * @param vertexBuffers - Массив буферов с информацией о вершинах полигонов.
+ * @param colorBuffers - Массив буферов с информацией о цветах вершин полигонов.
+ * @param indexBuffers - Массив буферов с индексами вершин полигонов.
+ * @param amountOfBufferGroups - Количество буферных групп в массиве. Все указанные выше массивы буферов содержат
+ *     одинаковое количество буферов.
+ * @param amountOfGLVertices - Количество вершин, образующих GL-треугольники каждого вершинного буфера.
+ * @param amountOfShapes - Количество полигонов каждой формы (сколько треугольников, квадратов, кругов и т.д.).
+ * @param amountOfTotalVertices - Общее количество вершин всех вершинных буферов (vertexBuffers).
+ * @param amountOfTotalGLVertices - Общее количество вершин всех индексных буферов (indexBuffers).
+ * @param sizeInBytes - Размеры буферов каждого типа (для вершин, для цветов, для индексов) в байтах.
+ */
 interface SPlotBuffers {
   vertexBuffers: WebGLBuffer[],
   colorBuffers: WebGLBuffer[],
   indexBuffers: WebGLBuffer[],
+  amountOfBufferGroups: number,
   amountOfGLVertices: number[],
   amountOfShapes: number[],
-  amountOfBufferGroups: number,
   amountOfTotalVertices: number,
   amountOfTotalGLVertices: number,
   sizeInBytes: number[]
 }
 
+/**
+ * Тип для информации о группе полигонов, которую можно отобразить на канвасе за один вызов функции {@link drawElements}.
+ *
+ * @param vertices - Массив вершин всех полигонов группы. Каждая вершина - это пара чисел (координаты вершины на
+ *     плоскости). Координаты могут быть как целыми, так и вещественными числами.
+ * @param indices - Массив индексов вершин полигонов группы. Каждый индекс - это номер вершины в массиве вершин. Индексы
+ *     описывают все GL-треугольники, из которых состоят полигоны группы, т.о. каждая тройка индексов кодирует один
+ *     GL-треугольник. Индексы - это целые числа в диапазоне от 0 до 65535, что накладывает ограничение на максимальное
+ *     количество вершин, хранимых в группе полигонов (не более 32768 штук).
+ * @param colors - Массив цветов вершин полигонов группы. Каждое число задает цвет одной вершины в массиве вершин. Чтобы
+ *     полигон был сплошного однородного цвета необходимо чтобы все вершины полигона имели одинаковый цвет. Цвет - это
+ *     целое число в диапазоне от 0 до 255, представляющее собой индекс цвета в предопределенном массиве цветов.
+ * @param amountOfVertices - Количество всех вершин в группе полигонов.
+ * @param amountOfGLVertices - Количество вершин всех GL-треугольников в группе полигонов.
+ */
 interface SPlotPolygonGroup {
   vertices: number[],
   indices: number[],
@@ -115,6 +257,14 @@ interface SPlotPolygonGroup {
   amountOfGLVertices: number
 }
 
+/**
+ * Тип для информации о вершинах полигона.
+ *
+ * @param vertices - Массив всех вершин полигона. Каждая вершина - это пара чисел (координаты вершины на
+ *     плоскости). Координаты могут быть как целыми, так и вещественными числами.
+ * @param indices - Массив индексов вершин полигона. Каждый индекс - это номер вершины в массиве вершин. Индексы
+ *     описывают все GL-треугольники, из которых состоит полигон.
+ */
 interface SPlotPolygonVertices {
   values: number[],
   indices: number[]
@@ -122,55 +272,80 @@ interface SPlotPolygonVertices {
 
 export default class SPlot {
 
+  /**
+   * Массив класса, содержащий ссылки на все созданные экземпляры класса. Индексами массива выступают идентификаторы
+   * канвасов экземпляров. Используется для доступа к полям и методам экземпляра из тела внешних обрабочиков событий
+   * мыши/трекпада.
+   */
   public static instances: { [key: string]: SPlot } = {}
 
+  // Функция по умолчанию для итерирования объектов не задается.
   public iterationCallback?: SPlotIterationFunction
 
+  // Цветовая палитра полигонов по умолчанию.
   public polygonPalette: HEXColor[] = [
     '#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00',
     '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080'
   ]
 
+  // Размер координатной плоскости по умолчанию.
   public gridSize: SPlotGridSize = {
     width: 32_000,
     height: 16_000
   }
 
+  // Размер полигона по умолчанию.
   public polygonSize: number = 20
 
+  // Степень детализации круга по умолчанию.
   public circleApproxLevel: number = 12
 
+  // Параметры режима отладки по умолчанию.
   public debugMode: SPlotDebugMode = {
     isEnable: false,
-    output: 'console'
+    output: 'console',
+    headerStyle: 'font-weight: bold; color: #ffffff; background-color: #cc0000;',
+    groupStyle: 'font-weight: bold; color: #ffffff;'
   }
 
+  // Параметры режима демострационных данных по умолчанию.
   public demoMode: SPlotDemoMode = {
     isEnable: false,
     amount: 1_000_000,
     /**
-     * По умолчанию в режиме демо-данных будут поровну отображаться
-     * полигоны всех возможных форм. Соответствующие значения shapeQuota
-     * инициализируются при регистрации функций создания форм (ниже по коду).
+     * По умолчанию в режиме демо-данных будут поровну отображаться полигоны всех возможных форм. Соответствующие
+     * значения массива инициализируются при регистрации функций создания форм методом {@link registerShape}.
      */
     shapeQuota: [],
     index: 0
   }
 
+  // Признак по умолчанию форсированного запуска рендера.
   public forceRun: boolean = false
 
+  /**
+   * По умолчанию искусственного ограничения на количество отображаемых полигонов нет (за счет задания большого заведомо
+   * недостижимого порогового числа).
+   */
   public maxAmountOfPolygons: number = 1_000_000_000
 
+  // Фоновый цвет по умолчанию для канваса.
   public bgColor: HEXColor = '#ffffff'
 
+  // Цвет по умолчанию для направляющих.
   public rulesColor: HEXColor = '#c0c0c0'
 
+  // По умолчанию область просмотра устанавливается в центр координатной плооскости.
   public camera: SPlotCamera = {
     x: this.gridSize.width / 2,
     y: this.gridSize.height / 2,
     zoom: 1
   }
 
+  /**
+   * По умолчанию настройки контекста рендеринга WebGL максимизируют производительность графической системы. Специальных
+   * пользовательских предустановок не требуется, однако приложение позволяет экспериментировать с настройками графики.
+   */
   public webGlSettings: WebGLContextAttributes = {
     alpha: false,
     depth: false,
@@ -183,13 +358,26 @@ export default class SPlot {
     desynchronized: false
   }
 
-  protected canvas: HTMLCanvasElement
+  // Признак активного процесса рендера. Доступен пользователю приложения только для чтения.
+  public isRunning: boolean = false
 
+  // Объект канваса.
+  protected readonly canvas: HTMLCanvasElement
+
+  // Объект контекста рендеринга WebGL.
   protected gl!: WebGLRenderingContext
 
+  // Объект программы WebGL.
+  protected gpuProgram!: WebGLProgram
+
+  // Переменные для связи приложения с программой WebGL.
   protected variables: { [key: string]: any } = {}
 
-  protected _vertexShaderCodeTemplate: string =
+  /**
+   * Шаблон GLSL-кода для вершинного шейдера. Содержит специальную вставку "SET-VERTEX-COLOR-CODE", которая перед
+   * созданием шейдера заменяется на GLSL-код выбора цвета вершин.
+   */
+  protected readonly _vertexShaderCodeTemplate: string =
     'attribute vec2 a_position;\n' +
     'attribute float a_color;\n' +
     'uniform mat3 u_matrix;\n' +
@@ -199,21 +387,24 @@ export default class SPlot {
     '  SET-VERTEX-COLOR-CODE' +
     '}\n'
 
-  protected fragmentShaderCodeTemplate: string =
+  // Шаблон GLSL-кода для фрагментного шейдера.
+  protected readonly fragmentShaderCodeTemplate: string =
     'precision lowp float;\n' +
     'varying vec3 v_color;\n' +
     'void main() {\n' +
     '  gl_FragColor = vec4(v_color.rgb, 1.0);\n' +
     '}\n'
 
+  // Счетчик числа обработанных полигонов.
   protected amountOfPolygons: number = 0
 
-  protected debugStyle: string = 'font-weight: bold; color: #ffffff;'
-
+  /**
+   *   Набор вспомогательных констант, используемых в часто повторяющихся вычислениях. Рассчитывается и задается в
+   *   методе {@link setUsefulConstants}.
+   */
   protected USEFUL_CONSTS: any[] = []
 
-  protected isRunning: boolean = false
-
+  // Техническая информация, используемая приложением для расчета трансформаций.
   protected transormation: SPlotTransformation = {
     matrix: [],
     startInvMatrix: [],
@@ -223,8 +414,14 @@ export default class SPlot {
     startPosY: 0
   }
 
+  /**
+   * Максимальное возможное количество вершин в группе полигонов, которое еще допускает добавление одного самого
+   * многовершинного полигона. Это количество имеет объективное техническое ограничение, т.к. функция
+   * {@link drawElements} не позволяет корректно принимать больше 65536 индексов (32768 вершин).
+   */
   protected maxAmountOfVertexPerPolygonGroup: number = 32768 - (this.circleApproxLevel + 1);
 
+  // Информация о буферах, хранящих данные для видеопамяти.
   protected buffers: SPlotBuffers = {
     vertexBuffers: [],
     colorBuffers: [],
@@ -237,9 +434,12 @@ export default class SPlot {
     sizeInBytes: [0, 0, 0]
   }
 
+  /**
+   * Информация о возможных формах полигонов.
+   * Каждая форма представляется функцией, вычисляющей ее вершины и названием формы.
+   * Для указания формы полигонов в приложении используются числовые индексы в данном массиве.
+   */
   protected shapes: {calc: SPlotCalcShapeFunc, name: string}[] = []
-
-  protected gpuProgram!: WebGLProgram
 
   /**
    * Создает экземпляр класса, инициализирует настройки.
@@ -489,7 +689,7 @@ export default class SPlot {
 
     // Вывод отладочной информации.
     if (this.debugMode.isEnable) {
-      console.group('%cСоздан шейдер [' + shaderType + ']', this.debugStyle)
+      console.group('%cСоздан шейдер [' + shaderType + ']', this.debugMode.groupStyle)
       {
         console.log(shaderCode)
       }
@@ -541,7 +741,7 @@ export default class SPlot {
 
     // Вывод отладочной информации.
     if (this.debugMode.isEnable) {
-      console.log('%cЗапущен процесс загрузки данных [' + this.getCurrentTime() + ']...', this.debugStyle)
+      console.log('%cЗапущен процесс загрузки данных [' + this.getCurrentTime() + ']...', this.debugMode.groupStyle)
 
       // Запуск консольного таймера, измеряющего длительность процесса загрузки данных в видеопамять.
       console.time('Длительность')
@@ -659,6 +859,7 @@ export default class SPlot {
 
   /**
    * Вычисляет координаты вершин полигона треугольной формы.
+   * Тип функции: {@link SPlotCalcShapeFunc}
    *
    * @param x - Положение центра полигона на оси абсцисс.
    * @param y - Положение центра полигона на оси ординат.
@@ -681,6 +882,7 @@ export default class SPlot {
 
   /**
    * Вычисляет координаты вершин полигона квадратной формы.
+   * Тип функции: {@link SPlotCalcShapeFunc}
    *
    * @param x - Положение центра полигона на оси абсцисс.
    * @param y - Положение центра полигона на оси ординат.
@@ -702,6 +904,7 @@ export default class SPlot {
 
   /**
    * Вычисляет координаты вершин полигона круглой формы.
+   * Тип функции: {@link SPlotCalcShapeFunc}
    *
    * @param x - Положение центра полигона на оси абсцисс.
    * @param y - Положение центра полигона на оси ординат.
@@ -785,20 +988,20 @@ export default class SPlot {
    */
   protected reportMainInfo(options: SPlotOptions): void {
 
-    console.log('%cВключен режим отладки ' + this.constructor.name + ' [#' + this.canvas.id + ']',
-      this.debugStyle + ' background-color: #cc0000;')
+    console.log('%cВключен режим отладки ' + this.constructor.name + ' на объекте [#' + this.canvas.id + ']',
+      this.debugMode.headerStyle)
 
     if (this.demoMode.isEnable) {
-      console.log('%cВключен демонстрационный режим данных', this.debugStyle)
+      console.log('%cВключен демонстрационный режим данных', this.debugMode.groupStyle)
     }
 
-    console.group('%cПредупреждение', this.debugStyle)
+    console.group('%cПредупреждение', this.debugMode.groupStyle)
     {
       console.dir('Открытая консоль браузера и другие активные средства контроля разработки существенно снижают производительность высоконагруженных приложений. Для объективного анализа производительности все подобные средства должны быть отключены, а консоль браузера закрыта. Некоторые данные отладочной информации в зависимости от используемого браузера могут не отображаться или отображаться некорректно. Средство отладки протестировано в браузере Google Chrome v.90')
     }
     console.groupEnd()
 
-    console.group('%cВидеосистема', this.debugStyle)
+    console.group('%cВидеосистема', this.debugMode.groupStyle)
     {
       let ext = this.gl.getExtension('WEBGL_debug_renderer_info')
       let graphicsCardName = (ext) ? this.gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '[неизвестно]'
@@ -807,7 +1010,7 @@ export default class SPlot {
     }
     console.groupEnd()
 
-    console.group('%cНастройка параметров экземпляра', this.debugStyle)
+    console.group('%cНастройка параметров экземпляра', this.debugMode.groupStyle)
     {
       console.dir(this)
       console.log('Заданы параметры:\n', JSON.stringify(options, null, ' '))
@@ -826,7 +1029,7 @@ export default class SPlot {
    */
   protected reportAboutObjectReading(): void {
 
-    console.group('%cЗагрузка данных завершена [' + this.getCurrentTime() + ']', this.debugStyle)
+    console.group('%cЗагрузка данных завершена [' + this.getCurrentTime() + ']', this.debugMode.groupStyle)
     {
       console.timeEnd('Длительность')
 
@@ -1193,14 +1396,14 @@ export default class SPlot {
 
     // Вывод отладочной информации.
     if (this.debugMode.isEnable) {
-      console.log('%cРендеринг запущен', this.debugStyle)
+      console.log('%cРендеринг запущен', this.debugMode.groupStyle)
     }
   }
 
   /**
    * Останавливает рендеринг и "прослушку" событий мыши/трекпада на канвасе.
    *
-   * @param clear Признак неообходимости вместе с остановкой рендеринга очистить канвас. Значение true очищает канвас,
+   * @param clear - Признак неообходимости вместе с остановкой рендеринга очистить канвас. Значение true очищает канвас,
    * значение false - оставляет его неочищенным. По умолчанию очистка не происходит.
    */
   public stop(clear: boolean = false): void {
@@ -1221,7 +1424,7 @@ export default class SPlot {
 
     // Вывод отладочной информации.
     if (this.debugMode.isEnable) {
-      console.log('%cРендеринг остановлен', this.debugStyle)
+      console.log('%cРендеринг остановлен', this.debugMode.groupStyle)
     }
   }
 
@@ -1234,7 +1437,7 @@ export default class SPlot {
 
     // Вывод отладочной информации.
     if (this.debugMode.isEnable) {
-      console.log('%cКонтекст рендеринга очищен [' + this.bgColor + ']', this.debugStyle);
+      console.log('%cКонтекст рендеринга очищен [' + this.bgColor + ']', this.debugMode.groupStyle);
     }
   }
 }
