@@ -6,7 +6,7 @@ function randomInt(range: number) {
 }
 
 let i = 0
-let n = 10_000_000  // Имитируемое число объектов.
+let n = 1_000_000  // Имитируемое число объектов.
 let palette = ['#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00', '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080']
 let plotWidth = 32_000
 let plotHeight = 16_000

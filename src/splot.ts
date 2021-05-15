@@ -1179,11 +1179,17 @@ export default class SPlot {
  * =====================================================================================================================
  */
 
+  /**
+   *
+   */
   protected makeCameraMatrix($this: SPlot) {
+
     const zoomScale = 1 / $this.camera.zoom;
+
     let cameraMat = m3.identity();
     cameraMat = m3.translate(cameraMat, $this.camera.x, $this.camera.y);
     cameraMat = m3.scale(cameraMat, zoomScale, zoomScale);
+
     return cameraMat;
   }
 
@@ -1198,13 +1204,18 @@ export default class SPlot {
    * @param $this - Экземпляр класса, чью матрицу трансформации необходимо обновить.
    */
   protected updateViewProjection($this: SPlot): void {
+
     const projectionMat = m3.projection($this.gl.canvas.width, $this.gl.canvas.height);
     const cameraMat = $this.makeCameraMatrix($this);
     let viewMat = m3.inverse(cameraMat);
     $this.transormation.viewProjectionMat = m3.multiply(projectionMat, viewMat);
   }
 
+  /**
+   *
+   */
   protected getClipSpaceMousePosition(event: MouseEvent) {
+
     const $this = SPlot.instances[(event.target as HTMLElement).id]
 
     // get canvas relative css position
@@ -1223,82 +1234,26 @@ export default class SPlot {
     return [clipX, clipY];
   }
 
+  /**
+   *
+   */
   protected moveCamera(event: MouseEvent): void {
+
     const $this = SPlot.instances[(event.target as HTMLElement).id]
 
     const pos = m3.transformPoint(
       $this.transormation.startInvViewProjMat,
-      $this.getClipSpaceMousePosition(event));
+      $this.getClipSpaceMousePosition(event)
+    );
 
-    $this.camera.x = $this.transormation.startCamera.x + $this.transormation.startPos[0] - pos[0];
-    $this.camera.y = $this.transormation.startCamera.y + $this.transormation.startPos[1] - pos[1];
+    $this.camera.x =
+      $this.transormation.startCamera.x + $this.transormation.startPos[0] - pos[0];
 
-    $this.render();
-  }
-
-  protected handleMouseMove(event: MouseEvent): void {
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
-    $this.moveCamera(event);
-  }
-
-  protected handleMouseUp(event: MouseEvent): void {
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
-    $this.render();
-    event.target!.removeEventListener('mousemove', $this.handleMouseMove as EventListener);
-    event.target!.removeEventListener('mouseup', $this.handleMouseUp as EventListener);
-  }
-
-  protected handleMouseDown(event: MouseEvent): void {
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
-
-    event.preventDefault();
-    $this.canvas.addEventListener('mousemove', $this.handleMouseMove as EventListener);
-    $this.canvas.addEventListener('mouseup', $this.handleMouseUp as EventListener);
-
-    $this.transormation.startInvViewProjMat = m3.inverse($this.transormation.viewProjectionMat);
-    $this.transormation.startCamera = Object.assign({}, $this.camera);
-    $this.transormation.startClipPos = $this.getClipSpaceMousePosition(event);
-    $this.transormation.startPos = m3.transformPoint(
-      $this.transormation.startInvViewProjMat,
-      $this.transormation.startClipPos);
-    $this.transormation.startMousePos = [event.clientX, event.clientY];
+    $this.camera.y =
+      $this.transormation.startCamera.y + $this.transormation.startPos[1] - pos[1];
 
     $this.render();
   }
-
-  protected handleMouseWheel(event: WheelEvent): void {
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
-
-    event.preventDefault();
-    const [clipX, clipY] = $this.getClipSpaceMousePosition(event);
-
-    // position before zooming
-    const [preZoomX, preZoomY] = m3.transformPoint(
-      m3.inverse($this.transormation.viewProjectionMat),
-      [clipX, clipY]);
-
-    // multiply the wheel movement by the current zoom level
-    // so we zoom less when zoomed in and more when zoomed out
-    const newZoom = $this.camera.zoom * Math.pow(2, event.deltaY * -0.01);
-    $this.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
-
-    $this.updateViewProjection($this);
-
-    // position after zooming
-    const [postZoomX, postZoomY] = m3.transformPoint(
-      m3.inverse($this.transormation.viewProjectionMat),
-      [clipX, clipY]);
-
-    // camera needs to be moved the difference of before and after
-    $this.camera.x += preZoomX - postZoomX;
-    $this.camera.y += preZoomY - postZoomY;
-
-    $this.render();
-  }
-
-  /**
-   * =====================================================================================================================
-   */
 
   /**
    * Реагирует на движение мыши/трекпада в момент, когда ее/его клавиша удерживается нажатой.
@@ -1311,64 +1266,10 @@ export default class SPlot {
    *
    * @param event - Событие мыши/трекпада.
    */
-  /*
-  protected handleMouseMove2(event: MouseEvent): void {
-
-    // Получение доступа к объекту this.
-    const $this = SPlot.instances[ (event.target as HTMLElement).id ]
-
-    $this.camera.x = $this.transormation.startCameraX + $this.transormation.startPosX -
-      ((event.clientX - $this.USEFUL_CONSTS[9]) * $this.USEFUL_CONSTS[7] - 1) * $this.transormation.startInvViewProjMat[0] -
-      $this.transormation.startInvViewProjMat[6]
-
-    $this.camera.y = $this.transormation.startCameraY + $this.transormation.startPosY -
-      ((event.clientY - $this.USEFUL_CONSTS[10]) * $this.USEFUL_CONSTS[8] + 1) * $this.transormation.startInvViewProjMat[4] -
-      $this.transormation.startInvViewProjMat[7]
-
-    // Рендеринг с обновленными параметрами трансформации.
-    $this.render()
-  }*/
-
-  /**
-   * Реагирует на нажатие клавиши мыши/трекпада.
-   *
-   * @remerks
-   * В момент нажатия и удержания клавиши запускается анализ движения мыши/трекпада (с зажатой клавишей). Вычисления
-   * внутри события сделаны максимально производительными в ущерб читабельности логики действий. Во внешнем обработчике
-   * событий объект this недоступен поэтому доступ к экземпляру класса реализуется через статический массив всех
-   * созданных экземпляров класса и идентификатора канваса, выступающего индексом в этом массиве.
-   *
-   * @param event - Событие мыши/трекпада.
-   */
-  /*
-  protected handleMouseDown2(event: MouseEvent): void {
-
-    event.preventDefault()
-
-    // Получение доступа к объекту this.
+  protected handleMouseMove(event: MouseEvent): void {
     const $this = SPlot.instances[(event.target as HTMLElement).id]
-
-    // Сразу после начала удержания клавиши запускется "прослушка" событий движения и отжатия клавиши.
-    event.target!.addEventListener('mousemove', $this.handleMouseMove as EventListener)
-    event.target!.addEventListener('mouseup', $this.handleMouseUp as EventListener)
-
-    $this.transormation.startInvViewProjMat = [
-      1 / $this.transormation.viewProjectionMat[0], 0, 0, 0, 1 / $this.transormation.viewProjectionMat[4],
-      0, -$this.transormation.viewProjectionMat[6] / $this.transormation.viewProjectionMat[0],
-      -$this.transormation.viewProjectionMat[7] / $this.transormation.viewProjectionMat[4], 1
-    ];
-
-    $this.transormation.startCameraX = $this.camera.x
-    $this.transormation.startCameraY = $this.camera.y
-
-    $this.transormation.startPosX =
-      ((event.clientX - $this.USEFUL_CONSTS[9]) * $this.USEFUL_CONSTS[7] - 1) *
-      $this.transormation.startInvViewProjMat[0] + $this.transormation.startInvViewProjMat[6]
-
-    $this.transormation.startPosY =
-      ((event.clientY - $this.USEFUL_CONSTS[10]) * $this.USEFUL_CONSTS[8] + 1) *
-      $this.transormation.startInvViewProjMat[4] + $this.transormation.startInvViewProjMat[7]
-  }*/
+    $this.moveCamera(event);
+  }
 
   /**
    * Реагирует на отжатие клавиши мыши/трекпада.
@@ -1381,14 +1282,38 @@ export default class SPlot {
    *
    * @param event - Событие мыши/трекпада.
    */
-  protected handleMouseUp2(event: MouseEvent): void {
+  protected handleMouseUp(event: MouseEvent): void {
+    const $this = SPlot.instances[(event.target as HTMLElement).id]
+    $this.render();
+    event.target!.removeEventListener('mousemove', $this.handleMouseMove as EventListener);
+    event.target!.removeEventListener('mouseup', $this.handleMouseUp as EventListener);
+  }
 
-    // Получение доступа к объекту this.
+  /**
+   * Реагирует на нажатие клавиши мыши/трекпада.
+   *
+   * @remerks
+   * В момент нажатия и удержания клавиши запускается анализ движения мыши/трекпада (с зажатой клавишей). Вычисления
+   * внутри события сделаны максимально производительными в ущерб читабельности логики действий. Во внешнем обработчике
+   * событий объект this недоступен поэтому доступ к экземпляру класса реализуется через статический массив всех
+   * созданных экземпляров класса и идентификатора канваса, выступающего индексом в этом массиве.
+   *
+   * @param event - Событие мыши/трекпада.
+   */
+  protected handleMouseDown(event: MouseEvent): void {
     const $this = SPlot.instances[(event.target as HTMLElement).id]
 
-    // Сразу после отжатия клавиши "прослушка" событий движения и отжатия клавиши прекращаются.
-    event.target!.removeEventListener('mousemove', $this.handleMouseMove as EventListener)
-    event.target!.removeEventListener('mouseup', $this.handleMouseUp as EventListener)
+    event.preventDefault();
+    $this.canvas.addEventListener('mousemove', $this.handleMouseMove as EventListener);
+    $this.canvas.addEventListener('mouseup', $this.handleMouseUp as EventListener);
+
+    $this.transormation.startInvViewProjMat = m3.inverse($this.transormation.viewProjectionMat);
+    $this.transormation.startCamera = Object.assign({}, $this.camera);
+    $this.transormation.startClipPos = $this.getClipSpaceMousePosition(event);
+    $this.transormation.startPos = m3.transformPoint($this.transormation.startInvViewProjMat, $this.transormation.startClipPos);
+    $this.transormation.startMousePos = [event.clientX, event.clientY];
+
+    $this.render();
   }
 
   /**
@@ -1402,33 +1327,81 @@ export default class SPlot {
    *
    * @param event - Событие мыши/трекпада.
    */
-  protected handleMouseWheel2(event: WheelEvent): void {
-
-    event.preventDefault()
-
-    // Получение доступа к объекту this.
+  protected handleMouseWheel_original(event: WheelEvent): void {
     const $this = SPlot.instances[(event.target as HTMLElement).id]
 
-    const clipX = (event.clientX - $this.USEFUL_CONSTS[9]) * $this.USEFUL_CONSTS[7] - 1
-    const clipY = (event.clientY - $this.USEFUL_CONSTS[10]) * $this.USEFUL_CONSTS[8] + 1
+    event.preventDefault();
+    const [clipX, clipY] = $this.getClipSpaceMousePosition(event);
 
-    const preZoomX = (clipX - $this.transormation.viewProjectionMat[6]) / $this.transormation.viewProjectionMat[0]
-    const preZoomY = (clipY - $this.transormation.viewProjectionMat[7]) / $this.transormation.viewProjectionMat[4]
+    // position before zooming
+    const [preZoomX, preZoomY] = m3.transformPoint(m3.inverse($this.transormation.viewProjectionMat), [clipX, clipY]);
 
-    const newZoom = $this.camera.zoom * Math.pow(2, event.deltaY * -0.01)
-    $this.camera.zoom = Math.max(0.002, Math.min(200, newZoom))
+    // multiply the wheel movement by the current zoom level, so we zoom less when zoomed in and more when zoomed out
+    const newZoom = $this.camera.zoom * Math.pow(2, event.deltaY * -0.01);
+    $this.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
 
-    $this.updateViewProjection($this)
+    $this.updateViewProjection($this);
 
-    const postZoomX = (clipX - $this.transormation.viewProjectionMat[6]) / $this.transormation.viewProjectionMat[0]
-    const postZoomY = (clipY - $this.transormation.viewProjectionMat[7]) / $this.transormation.viewProjectionMat[4]
+    // position after zooming
+    const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse($this.transormation.viewProjectionMat), [clipX, clipY]);
 
-    $this.camera.x += (preZoomX - postZoomX)
-    $this.camera.y += (preZoomY - postZoomY)
+    // camera needs to be moved the difference of before and after
+    $this.camera.x += preZoomX - postZoomX;
+    $this.camera.y += preZoomY - postZoomY;
 
-    // Рендеринг с обновленными параметрами трансформации.
-    $this.render()
+    $this.render();
   }
+
+  /**
+   *
+   */
+  protected handleMouseWheel(event: WheelEvent): void {
+    const $this = SPlot.instances[(event.target as HTMLElement).id]
+
+    event.preventDefault();
+    const [clipX, clipY] = $this.getClipSpaceMousePosition(event);
+
+    // position before zooming
+    const [preZoomX, preZoomY] = m3.transformPoint(
+      m3.inverse($this.transormation.viewProjectionMat),
+      [clipX, clipY]
+    );
+
+    // multiply the wheel movement by the current zoom level, so we zoom less when zoomed in and more when zoomed out
+    const newZoom = $this.camera.zoom * Math.pow(2, event.deltaY * -0.01);
+    $this.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
+
+
+
+
+    // This is --- $this.updateViewProjection($this);
+    const projectionMat = m3.projection($this.gl.canvas.width, $this.gl.canvas.height);
+
+      // This is --- const cameraMat = $this.makeCameraMatrix($this);
+      const zoomScale = 1 / $this.camera.zoom;
+      let cameraMat = m3.identity();
+      cameraMat = m3.translate(cameraMat, $this.camera.x, $this.camera.y);
+      cameraMat = m3.scale(cameraMat, zoomScale, zoomScale);
+
+    let viewMat = m3.inverse(cameraMat);
+    $this.transormation.viewProjectionMat = m3.multiply(projectionMat, viewMat);
+
+
+
+
+    // position after zooming
+    const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse($this.transormation.viewProjectionMat), [clipX, clipY]);
+
+    // camera needs to be moved the difference of before and after
+    $this.camera.x += preZoomX - postZoomX;
+    $this.camera.y += preZoomY - postZoomY;
+
+    $this.render();
+  }
+
+  /**
+   * =====================================================================================================================
+   */
 
   /**
    * Производит рендеринг графика в соответствии с текущими параметрами трансформации.
@@ -1440,15 +1413,6 @@ export default class SPlot {
 
     // Обновление матрицы трансформации.
     this.updateViewProjection(this)
-
-
-
-    let mat = m3.identity();
-    mat = m3.translate(mat, 0, 0);
-    mat = m3.scale(mat, 1, 1);
-    this.transormation.viewProjectionMat = m3.multiply(this.transormation.viewProjectionMat, mat);
-
-
 
     // Привязка матрицы трансформации к переменной шейдера.
     this.gl.uniformMatrix3fv(this.variables['u_matrix'], false, this.transormation.viewProjectionMat)
