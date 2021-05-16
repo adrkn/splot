@@ -409,6 +409,7 @@ export default class SPlot {
     'varying vec3 v_color;\n' +
     'void main() {\n' +
     '  gl_Position = vec4((u_matrix * vec3(a_position, 1)).xy, 0.0, 1.0);\n' +
+    '  gl_PointSize = 20.0;\n' +
     '  SET-VERTEX-COLOR-CODE' +
     '}\n'
 
@@ -1434,7 +1435,7 @@ export default class SPlot {
       this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.buffers.indexBuffers[i])
 
       // Рендеринг текущей группы буферов.
-      this.gl.drawElements(this.gl.TRIANGLES, this.buffers.amountOfGLVertices[i],
+      this.gl.drawElements(this.gl.POINTS, this.buffers.amountOfGLVertices[i],
         this.gl.UNSIGNED_SHORT, 0)
     }
   }
