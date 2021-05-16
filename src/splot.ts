@@ -1,3 +1,14 @@
+/**
+ * Размер точки влияет на производительность - когда много перекрытий - начинаются тормоза, даже если объектов немного.
+ * Надо придумать способ не отображать объекты, если область видимости уже не имеет свободного места.
+ *
+ * Надо убрать массивы индексов и формы.
+ *
+ */
+
+
+
+
 // @ts-ignore
 import m3 from './m3'
 
@@ -378,7 +389,7 @@ export default class SPlot {
     antialias: false,
     premultipliedAlpha: false,
     preserveDrawingBuffer: false,
-    powerPreference: 'low-power',
+    powerPreference: 'high-performance',
     failIfMajorPerformanceCaveat: false,
     desynchronized: false
   }
@@ -409,7 +420,7 @@ export default class SPlot {
     'varying vec3 v_color;\n' +
     'void main() {\n' +
     '  gl_Position = vec4((u_matrix * vec3(a_position, 1)).xy, 0.0, 1.0);\n' +
-    '  gl_PointSize = 1.0;\n' +
+    '  gl_PointSize = 20.0;\n' +
     '  SET-VERTEX-COLOR-CODE' +
     '}\n'
 
@@ -496,6 +507,7 @@ export default class SPlot {
     this.registerShape(this.getVerticesOfTriangle, 'Треугольник')
     this.registerShape(this.getVerticesOfSquare, 'Квадрат')
     this.registerShape(this.getVerticesOfCircle, 'Круг')
+    this.registerShape(this.getVerticesOfPoint, 'Точка')
 
     // Если переданы настройки, то они применяются.
     if (options) {
@@ -881,6 +893,13 @@ export default class SPlot {
 
     // Счетчик памяти, занимаемой буферами данных (раздельно по каждому типу буферов)
     this.buffers.sizeInBytes[key] += data.length * data.BYTES_PER_ELEMENT
+  }
+
+  protected getVerticesOfPoint(x: number, y: number, consts: any[]): SPlotPolygonVertices {
+    return {
+      values: [x, y],
+      indices: [0, 0, 0]
+    }
   }
 
   /**

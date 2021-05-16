@@ -18,7 +18,7 @@ function readNextObject() {
     return {
       x: randomInt(plotWidth),
       y: randomInt(plotHeight),
-      shape: 1,               // 0 - треугольник, 1 - квадрат, 2 - круг
+      shape: 3,               // 0 - треугольник, 1 - квадрат, 2 - круг
       color: randomInt(palette.length),  // Индекс цвета в массиве цветов
     }
   }
