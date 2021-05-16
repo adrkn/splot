@@ -202,9 +202,9 @@ interface SPlotDemoMode {
  * @param zoom - Степень "приближения" наблюдателя к графику (масштаб коодринатной плоскости в области просмотра).
  */
 interface SPlotCamera {
-  x: number,
-  y: number,
-  zoom: number
+  x?: number,
+  y?: number,
+  zoom?: number
 }
 
 
@@ -1184,7 +1184,7 @@ export default class SPlot {
    */
   protected makeCameraMatrix($this: SPlot) {
 
-    const zoomScale = 1 / $this.camera.zoom;
+    const zoomScale = 1 / $this.camera.zoom!;
 
     let cameraMat = m3.identity();
     cameraMat = m3.translate(cameraMat, $this.camera.x, $this.camera.y);
@@ -1247,10 +1247,10 @@ export default class SPlot {
     );
 
     $this.camera.x =
-      $this.transormation.startCamera.x + $this.transormation.startPos[0] - pos[0];
+      $this.transormation.startCamera.x! + $this.transormation.startPos[0] - pos[0];
 
     $this.camera.y =
-      $this.transormation.startCamera.y + $this.transormation.startPos[1] - pos[1];
+      $this.transormation.startCamera.y! + $this.transormation.startPos[1] - pos[1];
 
     $this.render();
   }
@@ -1337,7 +1337,7 @@ export default class SPlot {
     const [preZoomX, preZoomY] = m3.transformPoint(m3.inverse($this.transormation.viewProjectionMat), [clipX, clipY]);
 
     // multiply the wheel movement by the current zoom level, so we zoom less when zoomed in and more when zoomed out
-    const newZoom = $this.camera.zoom * Math.pow(2, event.deltaY * -0.01);
+    const newZoom = $this.camera.zoom! * Math.pow(2, event.deltaY * -0.01);
     $this.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
 
     $this.updateViewProjection($this);
@@ -1346,8 +1346,8 @@ export default class SPlot {
     const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse($this.transormation.viewProjectionMat), [clipX, clipY]);
 
     // camera needs to be moved the difference of before and after
-    $this.camera.x += preZoomX - postZoomX;
-    $this.camera.y += preZoomY - postZoomY;
+    $this.camera.x! += preZoomX - postZoomX;
+    $this.camera.y! += preZoomY - postZoomY;
 
     $this.render();
   }
@@ -1368,7 +1368,7 @@ export default class SPlot {
     );
 
     // multiply the wheel movement by the current zoom level, so we zoom less when zoomed in and more when zoomed out
-    const newZoom = $this.camera.zoom * Math.pow(2, event.deltaY * -0.01);
+    const newZoom = $this.camera.zoom! * Math.pow(2, event.deltaY * -0.01);
     $this.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
 
 
@@ -1393,8 +1393,8 @@ export default class SPlot {
     const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse($this.transormation.viewProjectionMat), [clipX, clipY]);
 
     // camera needs to be moved the difference of before and after
-    $this.camera.x += preZoomX - postZoomX;
-    $this.camera.y += preZoomY - postZoomY;
+    $this.camera.x! += preZoomX - postZoomX;
+    $this.camera.y! += preZoomY - postZoomY;
 
     $this.render();
   }
