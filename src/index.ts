@@ -6,7 +6,7 @@ function randomInt(range: number) {
 }
 
 let i = 0
-let n = 1_000  // Имитируемое число объектов.
+let n = 100_000  // Имитируемое число объектов.
 let palette = ['#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00', '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080']
 let plotWidth = 32_000
 let plotHeight = 16_000
@@ -18,7 +18,7 @@ function readNextObject() {
     return {
       x: randomInt(plotWidth),
       y: randomInt(plotHeight),
-      shape: randomInt(3),               // 0 - треугольник, 1 - квадрат, 2 - круг
+      shape: 0,               // 0 - треугольник, 1 - квадрат, 2 - круг
       color: randomInt(palette.length),  // Индекс цвета в массиве цветов
     }
   }
@@ -54,7 +54,7 @@ let scatterPlot = new SPlot('canvas1')
 scatterPlot.setup({
   iterationCallback: readNextObject,
   polygonPalette: palette,
-  polygonSize: 10,
+  polygonSize: 1,
   gridSize: {
     width: plotWidth,
     height: plotHeight,

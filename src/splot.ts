@@ -378,7 +378,7 @@ export default class SPlot {
     antialias: false,
     premultipliedAlpha: false,
     preserveDrawingBuffer: false,
-    powerPreference: 'high-performance',
+    powerPreference: 'low-power',
     failIfMajorPerformanceCaveat: false,
     desynchronized: false
   }
@@ -409,7 +409,7 @@ export default class SPlot {
     'varying vec3 v_color;\n' +
     'void main() {\n' +
     '  gl_Position = vec4((u_matrix * vec3(a_position, 1)).xy, 0.0, 1.0);\n' +
-    '  gl_PointSize = 20.0;\n' +
+    '  gl_PointSize = 1.0 * a_color;\n' +
     '  SET-VERTEX-COLOR-CODE' +
     '}\n'
 
