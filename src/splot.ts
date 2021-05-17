@@ -134,13 +134,14 @@ export default class SPlot {
     vertexBuffers: [],
     colorBuffers: [],
     sizeBuffers: [],
+    shapeBuffers: [],
     indexBuffers: [],
     amountOfGLVertices: [],
     amountOfShapes: [],
     amountOfBufferGroups: 0,
     amountOfTotalVertices: 0,
     amountOfTotalGLVertices: 0,
-    sizeInBytes: [0, 0, 0]
+    sizeInBytes: [0, 0, 0, 0]
   }
 
   /**
@@ -278,6 +279,7 @@ export default class SPlot {
     this.setWebGlVariable('attribute', 'a_position')
     this.setWebGlVariable('attribute', 'a_color')
     this.setWebGlVariable('attribute', 'a_polygonsize')
+    this.setWebGlVariable('attribute', 'a_shape')
     this.setWebGlVariable('uniform', 'u_matrix')
 
     // Вычисление данных обо всех полигонах и заполнение ими буферов WebGL.
@@ -422,7 +424,8 @@ export default class SPlot {
       // Создание и заполнение буферов данными о текущей группе полигонов.
       this.addWbGlBuffer(this.buffers.vertexBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.vertices), 0)
       this.addWbGlBuffer(this.buffers.colorBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.colors), 1)
-      this.addWbGlBuffer(this.buffers.sizeBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.sizes), 1)
+      this.addWbGlBuffer(this.buffers.shapeBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.shapes), 4)
+      this.addWbGlBuffer(this.buffers.sizeBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.sizes), 3)
       this.addWbGlBuffer(this.buffers.indexBuffers, 'ELEMENT_ARRAY_BUFFER', new Uint16Array(polygonGroup.indices), 2)
 
       // Счетчик количества буферов.
@@ -457,6 +460,7 @@ export default class SPlot {
       indices: [],
       colors: [],
       sizes: [],
+      shapes: [],
       amountOfVertices: 0,
       amountOfGLVertices: 0
     }
@@ -526,11 +530,12 @@ export default class SPlot {
     this.buffers.sizeInBytes[key] += data.length * data.BYTES_PER_ELEMENT
   }
 
-  protected getVerticesOfPoint(x: number, y: number, size: number): SPlotPolygonVertices {
+  protected getVerticesOfPoint(x: number, y: number, size: number, shape: number): SPlotPolygonVertices {
     return {
       values: [x, y],
       indices: [0, 0, 0],
-      size: size
+      size: size,
+      shape: shape
     }
   }
 
@@ -546,8 +551,8 @@ export default class SPlot {
      * В зависимости от формы полигона и координат его центра вызывается соответсвующая функция нахождения координат его
      * вершин.
      */
-    const vertices = this.shapes[polygon.shape].calc(
-      polygon.x, polygon.y, polygon.size
+    const vertices = this.shapes[0].calc(
+      polygon.x, polygon.y, polygon.size, polygon.shape
     )
 
     // Количество вершин - это количество пар чисел в массиве вершин.
@@ -574,6 +579,8 @@ export default class SPlot {
     // Добавление в группу полигонов вершин нового полигона и подсчет общего количества вершин в группе.
     polygonGroup.vertices.push(...vertices.values)
     polygonGroup.amountOfVertices += amountOfVertices
+
+    polygonGroup.shapes.push(vertices.shape)
 
     polygonGroup.sizes.push(vertices.size)
 
@@ -660,7 +667,7 @@ export default class SPlot {
       }
       console.groupEnd()
 
-      let bytesUsedByBuffers = this.buffers.sizeInBytes[0] + this.buffers.sizeInBytes[1] + this.buffers.sizeInBytes[2]
+      let bytesUsedByBuffers = this.buffers.sizeInBytes[0] + this.buffers.sizeInBytes[1] + this.buffers.sizeInBytes[2] + this.buffers.sizeInBytes[3]
 
       console.group('Занято видеопамяти: ' + (bytesUsedByBuffers / 1000000).toFixed(2).toLocaleString() + ' МБ')
       {
@@ -674,6 +681,10 @@ export default class SPlot {
 
         console.log('Буферы индексов: '
           + (this.buffers.sizeInBytes[2] / 1000000).toFixed(2).toLocaleString() + ' МБ' +
+          ' [~' + Math.round(100 * this.buffers.sizeInBytes[2] / bytesUsedByBuffers) + '%]')
+
+        console.log('Буферы размеров: '
+          + (this.buffers.sizeInBytes[3] / 1000000).toFixed(2).toLocaleString() + ' МБ' +
           ' [~' + Math.round(100 * this.buffers.sizeInBytes[2] / bytesUsedByBuffers) + '%]')
       }
       console.groupEnd()
@@ -919,6 +930,10 @@ export default class SPlot {
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.sizeBuffers[i])
       this.gl.enableVertexAttribArray(this.variables['a_polygonsize'])
       this.gl.vertexAttribPointer(this.variables['a_polygonsize'], 1, this.gl.FLOAT, false, 0, 0)
+
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.shapeBuffers[i])
+      this.gl.enableVertexAttribArray(this.variables['a_shape'])
+      this.gl.vertexAttribPointer(this.variables['a_shape'], 1, this.gl.UNSIGNED_BYTE, false, 0, 0)
 
       if (this.useVertexIndices) {
 

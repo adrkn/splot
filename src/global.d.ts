@@ -7,7 +7,7 @@
  * @param consts - Набор вспомогательных констант, используемых для вычисления вершин.
  * @returns Данные о вершинах полигона.
  */
-type SPlotCalcShapeFunc = (x: number, y: number, size: number) => SPlotPolygonVertices
+type SPlotCalcShapeFunc = (x: number, y: number, size: number, shape: number) => SPlotPolygonVertices
 
 /**
  * Тип функции итерирования массива исходных объектов. Каждый вызов такой функции должен возвращать информацию об
@@ -201,6 +201,7 @@ interface SPlotBuffers {
   vertexBuffers: WebGLBuffer[],
   colorBuffers: WebGLBuffer[],
   sizeBuffers: WebGLBuffer[],
+  shapeBuffers: WebGLBuffer[],
   indexBuffers: WebGLBuffer[],
   amountOfBufferGroups: number,
   amountOfGLVertices: number[],
@@ -229,6 +230,7 @@ interface SPlotPolygonGroup {
   vertices: number[],
   indices: number[],
   colors: number[],
+  shapes: number[],
   sizes: number[],
   amountOfVertices: number,
   amountOfGLVertices: number
@@ -245,5 +247,6 @@ interface SPlotPolygonGroup {
 interface SPlotPolygonVertices {
   values: number[],
   indices: number[],
+  shape: number,
   size: number
 }

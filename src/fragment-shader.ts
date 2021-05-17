@@ -2,11 +2,17 @@ export default
 `
 precision lowp float;
 varying vec3 v_color;
+varying float v_shape;
 void main() {
-  float vSize = 20.0;
-  float distance = length(2.0 * gl_PointCoord - 1.0);
-  if (distance > 1.0) { discard; }
-  gl_FragColor = vec4(v_color.rgb, 1.0);
+  if (v_shape == 0.0) {
+    float vSize = 20.0;
+    float distance = length(2.0 * gl_PointCoord - 1.0);
+    if (distance > 1.0) { discard; };
+    gl_FragColor = vec4(v_color.rgb, 1.0);
+  }
+  else if (v_shape == 1.0) {
+    gl_FragColor = vec4(v_color.rgb, 1.0);
+  }
 }
 `
 
