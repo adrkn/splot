@@ -7,7 +7,7 @@
  * @param consts - Набор вспомогательных констант, используемых для вычисления вершин.
  * @returns Данные о вершинах полигона.
  */
-type SPlotCalcShapeFunc = (x: number, y: number, consts: Array<any>) => SPlotPolygonVertices
+type SPlotCalcShapeFunc = (x: number, y: number, size: number) => SPlotPolygonVertices
 
 /**
  * Тип функции итерирования массива исходных объектов. Каждый вызов такой функции должен возвращать информацию об
@@ -60,7 +60,6 @@ type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array |
  * @param polygonPalette - Цветовая палитра полигонов.
  * @param gridSize - Размер координатной плоскости в пикселях.
  * @param polygonSize - Размер полигона на графике в пикселях (сторона для квадрата, диаметр для круга и т.п.)
- * @param circleApproxLevel - Степень детализации круга - количество углов полигона, апроксимирующего окружность круга.
  * @param debugMode - Параметры режима отладки приложения.
  * @param demoMode - Параметры режима использования демонстрационных данных.
  * @param forceRun - Признак того, что рендеринг необходимо начать сразу после задания настроек экземпляра (по умолчанию
@@ -77,7 +76,6 @@ interface SPlotOptions {
   polygonPalette?: string[],
   gridSize?: SPlotGridSize,
   polygonSize?: number,
-  circleApproxLevel?: number,
   debugMode?: SPlotDebugMode,
   demoMode?: SPlotDemoMode,
   forceRun?: boolean,
@@ -104,6 +102,7 @@ interface SPlotPolygon {
   x: number,
   y: number,
   shape: number,
+  size: number,
   color: number
 }
 
@@ -201,6 +200,7 @@ interface SPlotTransform {
 interface SPlotBuffers {
   vertexBuffers: WebGLBuffer[],
   colorBuffers: WebGLBuffer[],
+  sizeBuffers: WebGLBuffer[],
   indexBuffers: WebGLBuffer[],
   amountOfBufferGroups: number,
   amountOfGLVertices: number[],
@@ -229,6 +229,7 @@ interface SPlotPolygonGroup {
   vertices: number[],
   indices: number[],
   colors: number[],
+  sizes: number[],
   amountOfVertices: number,
   amountOfGLVertices: number
 }
@@ -243,5 +244,6 @@ interface SPlotPolygonGroup {
  */
 interface SPlotPolygonVertices {
   values: number[],
-  indices: number[]
+  indices: number[],
+  size: number
 }

@@ -24,9 +24,6 @@ export default class SPlot {
   // Размер полигона по умолчанию.
   public polygonSize: number = 20
 
-  // Степень детализации круга по умолчанию.
-  public circleApproxLevel: number = 12
-
   // Параметры режима отладки по умолчанию.
   public debugMode: SPlotDebugMode = {
     isEnable: false,
@@ -114,12 +111,6 @@ export default class SPlot {
   // Счетчик числа обработанных полигонов.
   protected amountOfPolygons: number = 0
 
-  /**
-   *   Набор вспомогательных констант, используемых в часто повторяющихся вычислениях. Рассчитывается и задается в
-   *   методе {@link setUsefulConstants}.
-   */
-  protected USEFUL_CONSTS: any[] = []
-
   // Техническая информация, используемая приложением для расчета трансформаций.
   protected transform: SPlotTransform = {
     viewProjectionMat: [],
@@ -142,6 +133,7 @@ export default class SPlot {
   protected buffers: SPlotBuffers = {
     vertexBuffers: [],
     colorBuffers: [],
+    sizeBuffers: [],
     indexBuffers: [],
     amountOfGLVertices: [],
     amountOfShapes: [],
@@ -186,9 +178,6 @@ export default class SPlot {
      * является обязательным для корректной работы приложения. Другие формы могут регистрироватья в любом количестве, в
      * любой последовательности.
      */
-    this.registerShape(this.getVerticesOfTriangle, 'Треугольник')
-    this.registerShape(this.getVerticesOfSquare, 'Квадрат')
-    this.registerShape(this.getVerticesOfCircle, 'Круг')
     this.registerShape(this.getVerticesOfPoint, 'Точка')
 
     // Если переданы настройки, то они применяются.
@@ -266,9 +255,6 @@ export default class SPlot {
       this.buffers.amountOfShapes[i] = 0
     }
 
-    // Инициализация вспомогательных констант.
-    this.setUsefulConstants()
-
     // Установка цвета очистки рендеринга
     let [r, g, b] = colorFromHexToGlRgb(this.bgColor)
     this.gl.clearColor(r, g, b, 0.0)
@@ -291,6 +277,7 @@ export default class SPlot {
     // Установка связей переменных приложения с программой WebGl.
     this.setWebGlVariable('attribute', 'a_position')
     this.setWebGlVariable('attribute', 'a_color')
+    this.setWebGlVariable('attribute', 'a_polygonsize')
     this.setWebGlVariable('uniform', 'u_matrix')
 
     // Вычисление данных обо всех полигонах и заполнение ими буферов WebGL.
@@ -347,40 +334,6 @@ export default class SPlot {
     if (this.demoMode.isEnable) {
       this.iterationCallback = this.demoIterationCallback
     }
-  }
-
-  /**
-   * Вычисляет набор вспомогательных констант {@link USEFUL_CONSTS}, хранящих результаты алгебраических и
-   * тригонометрических вычислений, используемых в расчетах вершин полигонов и матриц трансформации.
-   *
-   * @remarks
-   * Такие константы позволяют вынести затратные для процессора операции за пределы многократно используемых функций
-   * увеличивая производительность приложения на этапах подготовки данных и рендеринга.
-   */
-  protected setUsefulConstants(): void {
-
-    // Константы, зависящие от размера полигона.
-    this.USEFUL_CONSTS[0] = this.polygonSize / 2
-    this.USEFUL_CONSTS[1] = this.USEFUL_CONSTS[0] / Math.cos(Math.PI / 6)
-    this.USEFUL_CONSTS[2] = this.USEFUL_CONSTS[0] * Math.tan(Math.PI / 6)
-
-    // Константы, зависящие от степени детализации круга и размера полигона.
-    this.USEFUL_CONSTS[3] = new Float32Array(this.circleApproxLevel)
-    this.USEFUL_CONSTS[4] = new Float32Array(this.circleApproxLevel)
-
-    for (let i = 0; i < this.circleApproxLevel; i++) {
-      const angle = 2 * Math.PI * i / this.circleApproxLevel
-      this.USEFUL_CONSTS[3][i] = this.USEFUL_CONSTS[0] * Math.cos(angle)
-      this.USEFUL_CONSTS[4][i] = this.USEFUL_CONSTS[0] * Math.sin(angle)
-    }
-
-    // Константы, зависящие от размера канваса.
-    this.USEFUL_CONSTS[5] = 2 / this.canvas.width
-    this.USEFUL_CONSTS[6] = 2 / this.canvas.height
-    this.USEFUL_CONSTS[7] = 2 / this.canvas.clientWidth
-    this.USEFUL_CONSTS[8] = -2 / this.canvas.clientHeight
-    this.USEFUL_CONSTS[9] = this.canvas.getBoundingClientRect().left
-    this.USEFUL_CONSTS[10] = this.canvas.getBoundingClientRect().top
   }
 
   /**
@@ -469,6 +422,7 @@ export default class SPlot {
       // Создание и заполнение буферов данными о текущей группе полигонов.
       this.addWbGlBuffer(this.buffers.vertexBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.vertices), 0)
       this.addWbGlBuffer(this.buffers.colorBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.colors), 1)
+      this.addWbGlBuffer(this.buffers.sizeBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.sizes), 1)
       this.addWbGlBuffer(this.buffers.indexBuffers, 'ELEMENT_ARRAY_BUFFER', new Uint16Array(polygonGroup.indices), 2)
 
       // Счетчик количества буферов.
@@ -502,6 +456,7 @@ export default class SPlot {
       vertices: [],
       indices: [],
       colors: [],
+      sizes: [],
       amountOfVertices: 0,
       amountOfGLVertices: 0
     }
@@ -571,88 +526,12 @@ export default class SPlot {
     this.buffers.sizeInBytes[key] += data.length * data.BYTES_PER_ELEMENT
   }
 
-  protected getVerticesOfPoint(x: number, y: number, consts: any[]): SPlotPolygonVertices {
+  protected getVerticesOfPoint(x: number, y: number, size: number): SPlotPolygonVertices {
     return {
       values: [x, y],
-      indices: [0, 0, 0]
+      indices: [0, 0, 0],
+      size: size
     }
-  }
-
-  /**
-   * Вычисляет координаты вершин полигона треугольной формы.
-   * Тип функции: {@link SPlotCalcShapeFunc}
-   *
-   * @param x - Положение центра полигона на оси абсцисс.
-   * @param y - Положение центра полигона на оси ординат.
-   * @param consts - Набор вспомогательных констант, используемых для вычисления вершин.
-   * @returns Данные о вершинах полигона.
-   */
-  protected getVerticesOfTriangle(x: number, y: number, consts: any[]): SPlotPolygonVertices {
-
-    const [x1, y1] = [x - consts[0], y + consts[2]]
-    const [x2, y2] = [x, y - consts[1]]
-    const [x3, y3] = [x + consts[0], y + consts[2]]
-
-    const vertices = {
-      values: [x1, y1, x2, y2, x3, y3],
-      indices: [0, 1, 2]
-    }
-
-    return vertices
-  }
-
-  /**
-   * Вычисляет координаты вершин полигона квадратной формы.
-   * Тип функции: {@link SPlotCalcShapeFunc}
-   *
-   * @param x - Положение центра полигона на оси абсцисс.
-   * @param y - Положение центра полигона на оси ординат.
-   * @param consts - Набор вспомогательных констант, используемых для вычисления вершин.
-   * @returns Данные о вершинах полигона.
-   */
-  protected getVerticesOfSquare(x: number, y: number, consts: any[]): SPlotPolygonVertices {
-
-    const [x1, y1] = [x - consts[0], y - consts[0]]
-    const [x2, y2] = [x + consts[0], y + consts[0]]
-
-    const vertices = {
-      values: [x1, y1, x2, y1, x2, y2, x1, y2],
-      indices: [0, 1, 2, 0, 2, 3]
-    }
-
-    return vertices
-  }
-
-  /**
-   * Вычисляет координаты вершин полигона круглой формы.
-   * Тип функции: {@link SPlotCalcShapeFunc}
-   *
-   * @param x - Положение центра полигона на оси абсцисс.
-   * @param y - Положение центра полигона на оси ординат.
-   * @param consts - Набор вспомогательных констант, используемых для вычисления вершин.
-   * @returns Данные о вершинах полигона.
-   */
-  protected getVerticesOfCircle(x: number, y: number, consts: any[]): SPlotPolygonVertices {
-
-    // Занесение в набор вершин центра круга.
-    const vertices: SPlotPolygonVertices = {
-      values: [x, y],
-      indices: []
-    }
-
-    // Добавление апроксимирующих окружность круга вершин.
-    for (let i = 0; i < consts[3].length; i++) {
-      vertices.values.push(x + consts[3][i], y + consts[4][i])
-      vertices.indices.push(0, i + 1, i + 2)
-    }
-
-    /**
-     * Последняя вершина последнего GL-треугольника заменяется на первую апроксимирующую
-     * окружность круга вершину, замыкая апроксимирущий круг полигон.
-     */
-    vertices.indices[vertices.indices.length - 1] = 1
-
-    return vertices
   }
 
   /**
@@ -668,7 +547,7 @@ export default class SPlot {
      * вершин.
      */
     const vertices = this.shapes[polygon.shape].calc(
-      polygon.x, polygon.y, this.USEFUL_CONSTS
+      polygon.x, polygon.y, polygon.size
     )
 
     // Количество вершин - это количество пар чисел в массиве вершин.
@@ -695,6 +574,8 @@ export default class SPlot {
     // Добавление в группу полигонов вершин нового полигона и подсчет общего количества вершин в группе.
     polygonGroup.vertices.push(...vertices.values)
     polygonGroup.amountOfVertices += amountOfVertices
+
+    polygonGroup.sizes.push(vertices.size)
 
     // Добавление цветов вершин - по одному цвету на каждую вершину.
     for (let i = 0; i < amountOfVertices; i++) {
@@ -739,7 +620,6 @@ export default class SPlot {
       console.log('Размер канваса: ' + this.canvas.width + ' x ' + this.canvas.height + ' px')
       console.log('Размер плоскости: ' + this.gridSize.width + ' x ' + this.gridSize.height + ' px')
       console.log('Размер полигона: ' + this.polygonSize + ' px')
-      console.log('Апроксимация окружности: ' + this.circleApproxLevel + ' углов')
 
       /**
        * @todo Обработать этот вывод в зависимости от способа получения данных о полигонах. Ввести типы - заданная
@@ -1035,6 +915,11 @@ export default class SPlot {
       this.gl.enableVertexAttribArray(this.variables['a_color'])
       this.gl.vertexAttribPointer(this.variables['a_color'], 1, this.gl.UNSIGNED_BYTE, false, 0, 0)
 
+      // Установка текущего буфера размеров вершин и его привязка к переменной шейдера.
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.sizeBuffers[i])
+      this.gl.enableVertexAttribArray(this.variables['a_polygonsize'])
+      this.gl.vertexAttribPointer(this.variables['a_polygonsize'], 1, this.gl.FLOAT, false, 0, 0)
+
       if (this.useVertexIndices) {
 
         // Установка текущего буфера индексов вершин.
@@ -1061,6 +946,7 @@ export default class SPlot {
         x: randomInt(this.gridSize.width),
         y: randomInt(this.gridSize.height),
         shape: randomQuotaIndex(this.demoMode.shapeQuota!),
+        size: 1 + randomInt(20),
         color: randomInt(this.polygonPalette.length)
       }
     }
