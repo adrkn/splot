@@ -7,14 +7,14 @@
  * @param consts - Набор вспомогательных констант, используемых для вычисления вершин.
  * @returns Данные о вершинах полигона.
  */
-export type SPlotCalcShapeFunc = (x: number, y: number, consts: Array<any>) => SPlotPolygonVertices
+type SPlotCalcShapeFunc = (x: number, y: number, consts: Array<any>) => SPlotPolygonVertices
 
 /**
  * Тип функции итерирования массива исходных объектов. Каждый вызов такой функции должен возвращать информацию об
  * очередном полигоне, который необходимо отобразить (его координаты, форму и цвет). Когда исходные объекты закончатся
  * функция должна вернуть null.
  */
-export type SPlotIterationFunction = () => SPlotPolygon | null
+type SPlotIterationFunction = () => SPlotPolygon | null
 
 /**
  * Тип места вывода системной информации при активированном режиме отладки приложения.
@@ -23,21 +23,21 @@ export type SPlotIterationFunction = () => SPlotPolygon | null
  * @todo Добавить место вывода - HTML документ (значение "document")
  * @todo Добавить место вывода - файл (значение "file")
  */
-export type SPlotDebugOutput = 'console'
+type SPlotDebugOutput = 'console'
 
 /**
  * Тип шейдера WebGL.
  * Значение "VERTEX_SHADER" задает вершинный шейдер.
  * Значение "FRAGMENT_SHADER" задает фрагментный шейдер.
  */
-export type WebGlShaderType = 'VERTEX_SHADER' | 'FRAGMENT_SHADER'
+type WebGlShaderType = 'VERTEX_SHADER' | 'FRAGMENT_SHADER'
 
 /**
  * Тип буфера WebGL.
  * Значение "ARRAY_BUFFER" задает буфер содержащий вершинные атрибуты.
  * Значение "ELEMENT_ARRAY_BUFFER" задает буфер использующийся для индексирования элементов.
  */
-export type WebGlBufferType = 'ARRAY_BUFFER' | 'ELEMENT_ARRAY_BUFFER'
+type WebGlBufferType = 'ARRAY_BUFFER' | 'ELEMENT_ARRAY_BUFFER'
 
 /**
  * Тип переменной WebGL.
@@ -45,12 +45,12 @@ export type WebGlBufferType = 'ARRAY_BUFFER' | 'ELEMENT_ARRAY_BUFFER'
  * Значение "attribute" задает уникальную переменную для каждого вершинного шейдера.
  * Значение "varying" задает уникальную переменную с общей областью видимости для вершинного и фрагментного шейдеров.
  */
-export type WebGlVariableType = 'uniform' | 'attribute' | 'varying'
+type WebGlVariableType = 'uniform' | 'attribute' | 'varying'
 
 /**
  * Тип массива данных, занимающих в памяти непрерывный объем.
  */
-export type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array |
+type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array |
   Uint16Array | Uint32Array | Float32Array | Float64Array
 
 /**
@@ -72,7 +72,7 @@ export type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array |
  * @param camera - Положение координатной плоскости в области просмотра.
  * @param webGlSettings - Инициализирующие настройки контекста рендеринга WebGL.
  */
-export interface SPlotOptions {
+interface SPlotOptions {
   iterationCallback?: SPlotIterationFunction,
   polygonPalette?: string[],
   gridSize?: SPlotGridSize,
@@ -100,7 +100,7 @@ export interface SPlotOptions {
  * @param color - Цвет полигона. Цвет - это индекс в диапазоне от 0 до 255, представляющий собой индекс цвета в
  *     предопределенном массиве цветов {@link polygonPalette}.
  */
-export interface SPlotPolygon {
+interface SPlotPolygon {
   x: number,
   y: number,
   shape: number,
@@ -113,7 +113,7 @@ export interface SPlotPolygon {
  * @param width - Ширина координатной плоскости в пикселях.
  * @param height - Высота координатноой плоскости в пикселях.
  */
-export interface SPlotGridSize {
+interface SPlotGridSize {
   width: number,
   height: number
 }
@@ -126,7 +126,7 @@ export interface SPlotGridSize {
  * @param headerStyle - Стиль для заголовка всего отладочного блока.
  * @param groupStyle - Стиль для заголовка группировки отладочных данных.
  */
-export interface SPlotDebugMode {
+interface SPlotDebugMode {
   isEnable?: boolean,
   output?: SPlotDebugOutput,
   headerStyle?: string,
@@ -144,7 +144,7 @@ export interface SPlotDebugMode {
  *     частота появления квадратов = 2/(3+2+5) = 2/10, частота появления кругов = 5/(3+2+5) = 5/10.
  * @param index - Параметр используемый для имитации итерирования. Задания пользовательского значения не требует.
  */
-export interface SPlotDemoMode {
+interface SPlotDemoMode {
   isEnable?: boolean,
   amount?: number,
   shapeQuota?: number[],
@@ -158,7 +158,7 @@ export interface SPlotDemoMode {
  * @param y - Координата графика на оси ординат.
  * @param zoom - Степень "приближения" наблюдателя к графику (масштаб коодринатной плоскости в области просмотра).
  */
-export interface SPlotCamera {
+interface SPlotCamera {
   x?: number,
   y?: number,
   zoom?: number
@@ -175,7 +175,7 @@ export interface SPlotCamera {
  * @param startPosX - Вспомогательная точка трансформации.
  * @param startPosY - Вспомогательная точка трансформации.
  */
-export interface SPlotTransform {
+interface SPlotTransform {
   viewProjectionMat: number[],
   startInvViewProjMat: number[],
   startCamera: SPlotCamera,
@@ -198,7 +198,7 @@ export interface SPlotTransform {
  * @param amountOfTotalGLVertices - Общее количество вершин всех индексных буферов (indexBuffers).
  * @param sizeInBytes - Размеры буферов каждого типа (для вершин, для цветов, для индексов) в байтах.
  */
-export interface SPlotBuffers {
+interface SPlotBuffers {
   vertexBuffers: WebGLBuffer[],
   colorBuffers: WebGLBuffer[],
   indexBuffers: WebGLBuffer[],
@@ -225,7 +225,7 @@ export interface SPlotBuffers {
  * @param amountOfVertices - Количество всех вершин в группе полигонов.
  * @param amountOfGLVertices - Количество вершин всех GL-треугольников в группе полигонов.
  */
-export interface SPlotPolygonGroup {
+interface SPlotPolygonGroup {
   vertices: number[],
   indices: number[],
   colors: number[],
@@ -241,7 +241,7 @@ export interface SPlotPolygonGroup {
  * @param indices - Массив индексов вершин полигона. Каждый индекс - это номер вершины в массиве вершин. Индексы
  *     описывают все GL-треугольники, из которых состоит полигон.
  */
-export interface SPlotPolygonVertices {
+interface SPlotPolygonVertices {
   values: number[],
   indices: number[]
 }

@@ -1,10 +1,6 @@
 // @ts-ignore
 import m3 from './m3'
-
 import { isObject, randomInt, jsonStringify, randomQuotaIndex, colorFromHexToGlRgb, getCurrentTime } from './utils'
-
-import { SPlotCalcShapeFunc, SPlotIterationFunction, SPlotDebugOutput, WebGlShaderType, WebGlBufferType, WebGlVariableType, TypedArray, SPlotOptions, SPlotPolygon, SPlotGridSize, SPlotDebugMode, SPlotDemoMode, SPlotCamera, SPlotTransform, SPlotBuffers, SPlotPolygonGroup, SPlotPolygonVertices } from './splot-types'
-
 import vertexShaderCode from './vertex-shader'
 import fragmentShaderCode from './fragment-shader'
 
