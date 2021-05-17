@@ -48,3 +48,6 @@ scatterPlot.setup({
 })
 
 scatterPlot.run()
+//scatterPlot.stop()
+
+//setTimeout(() => scatterPlot.stop(), 3000)

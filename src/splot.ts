@@ -1,325 +1,20 @@
-/**
- * Размер точки влияет на производительность - когда много перекрытий - начинаются тормоза, даже если объектов немного.
- * Надо придумать способ не отображать объекты, если область видимости уже не имеет свободного места.
- *
- * Надо убрать массивы индексов и формы.
- *
- */
-
-
-
-
 // @ts-ignore
 import m3 from './m3'
 
-/**
- * Проверяет является ли переменная экземпляром какого-либоо класса.
- *
- * @param val - Проверяемая переменная.
- * @returns Результат проверки.
- */
-function isObject(obj: any): boolean {
-  return (Object.prototype.toString.call(obj) === '[object Object]')
-}
+import { isObject, randomInt, jsonStringify, randomQuotaIndex, colorFromHexToGlRgb, getCurrentTime } from './utils'
 
-/**
- * Возвращает случайное целое число в диапазоне: [0...range-1].
- *
- * @param range - Верхний предел диапазона случайного выбора.
- * @returns Случайное число.
- */
-function randomInt(range: number): number {
-  return Math.floor(Math.random() * range)
-}
+import { SPlotCalcShapeFunc, SPlotIterationFunction, SPlotDebugOutput, WebGlShaderType, WebGlBufferType, WebGlVariableType, TypedArray, SPlotOptions, SPlotPolygon, SPlotGridSize, SPlotDebugMode, SPlotDemoMode, SPlotCamera, SPlotTransform, SPlotBuffers, SPlotPolygonGroup, SPlotPolygonVertices } from './splot-types'
 
-/**
- * Преобразует объект в строку JSON. Имеет отличие от стандартной функции JSON.stringify - поля объекта, имеющие
- * значения функций не пропускаются, а преобразуются в название функции.
- *
- * @param obj - Целевой объект.
- * @returns Строка JSON, отображающая объект.
- */
-function jsonStringify(obj: any): string {
-  return JSON.stringify(
-    obj,
-    function (key, value) {
-      return (typeof value === 'function') ? value.name : value
-    },
-    ' '
-  )
-}
-
-/**
- * Тип функции, вычисляющей координаты вершин полигона определенной формы.
- *
- * @param x - Положение центра полигона на оси абсцисс.
- * @param y - Положение центра полигона на оси ординат.
- * @param consts - Набор вспомогательных констант, используемых для вычисления вершин.
- * @returns Данные о вершинах полигона.
- */
-type SPlotCalcShapeFunc = (x: number, y: number, consts: Array<any>) => SPlotPolygonVertices
-
-/**
- * Тип цвета в HEX-формате ("#ffffff").
- */
-type HEXColor = string
-
-/**
- * Тип функции итерирования массива исходных объектов. Каждый вызов такой функции должен возвращать информацию об
- * очередном полигоне, который необходимо отобразить (его координаты, форму и цвет). Когда исходные объекты закончатся
- * функция должна вернуть null.
- */
-type SPlotIterationFunction = () => SPlotPolygon | null
-
-/**
- * Тип места вывода системной информации при активированном режиме отладки приложения.
- * Значение "console" устанавливает в качестве места вывода консоль браузера.
- *
- * @todo Добавить место вывода - HTML документ (значение "document")
- * @todo Добавить место вывода - файл (значение "file")
- */
-type SPlotDebugOutput = 'console'
-
-/**
- * Тип шейдера WebGL.
- * Значение "VERTEX_SHADER" задает вершинный шейдер.
- * Значение "FRAGMENT_SHADER" задает фрагментный шейдер.
- */
-type WebGlShaderType = 'VERTEX_SHADER' | 'FRAGMENT_SHADER'
-
-/**
- * Тип буфера WebGL.
- * Значение "ARRAY_BUFFER" задает буфер содержащий вершинные атрибуты.
- * Значение "ELEMENT_ARRAY_BUFFER" задает буфер использующийся для индексирования элементов.
- */
-type WebGlBufferType = 'ARRAY_BUFFER' | 'ELEMENT_ARRAY_BUFFER'
-
-/**
- * Тип переменной WebGL.
- * Значение "uniform" задает общую для всех вершинных шейдеров переменную.
- * Значение "attribute" задает уникальную переменную для каждого вершинного шейдера.
- * Значение "varying" задает уникальную переменную с общей областью видимости для вершинного и фрагментного шейдеров.
- */
-type WebGlVariableType = 'uniform' | 'attribute' | 'varying'
-
-/**
- * Тип массива данных, занимающих в памяти непрерывный объем.
- */
-type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array |
-  Uint16Array | Uint32Array | Float32Array | Float64Array
-
-/**
- * Тип для настроек приложения.
- *
- * @param iterationCallback - Функция итерирования исходных объектов.
- * @param polygonPalette - Цветовая палитра полигонов.
- * @param gridSize - Размер координатной плоскости в пикселях.
- * @param polygonSize - Размер полигона на графике в пикселях (сторона для квадрата, диаметр для круга и т.п.)
- * @param circleApproxLevel - Степень детализации круга - количество углов полигона, апроксимирующего окружность круга.
- * @param debugMode - Параметры режима отладки приложения.
- * @param demoMode - Параметры режима использования демонстрационных данных.
- * @param forceRun - Признак того, что рендеринг необходимо начать сразу после задания настроек экземпляра (по умолчанию
- *     рендеринг запускается только после вызова метода start).
- * @param maxAmountOfPolygons - Искусственное ограничение количества отображаемых полигонов. При достижении этого числа
- *     итерирование исходных объектов прерывается, даже если обработаны не все объекты.
- * @param bgColor - Фоновый цвет канваса.
- * @param rulesColor - Цвет направляющих.
- * @param camera - Положение координатной плоскости в области просмотра.
- * @param webGlSettings - Инициализирующие настройки контекста рендеринга WebGL.
- */
-interface SPlotOptions {
-  iterationCallback?: SPlotIterationFunction,
-  polygonPalette?: HEXColor[],
-  gridSize?: SPlotGridSize,
-  polygonSize?: number,
-  circleApproxLevel?: number,
-  debugMode?: SPlotDebugMode,
-  demoMode?: SPlotDemoMode,
-  forceRun?: boolean,
-  maxAmountOfPolygons?: number,
-  bgColor?: HEXColor,
-  rulesColor?: HEXColor,
-  camera?: SPlotCamera,
-  webGlSettings?: WebGLContextAttributes
-}
-
-/**
- * Тип для информации о полигоне. Содержит данные, необходимые для добавления полигона в группу полигонов. Полигон - это
- * сплошная фигура на координатной плоскости, однозначно представляющая один исходный объект.
- *
- * @param x - Координата центра полигона на оси абсцисс. Может быть как целым, так и вещественным числом.
- * @param y - Координата центра полигона на оси ординат. Может быть как целым, так и вещественным числом.
- * @param shape - Форма полигона. Форма - это индекс в массиве форм {@link shapes}. Основные формы: 0 - треугольник, 1 -
- *     квадрат, 2 - круг.
- * @param color - Цвет полигона. Цвет - это индекс в диапазоне от 0 до 255, представляющий собой индекс цвета в
- *     предопределенном массиве цветов {@link polygonPalette}.
- */
-interface SPlotPolygon {
-  x: number,
-  y: number,
-  shape: number,
-  color: number
-}
-
-/**
- * Тип для размера координатной плоскости.
- *
- * @param width - Ширина координатной плоскости в пикселях.
- * @param height - Высота координатноой плоскости в пикселях.
- */
-interface SPlotGridSize {
-  width: number,
-  height: number
-}
-
-/**
- * Тип для параметров режима отладки.
- *
- * @param isEnable - Признак включения отладочного режима.
- * @param output - Место вывода отладочной информации.
- * @param headerStyle - Стиль для заголовка всего отладочного блока.
- * @param groupStyle - Стиль для заголовка группировки отладочных данных.
- */
-interface SPlotDebugMode {
-  isEnable?: boolean,
-  output?: SPlotDebugOutput,
-  headerStyle?: string,
-  groupStyle?: string
-}
-
-/**
- * Тип для параметров режима отображения демонстрационных данных.
- *
- * @param isEnable - Признак включения демо-режима. В этом режиме приложение вместо внешней функции итерирования
- *     исходных объектов использует внутренний метод, имитирующий итерирование.
- * @param amount - Количество имитируемых исходных объектов.
- * @param shapeQuota - Частота появления в итерировании различных форм полигонов - треугольников[0], квадратов[1],
- *     кругов[2] и т.д. Пример: массив [3, 2, 5] означает, что частота появления треугольников = 3/(3+2+5) = 3/10,
- *     частота появления квадратов = 2/(3+2+5) = 2/10, частота появления кругов = 5/(3+2+5) = 5/10.
- * @param index - Параметр используемый для имитации итерирования. Задания пользовательского значения не требует.
- */
-interface SPlotDemoMode {
-  isEnable?: boolean,
-  amount?: number,
-  shapeQuota?: number[],
-  index?: number
-}
-
-/**
- * Тип для положения координатной плоскости в области просмотра.
- *
- * @param x - Координата графика на оси абсцисс.
- * @param y - Координата графика на оси ординат.
- * @param zoom - Степень "приближения" наблюдателя к графику (масштаб коодринатной плоскости в области просмотра).
- */
-interface SPlotCamera {
-  x?: number,
-  y?: number,
-  zoom?: number
-}
-
-
-
-
-/**
- * Тип для трансформации. Содержит всю техническую информацию, необходимую для рассчета текущего положения координатной
- * плоскости в области просмотра во время событий перемещения и зумирования канваса.
- *
- * @param viewProjectionMat - Основная матрица трансформации 3x3 в виде одномерного массива из 9 элементов.
- * @param startInvViewProjMat - Вспомогательная матрица трансформации.
- * @param startCameraX - Вспомогательная точка трансформации.
- * @param startCameraY - Вспомогательная точка трансформации.
- * @param startPosX - Вспомогательная точка трансформации.
- * @param startPosY - Вспомогательная точка трансформации.
- */
-interface SPlotTransformation {
-  viewProjectionMat: number[],
-  startInvViewProjMat: number[],
-  startCamera: SPlotCamera,
-  startPos: number[],
-  startClipPos: number[],
-  startMousePos: number[]
-}
-
-
-
-
-/**
- * Тип для информации о буферах, формирующих данные для загрузки в видеопамять.
- *
- * @param vertexBuffers - Массив буферов с информацией о вершинах полигонов.
- * @param colorBuffers - Массив буферов с информацией о цветах вершин полигонов.
- * @param indexBuffers - Массив буферов с индексами вершин полигонов.
- * @param amountOfBufferGroups - Количество буферных групп в массиве. Все указанные выше массивы буферов содержат
- *     одинаковое количество буферов.
- * @param amountOfGLVertices - Количество вершин, образующих GL-треугольники каждого вершинного буфера.
- * @param amountOfShapes - Количество полигонов каждой формы (сколько треугольников, квадратов, кругов и т.д.).
- * @param amountOfTotalVertices - Общее количество вершин всех вершинных буферов (vertexBuffers).
- * @param amountOfTotalGLVertices - Общее количество вершин всех индексных буферов (indexBuffers).
- * @param sizeInBytes - Размеры буферов каждого типа (для вершин, для цветов, для индексов) в байтах.
- */
-interface SPlotBuffers {
-  vertexBuffers: WebGLBuffer[],
-  colorBuffers: WebGLBuffer[],
-  indexBuffers: WebGLBuffer[],
-  amountOfBufferGroups: number,
-  amountOfGLVertices: number[],
-  amountOfShapes: number[],
-  amountOfTotalVertices: number,
-  amountOfTotalGLVertices: number,
-  sizeInBytes: number[]
-}
-
-/**
- * Тип для информации о группе полигонов, которую можно отобразить на канвасе за один вызов функции {@link drawElements}.
- *
- * @param vertices - Массив вершин всех полигонов группы. Каждая вершина - это пара чисел (координаты вершины на
- *     плоскости). Координаты могут быть как целыми, так и вещественными числами.
- * @param indices - Массив индексов вершин полигонов группы. Каждый индекс - это номер вершины в массиве вершин. Индексы
- *     описывают все GL-треугольники, из которых состоят полигоны группы, т.о. каждая тройка индексов кодирует один
- *     GL-треугольник. Индексы - это целые числа в диапазоне от 0 до 65535, что накладывает ограничение на максимальное
- *     количество вершин, хранимых в группе полигонов (не более 32768 штук).
- * @param colors - Массив цветов вершин полигонов группы. Каждое число задает цвет одной вершины в массиве вершин. Чтобы
- *     полигон был сплошного однородного цвета необходимо чтобы все вершины полигона имели одинаковый цвет. Цвет - это
- *     целое число в диапазоне от 0 до 255, представляющее собой индекс цвета в предопределенном массиве цветов.
- * @param amountOfVertices - Количество всех вершин в группе полигонов.
- * @param amountOfGLVertices - Количество вершин всех GL-треугольников в группе полигонов.
- */
-interface SPlotPolygonGroup {
-  vertices: number[],
-  indices: number[],
-  colors: number[],
-  amountOfVertices: number,
-  amountOfGLVertices: number
-}
-
-/**
- * Тип для информации о вершинах полигона.
- *
- * @param vertices - Массив всех вершин полигона. Каждая вершина - это пара чисел (координаты вершины на
- *     плоскости). Координаты могут быть как целыми, так и вещественными числами.
- * @param indices - Массив индексов вершин полигона. Каждый индекс - это номер вершины в массиве вершин. Индексы
- *     описывают все GL-треугольники, из которых состоит полигон.
- */
-interface SPlotPolygonVertices {
-  values: number[],
-  indices: number[]
-}
+import vertexShaderCode from './vertex-shader'
+import fragmentShaderCode from './fragment-shader'
 
 export default class SPlot {
-
-  /**
-   * Массив класса, содержащий ссылки на все созданные экземпляры класса. Индексами массива выступают идентификаторы
-   * канвасов экземпляров. Используется для доступа к полям и методам экземпляра из тела внешних обрабочиков событий
-   * мыши/трекпада.
-   */
-  public static instances: { [key: string]: SPlot } = {}
 
   // Функция по умолчанию для итерирования объектов не задается.
   public iterationCallback: SPlotIterationFunction | undefined = undefined
 
   // Цветовая палитра полигонов по умолчанию.
-  public polygonPalette: HEXColor[] = [
+  public polygonPalette: string[] = [
     '#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00',
     '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080'
   ]
@@ -366,10 +61,10 @@ export default class SPlot {
   public maxAmountOfPolygons: number = 1_000_000_000
 
   // Фоновый цвет по умолчанию для канваса.
-  public bgColor: HEXColor = '#ffffff'
+  public bgColor: string = '#ffffff'
 
   // Цвет по умолчанию для направляющих.
-  public rulesColor: HEXColor = '#c0c0c0'
+  public rulesColor: string = '#c0c0c0'
 
   // По умолчанию область просмотра устанавливается в центр координатной плооскости.
   public camera: SPlotCamera = {
@@ -377,6 +72,8 @@ export default class SPlot {
     y: this.gridSize.height / 2,
     zoom: 1
   }
+
+  public useVertexIndices: boolean = false
 
   /**
    * По умолчанию настройки контекста рендеринга WebGL максимизируют производительность графической системы. Специальных
@@ -410,27 +107,13 @@ export default class SPlot {
   protected variables: { [key: string]: any } = {}
 
   /**
-   * Шаблон GLSL-кода для вершинного шейдера. Содержит специальную вставку "SET-VERTEX-COLOR-CODE", которая перед
+   * Шаблон GLSL-кода для вершинного шейдера. Содержит специальную вставку "{ADDITIONAL-CODE}", которая перед
    * созданием шейдера заменяется на GLSL-код выбора цвета вершин.
    */
-  protected readonly vertexShaderCodeTemplate: string =
-    'attribute vec2 a_position;\n' +
-    'attribute float a_color;\n' +
-    'uniform mat3 u_matrix;\n' +
-    'varying vec3 v_color;\n' +
-    'void main() {\n' +
-    '  gl_Position = vec4((u_matrix * vec3(a_position, 1)).xy, 0.0, 1.0);\n' +
-    '  gl_PointSize = 20.0;\n' +
-    '  SET-VERTEX-COLOR-CODE' +
-    '}\n'
+  protected readonly vertexShaderCodeTemplate: string = vertexShaderCode
 
   // Шаблон GLSL-кода для фрагментного шейдера.
-  protected readonly fragmentShaderCodeTemplate: string =
-    'precision lowp float;\n' +
-    'varying vec3 v_color;\n' +
-    'void main() {\n' +
-    '  gl_FragColor = vec4(v_color.rgb, 1.0);\n' +
-    '}\n'
+  protected readonly fragmentShaderCodeTemplate: string = fragmentShaderCode
 
   // Счетчик числа обработанных полигонов.
   protected amountOfPolygons: number = 0
@@ -442,7 +125,7 @@ export default class SPlot {
   protected USEFUL_CONSTS: any[] = []
 
   // Техническая информация, используемая приложением для расчета трансформаций.
-  protected transormation: SPlotTransformation = {
+  protected transform: SPlotTransform = {
     viewProjectionMat: [],
     startInvViewProjMat: [],
     startCamera: {x:0, y:0, zoom: 1},
@@ -456,7 +139,8 @@ export default class SPlot {
    * многовершинного полигона. Это количество имеет объективное техническое ограничение, т.к. функция
    * {@link drawElements} не позволяет корректно принимать больше 65536 индексов (32768 вершин).
    */
-  protected maxAmountOfVertexPerPolygonGroup: number = 32768 - (this.circleApproxLevel + 1);
+//  protected maxAmountOfVertexPerPolygonGroup: number = 32768 - (this.circleApproxLevel + 1);
+  protected maxAmountOfVertexPerPolygonGroup: number = 10_000
 
   // Информация о буферах, хранящих данные для видеопамяти.
   protected buffers: SPlotBuffers = {
@@ -478,6 +162,11 @@ export default class SPlot {
    */
   protected shapes: {calc: SPlotCalcShapeFunc, name: string}[] = []
 
+  protected handleMouseDownWithContext: EventListener = this.handleMouseDown.bind(this) as EventListener
+  protected handleMouseWheelWithContext: EventListener = this.handleMouseWheel.bind(this) as EventListener
+  protected handleMouseMoveWithContext: EventListener = this.handleMouseMove.bind(this) as EventListener
+  protected handleMouseUpWithContext: EventListener = this.handleMouseUp.bind(this) as EventListener
+
   /**
    * Создает экземпляр класса, инициализирует настройки.
    *
@@ -489,9 +178,6 @@ export default class SPlot {
    * @param options - Пользовательские настройки экземпляра.
    */
   constructor(canvasId: string, options?: SPlotOptions) {
-
-    // Сохранение ссылки на экземпляр класса. Позволяет внешим событиям получать доступ к полям и методам экземпляра.
-    SPlot.instances[canvasId] = this
 
     if (document.getElementById(canvasId)) {
       this.canvas = document.getElementById(canvasId) as HTMLCanvasElement
@@ -584,17 +270,11 @@ export default class SPlot {
       this.buffers.amountOfShapes[i] = 0
     }
 
-    /**
-     * Предельное количество вершин в группе полигонов зависит от параметра
-     * circleApproxLevel, который мог быть изменен пользовательскими настройками.
-     */
-    this.maxAmountOfVertexPerPolygonGroup = 32768 - (this.circleApproxLevel + 1)
-
     // Инициализация вспомогательных констант.
     this.setUsefulConstants()
 
     // Установка цвета очистки рендеринга
-    let [r, g, b] = this.convertColor(this.bgColor)
+    let [r, g, b] = colorFromHexToGlRgb(this.bgColor)
     this.gl.clearColor(r, g, b, 0.0)
     this.gl.clear(this.gl.COLOR_BUFFER_BIT)
 
@@ -602,7 +282,7 @@ export default class SPlot {
      * Подготовка кодов шейдеров. В код вершинного шейдера вставляется код выбора цвета вершин. Код фрагментного
      * шейдера используется без изменений.
      */
-    let vertexShaderCode = this.vertexShaderCodeTemplate.replace('SET-VERTEX-COLOR-CODE', this.genShaderColorCode())
+    let vertexShaderCode = this.vertexShaderCodeTemplate.replace('{ADDITIONAL-CODE}', this.genShaderColorCode())
     let fragmentShaderCode = this.fragmentShaderCodeTemplate
 
     // Создание шейдеров WebGL.
@@ -779,7 +459,7 @@ export default class SPlot {
 
     // Вывод отладочной информации.
     if (this.debugMode.isEnable) {
-      console.log('%cЗапущен процесс загрузки данных [' + this.getCurrentTime() + ']...', this.debugMode.groupStyle)
+      console.log('%cЗапущен процесс загрузки данных [' + getCurrentTime() + ']...', this.debugMode.groupStyle)
 
       // Запуск консольного таймера, измеряющего длительность процесса загрузки данных в видеопамять.
       console.time('Длительность')
@@ -1083,7 +763,7 @@ export default class SPlot {
    */
   protected reportAboutObjectReading(): void {
 
-    console.group('%cЗагрузка данных завершена [' + this.getCurrentTime() + ']', this.debugMode.groupStyle)
+    console.group('%cЗагрузка данных завершена [' + getCurrentTime() + ']', this.debugMode.groupStyle)
     {
       console.timeEnd('Длительность')
 
@@ -1149,7 +829,7 @@ export default class SPlot {
     for (let i = 0; i < this.polygonPalette.length; i++) {
 
       // Получение цвета в нужном формате.
-      let [r, g, b] = this.convertColor(this.polygonPalette[i])
+      let [r, g, b] = colorFromHexToGlRgb(this.polygonPalette[i])
 
       // Формировние строк GLSL-кода проверки индекса цвета.
       code += ((i === 0) ? '' : '  else ') + 'if (a_color == ' + i + '.0) v_color = vec3(' +
@@ -1164,50 +844,16 @@ export default class SPlot {
     return code
   }
 
-  /**
-   * Конвертирует цвет из HEX-представления в представление цвета для GLSL-кода (RGB с диапазонами значений от 0 до 1).
-   *
-   * @param hexColor - Цвет в HEX-формате.
-   * @returns Массив из трех чисел в диапазоне от 0 до 1.
-   */
-  protected convertColor(hexColor: HEXColor): number[] {
-
-    let k = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hexColor)
-    let [r, g, b] = [parseInt(k![1], 16) / 255, parseInt(k![2], 16) / 255, parseInt(k![3], 16) / 255]
-
-    return [r, g, b]
-  }
-
-  /**
-   * Вычисляет текущее время.
-   *
-   * @returns Строковая форматированная запись текущего времени.
-   */
-  protected getCurrentTime(): string {
-
-    let today = new Date();
-
-    let time =
-      ((today.getHours() < 10 ? '0' : '') + today.getHours()) + ":" +
-      ((today.getMinutes() < 10 ? '0' : '') + today.getMinutes()) + ":" +
-      ((today.getSeconds() < 10 ? '0' : '') + today.getSeconds())
-
-    return time
-  }
-
 /**
  * =====================================================================================================================
  */
 
-  /**
-   *
-   */
-  protected makeCameraMatrix($this: SPlot) {
+  protected makeCameraMatrix() {
 
-    const zoomScale = 1 / $this.camera.zoom!;
+    const zoomScale = 1 / this.camera.zoom!;
 
     let cameraMat = m3.identity();
-    cameraMat = m3.translate(cameraMat, $this.camera.x, $this.camera.y);
+    cameraMat = m3.translate(cameraMat, this.camera.x, this.camera.y);
     cameraMat = m3.scale(cameraMat, zoomScale, zoomScale);
 
     return cameraMat;
@@ -1220,15 +866,13 @@ export default class SPlot {
    * Существует два варианта вызова метода - из другого метода экземпляра ({@link render}) и из обработчика события мыши
    * ({@link handleMouseWheel}). Во втором варианте использование объекта this невозможно. Для универсальности вызова
    * метода - в него всегда явно необходимо передавать ссылку на экземпляр класса.
-   *
-   * @param $this - Экземпляр класса, чью матрицу трансформации необходимо обновить.
    */
-  protected updateViewProjection($this: SPlot): void {
+  protected updateViewProjection(): void {
 
-    const projectionMat = m3.projection($this.gl.canvas.width, $this.gl.canvas.height);
-    const cameraMat = $this.makeCameraMatrix($this);
+    const projectionMat = m3.projection(this.gl.canvas.width, this.gl.canvas.height);
+    const cameraMat = this.makeCameraMatrix();
     let viewMat = m3.inverse(cameraMat);
-    $this.transormation.viewProjectionMat = m3.multiply(projectionMat, viewMat);
+    this.transform.viewProjectionMat = m3.multiply(projectionMat, viewMat);
   }
 
   /**
@@ -1236,16 +880,14 @@ export default class SPlot {
    */
   protected getClipSpaceMousePosition(event: MouseEvent) {
 
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
-
     // get canvas relative css position
-    const rect = $this.canvas.getBoundingClientRect();
+    const rect = this.canvas.getBoundingClientRect();
     const cssX = event.clientX - rect.left;
     const cssY = event.clientY - rect.top;
 
     // get normalized 0 to 1 position across and down canvas
-    const normalizedX = cssX / $this.canvas.clientWidth;
-    const normalizedY = cssY / $this.canvas.clientHeight;
+    const normalizedX = cssX / this.canvas.clientWidth;
+    const normalizedY = cssY / this.canvas.clientHeight;
 
     // convert to clip space
     const clipX = normalizedX * 2 - 1;
@@ -1259,20 +901,18 @@ export default class SPlot {
    */
   protected moveCamera(event: MouseEvent): void {
 
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
-
     const pos = m3.transformPoint(
-      $this.transormation.startInvViewProjMat,
-      $this.getClipSpaceMousePosition(event)
+      this.transform.startInvViewProjMat,
+      this.getClipSpaceMousePosition(event)
     );
 
-    $this.camera.x =
-      $this.transormation.startCamera.x! + $this.transormation.startPos[0] - pos[0];
+    this.camera.x =
+      this.transform.startCamera.x! + this.transform.startPos[0] - pos[0];
 
-    $this.camera.y =
-      $this.transormation.startCamera.y! + $this.transormation.startPos[1] - pos[1];
+    this.camera.y =
+      this.transform.startCamera.y! + this.transform.startPos[1] - pos[1];
 
-    $this.render();
+    this.render();
   }
 
   /**
@@ -1287,8 +927,7 @@ export default class SPlot {
    * @param event - Событие мыши/трекпада.
    */
   protected handleMouseMove(event: MouseEvent): void {
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
-    $this.moveCamera(event);
+    this.moveCamera.call(this, event);
   }
 
   /**
@@ -1303,10 +942,9 @@ export default class SPlot {
    * @param event - Событие мыши/трекпада.
    */
   protected handleMouseUp(event: MouseEvent): void {
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
-    $this.render();
-    event.target!.removeEventListener('mousemove', $this.handleMouseMove as EventListener);
-    event.target!.removeEventListener('mouseup', $this.handleMouseUp as EventListener);
+    this.render();
+    event.target!.removeEventListener('mousemove', this.handleMouseMoveWithContext);
+    event.target!.removeEventListener('mouseup', this.handleMouseUpWithContext);
   }
 
   /**
@@ -1321,19 +959,18 @@ export default class SPlot {
    * @param event - Событие мыши/трекпада.
    */
   protected handleMouseDown(event: MouseEvent): void {
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
 
     event.preventDefault();
-    $this.canvas.addEventListener('mousemove', $this.handleMouseMove as EventListener);
-    $this.canvas.addEventListener('mouseup', $this.handleMouseUp as EventListener);
+    this.canvas.addEventListener('mousemove', this.handleMouseMoveWithContext);
+    this.canvas.addEventListener('mouseup', this.handleMouseUpWithContext);
 
-    $this.transormation.startInvViewProjMat = m3.inverse($this.transormation.viewProjectionMat);
-    $this.transormation.startCamera = Object.assign({}, $this.camera);
-    $this.transormation.startClipPos = $this.getClipSpaceMousePosition(event);
-    $this.transormation.startPos = m3.transformPoint($this.transormation.startInvViewProjMat, $this.transormation.startClipPos);
-    $this.transormation.startMousePos = [event.clientX, event.clientY];
+    this.transform.startInvViewProjMat = m3.inverse(this.transform.viewProjectionMat);
+    this.transform.startCamera = Object.assign({}, this.camera);
+    this.transform.startClipPos = this.getClipSpaceMousePosition.call(this, event);
+    this.transform.startPos = m3.transformPoint(this.transform.startInvViewProjMat, this.transform.startClipPos);
+    this.transform.startMousePos = [event.clientX, event.clientY];
 
-    $this.render();
+    this.render();
   }
 
   /**
@@ -1347,76 +984,28 @@ export default class SPlot {
    *
    * @param event - Событие мыши/трекпада.
    */
-  protected handleMouseWheel_original(event: WheelEvent): void {
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
-
-    event.preventDefault();
-    const [clipX, clipY] = $this.getClipSpaceMousePosition(event);
-
-    // position before zooming
-    const [preZoomX, preZoomY] = m3.transformPoint(m3.inverse($this.transormation.viewProjectionMat), [clipX, clipY]);
-
-    // multiply the wheel movement by the current zoom level, so we zoom less when zoomed in and more when zoomed out
-    const newZoom = $this.camera.zoom! * Math.pow(2, event.deltaY * -0.01);
-    $this.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
-
-    $this.updateViewProjection($this);
-
-    // position after zooming
-    const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse($this.transormation.viewProjectionMat), [clipX, clipY]);
-
-    // camera needs to be moved the difference of before and after
-    $this.camera.x! += preZoomX - postZoomX;
-    $this.camera.y! += preZoomY - postZoomY;
-
-    $this.render();
-  }
-
-  /**
-   *
-   */
   protected handleMouseWheel(event: WheelEvent): void {
-    const $this = SPlot.instances[(event.target as HTMLElement).id]
 
     event.preventDefault();
-    const [clipX, clipY] = $this.getClipSpaceMousePosition(event);
+    const [clipX, clipY] = this.getClipSpaceMousePosition.call(this, event);
 
     // position before zooming
-    const [preZoomX, preZoomY] = m3.transformPoint(
-      m3.inverse($this.transormation.viewProjectionMat),
-      [clipX, clipY]
-    );
+    const [preZoomX, preZoomY] = m3.transformPoint(m3.inverse(this.transform.viewProjectionMat), [clipX, clipY]);
 
     // multiply the wheel movement by the current zoom level, so we zoom less when zoomed in and more when zoomed out
-    const newZoom = $this.camera.zoom! * Math.pow(2, event.deltaY * -0.01);
-    $this.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
+    const newZoom = this.camera.zoom! * Math.pow(2, event.deltaY * -0.01);
+    this.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
 
-
-
-
-    // This is --- $this.updateViewProjection($this);
-    const projectionMat = m3.projection($this.gl.canvas.width, $this.gl.canvas.height);
-
-      // This is --- const cameraMat = $this.makeCameraMatrix($this);
-      const zoomScale = 1 / $this.camera.zoom;
-      let cameraMat = m3.identity();
-      cameraMat = m3.translate(cameraMat, $this.camera.x, $this.camera.y);
-      cameraMat = m3.scale(cameraMat, zoomScale, zoomScale);
-
-    let viewMat = m3.inverse(cameraMat);
-    $this.transormation.viewProjectionMat = m3.multiply(projectionMat, viewMat);
-
-
-
+    this.updateViewProjection.call(this);
 
     // position after zooming
-    const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse($this.transormation.viewProjectionMat), [clipX, clipY]);
+    const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse(this.transform.viewProjectionMat), [clipX, clipY]);
 
     // camera needs to be moved the difference of before and after
-    $this.camera.x! += preZoomX - postZoomX;
-    $this.camera.y! += preZoomY - postZoomY;
+    this.camera.x! += preZoomX - postZoomX;
+    this.camera.y! += preZoomY - postZoomY;
 
-    $this.render();
+    this.render();
   }
 
   /**
@@ -1432,10 +1021,10 @@ export default class SPlot {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT)
 
     // Обновление матрицы трансформации.
-    this.updateViewProjection(this)
+    this.updateViewProjection()
 
     // Привязка матрицы трансформации к переменной шейдера.
-    this.gl.uniformMatrix3fv(this.variables['u_matrix'], false, this.transormation.viewProjectionMat)
+    this.gl.uniformMatrix3fv(this.variables['u_matrix'], false, this.transform.viewProjectionMat)
 
     // Итерирование и рендеринг групп буферов WebGL.
     for (let i = 0; i < this.buffers.amountOfBufferGroups; i++) {
@@ -1450,47 +1039,17 @@ export default class SPlot {
       this.gl.enableVertexAttribArray(this.variables['a_color'])
       this.gl.vertexAttribPointer(this.variables['a_color'], 1, this.gl.UNSIGNED_BYTE, false, 0, 0)
 
-      // Установка текущего буфера индексов вершин.
-      this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.buffers.indexBuffers[i])
+      if (this.useVertexIndices) {
 
-      // Рендеринг текущей группы буферов.
-      this.gl.drawElements(this.gl.POINTS, this.buffers.amountOfGLVertices[i], this.gl.UNSIGNED_SHORT, 0)
+        // Установка текущего буфера индексов вершин.
+        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.buffers.indexBuffers[i])
+
+        // Рендеринг текущей группы буферов.
+        this.gl.drawElements(this.gl.POINTS, this.buffers.amountOfGLVertices[i], this.gl.UNSIGNED_SHORT, 0)
+      } else {
+        this.gl.drawArrays(this.gl.POINTS, 0, this.buffers.amountOfGLVertices[i] / 3)
+      }
     }
-  }
-
-  /**
-   * Случайным образом возвращает один из индексов числового одномерного массива. Несмотря на случайность каждого
-   * конкретного вызова функции, индексы возвращаются с предопределенной частотой. Частота "выпаданий" индексов задается
-   * соответствующими значениями элементов.
-   *
-   * @remarks
-   * Пример: На массиве [3, 2, 5] функция будет возвращать индекс 0 с частотой = 3/(3+2+5) = 3/10, индекс 1 с частотой =
-   * 2/(3+2+5) = 2/10, индекс 2 с частотой = 5/(3+2+5) = 5/10.
-   *
-   * @param arr - Числовой одномерный массив, индексы которого будут возвращаться с предопределенной частотой.
-   * @returns Случайный индекс из массива arr.
-   */
-  protected randomQuotaIndex(arr: number[]): number {
-
-    let a: number[] = []
-    a[0] = arr[0]
-
-    for (let i = 1; i < arr.length; i++) {
-      a[i] = a[i - 1] + arr[i]
-    }
-
-    const lastIndex: number = a.length - 1
-
-    let r: number = Math.floor((Math.random() * a[lastIndex])) + 1
-    let l: number = 0
-    let h: number = lastIndex
-
-    while (l < h) {
-      const m: number = l + ((h - l) >> 1);
-      (r > a[m]) ? (l = m + 1) : (h = m)
-    }
-
-    return (a[l] >= r) ? l : -1
   }
 
   /**
@@ -1505,7 +1064,7 @@ export default class SPlot {
       return {
         x: randomInt(this.gridSize.width),
         y: randomInt(this.gridSize.height),
-        shape: this.randomQuotaIndex(this.demoMode.shapeQuota!),
+        shape: randomQuotaIndex(this.demoMode.shapeQuota!),
         color: randomInt(this.polygonPalette.length)
       }
     }
@@ -1519,8 +1078,8 @@ export default class SPlot {
   public run(): void {
     if (!this.isRunning) {
 
-      this.canvas.addEventListener('mousedown', this.handleMouseDown)
-      this.canvas.addEventListener('wheel', this.handleMouseWheel)
+      this.canvas.addEventListener('mousedown', this.handleMouseDownWithContext)
+      this.canvas.addEventListener('wheel', this.handleMouseWheelWithContext)
 
       this.render()
 
@@ -1543,10 +1102,10 @@ export default class SPlot {
 
     if (this.isRunning) {
 
-      this.canvas.removeEventListener('mousedown', this.handleMouseDown)
-      this.canvas.removeEventListener('wheel', this.handleMouseWheel)
-      this.canvas.removeEventListener('mousemove', this.handleMouseMove)
-      this.canvas.removeEventListener('mouseup', this.handleMouseUp)
+      this.canvas.removeEventListener('mousedown', this.handleMouseDownWithContext)
+      this.canvas.removeEventListener('wheel', this.handleMouseWheelWithContext)
+      this.canvas.removeEventListener('mousemove', this.handleMouseMoveWithContext)
+      this.canvas.removeEventListener('mouseup', this.handleMouseUpWithContext)
 
       if (clear) {
         this.clear()
