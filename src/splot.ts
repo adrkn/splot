@@ -66,8 +66,6 @@ export default class SPlot {
     zoom: 1
   }
 
-  public useVertexIndices: boolean = false
-
   /**
    * По умолчанию настройки контекста рендеринга WebGL максимизируют производительность графической системы. Специальных
    * пользовательских предустановок не требуется, однако приложение позволяет экспериментировать с настройками графики.
@@ -135,7 +133,6 @@ export default class SPlot {
     colorBuffers: [],
     sizeBuffers: [],
     shapeBuffers: [],
-    indexBuffers: [],
     amountOfGLVertices: [],
     amountOfShapes: [],
     amountOfBufferGroups: 0,
@@ -349,7 +346,6 @@ export default class SPlot {
       this.addWbGlBuffer(this.buffers.colorBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.colors), 1)
       this.addWbGlBuffer(this.buffers.shapeBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.shapes), 4)
       this.addWbGlBuffer(this.buffers.sizeBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.sizes), 3)
-      this.addWbGlBuffer(this.buffers.indexBuffers, 'ELEMENT_ARRAY_BUFFER', new Uint16Array(polygonGroup.indices), 2)
 
       // Счетчик количества буферов.
       this.buffers.amountOfBufferGroups++
@@ -380,7 +376,6 @@ export default class SPlot {
 
     let polygonGroup: SPlotPolygonGroup = {
       vertices: [],
-      indices: [],
       colors: [],
       sizes: [],
       shapes: [],
@@ -465,7 +460,6 @@ export default class SPlot {
      * Добавление в группу полигонов индексов вершин нового полигона и подсчет общего количества вершин GL-треугольников
      * в группе.
      */
-    polygonGroup.indices.push(polygonGroup.amountOfVertices)
     polygonGroup.amountOfGLVertices++
 
     // Добавление в группу полигонов вершин нового полигона и подсчет общего количества вершин в группе.
@@ -822,16 +816,7 @@ export default class SPlot {
       this.gl.enableVertexAttribArray(this.variables['a_shape'])
       this.gl.vertexAttribPointer(this.variables['a_shape'], 1, this.gl.UNSIGNED_BYTE, false, 0, 0)
 
-      if (this.useVertexIndices) {
-
-        // Установка текущего буфера индексов вершин.
-        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.buffers.indexBuffers[i])
-
-        // Рендеринг текущей группы буферов.
-        this.gl.drawElements(this.gl.POINTS, this.buffers.amountOfGLVertices[i], this.gl.UNSIGNED_SHORT, 0)
-      } else {
-        this.gl.drawArrays(this.gl.POINTS, 0, this.buffers.amountOfGLVertices[i] / 3)
-      }
+      this.gl.drawArrays(this.gl.POINTS, 0, this.buffers.amountOfGLVertices[i] / 3)
     }
   }
 

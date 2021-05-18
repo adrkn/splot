@@ -1,15 +1,5 @@
 
 /**
- * Тип функции, вычисляющей координаты вершин полигона определенной формы.
- *
- * @param x - Положение центра полигона на оси абсцисс.
- * @param y - Положение центра полигона на оси ординат.
- * @param consts - Набор вспомогательных констант, используемых для вычисления вершин.
- * @returns Данные о вершинах полигона.
- */
-type SPlotCalcShapeFunc = (x: number, y: number, size: number, shape: number) => SPlotPolygonVertices
-
-/**
  * Тип функции итерирования массива исходных объектов. Каждый вызов такой функции должен возвращать информацию об
  * очередном полигоне, который необходимо отобразить (его координаты, форму и цвет). Когда исходные объекты закончатся
  * функция должна вернуть null.
@@ -50,8 +40,7 @@ type WebGlVariableType = 'uniform' | 'attribute' | 'varying'
 /**
  * Тип массива данных, занимающих в памяти непрерывный объем.
  */
-type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array |
-  Uint16Array | Uint32Array | Float32Array | Float64Array
+type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array
 
 /**
  * Тип для настроек приложения.
@@ -188,7 +177,6 @@ interface SPlotTransform {
  *
  * @param vertexBuffers - Массив буферов с информацией о вершинах полигонов.
  * @param colorBuffers - Массив буферов с информацией о цветах вершин полигонов.
- * @param indexBuffers - Массив буферов с индексами вершин полигонов.
  * @param amountOfBufferGroups - Количество буферных групп в массиве. Все указанные выше массивы буферов содержат
  *     одинаковое количество буферов.
  * @param amountOfGLVertices - Количество вершин, образующих GL-треугольники каждого вершинного буфера.
@@ -202,7 +190,6 @@ interface SPlotBuffers {
   colorBuffers: WebGLBuffer[],
   sizeBuffers: WebGLBuffer[],
   shapeBuffers: WebGLBuffer[],
-  indexBuffers: WebGLBuffer[],
   amountOfBufferGroups: number,
   amountOfGLVertices: number[],
   amountOfShapes: number[],
@@ -216,10 +203,6 @@ interface SPlotBuffers {
  *
  * @param vertices - Массив вершин всех полигонов группы. Каждая вершина - это пара чисел (координаты вершины на
  *     плоскости). Координаты могут быть как целыми, так и вещественными числами.
- * @param indices - Массив индексов вершин полигонов группы. Каждый индекс - это номер вершины в массиве вершин. Индексы
- *     описывают все GL-треугольники, из которых состоят полигоны группы, т.о. каждая тройка индексов кодирует один
- *     GL-треугольник. Индексы - это целые числа в диапазоне от 0 до 65535, что накладывает ограничение на максимальное
- *     количество вершин, хранимых в группе полигонов (не более 32768 штук).
  * @param colors - Массив цветов вершин полигонов группы. Каждое число задает цвет одной вершины в массиве вершин. Чтобы
  *     полигон был сплошного однородного цвета необходимо чтобы все вершины полигона имели одинаковый цвет. Цвет - это
  *     целое число в диапазоне от 0 до 255, представляющее собой индекс цвета в предопределенном массиве цветов.
@@ -228,7 +211,6 @@ interface SPlotBuffers {
  */
 interface SPlotPolygonGroup {
   vertices: number[],
-  indices: number[],
   colors: number[],
   shapes: number[],
   sizes: number[],
@@ -241,12 +223,9 @@ interface SPlotPolygonGroup {
  *
  * @param vertices - Массив всех вершин полигона. Каждая вершина - это пара чисел (координаты вершины на
  *     плоскости). Координаты могут быть как целыми, так и вещественными числами.
- * @param indices - Массив индексов вершин полигона. Каждый индекс - это номер вершины в массиве вершин. Индексы
- *     описывают все GL-треугольники, из которых состоит полигон.
  */
 interface SPlotPolygonVertices {
   values: number[],
-  indices: number[],
   shape: number,
   size: number
 }
