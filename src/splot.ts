@@ -1,6 +1,6 @@
 // @ts-ignore
 import m3 from './m3'
-import { isObject, randomInt, jsonStringify, randomQuotaIndex, colorFromHexToGlRgb, getCurrentTime } from './utils'
+import { copyMatchingKeyValues, randomInt, jsonStringify, randomQuotaIndex, colorFromHexToGlRgb, getCurrentTime } from './utils'
 import vertexShaderCode from './vertex-shader'
 import fragmentShaderCode from './fragment-shader'
 
@@ -174,20 +174,13 @@ export default class SPlot {
       throw new Error('Канвас с идентификатором "#' + canvasId +  '" не найден!')
     }
 
-    /**
-     * Регистрация трех базовых форм полигонов (треугольники, квадраты и круги). Наличие этих форм в указанном порядке
-     * является обязательным для корректной работы приложения. Другие формы могут регистрироватья в любом количестве, в
-     * любой последовательности.
-     */
     this.registerShape(this.getVerticesOfPoint, 'Точка')
 
-    // Если переданы настройки, то они применяются.
     if (options) {
-      this.setOptions(options)
+      this.setOptions(options)    // Если переданы настройки, то они применяются.
 
-      //  Если запрошен форсированный запуск, то инициализируются все необходимые для рендера параметры.
       if (this.forceRun) {
-        this.setup(options)
+        this.setup(options)       //  Инициализация всех параметров рендера, если запрошен форсированный запуск.
       }
     }
   }
@@ -197,7 +190,7 @@ export default class SPlot {
    */
   protected createGl(): void {
 
-    this.gl = this.canvas.getContext('webgl', this.webGlSettings) as WebGLRenderingContext
+    this.gl = this.canvas.getContext('webgl', this.webGlSettings)!
 
     this.canvas.width = this.canvas.clientWidth
     this.canvas.height = this.canvas.clientHeight
@@ -228,49 +221,34 @@ export default class SPlot {
   }
 
   /**
-   * Устанавливает необходимые для рендера параметры экземпляра и WebGL.
+   * Инициализирует необходимые для рендера параметры экземпляра и WebGL.
    *
    * @param options - Пользовательские настройки экземпляра.
    */
   public setup(options: SPlotOptions): void {
 
-    // Применение пользовательских настроек.
-    this.setOptions(options)
+    this.setOptions(options)     // Применение пользовательских настроек.
+    this.createGl()              // Создание контекста рендеринга.
+    this.amountOfPolygons = 0    // Обнуление счетчика полигонов.
+    this.demoMode.index = 0      // Обнуление технического счетчика режима демо-данных.
 
-    // Создание контекста рендеринга.
-    this.createGl()
+    for (const key in this.shapes) {
+      this.buffers.amountOfShapes[key] = 0    // Обнуление счетчиков форм полигонов.
+    }
 
-    // Вывод отладочной информации.
     if (this.debugMode.isEnable) {
-      this.reportMainInfo(options)
+      this.reportMainInfo(options)    // Вывод отладочной информации.
     }
 
-    // Обнуление счетчика полигонов.
-    this.amountOfPolygons = 0
+    (this.gl.clearColor as any)(...colorFromHexToGlRgb(this.bgColor), 0.0)    // Установка цвета очистки рендеринга
 
-    // Обнуление технического счетчика режима демо-данных
-    this.demoMode.index = 0
-
-    // Обнуление счетчиков числа использования различных форм полигонов.
-    for (let i = 0; i < this.shapes.length; i++) {
-      this.buffers.amountOfShapes[i] = 0
-    }
-
-    // Установка цвета очистки рендеринга
-    let [r, g, b] = colorFromHexToGlRgb(this.bgColor)
-    this.gl.clearColor(r, g, b, 0.0)
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT)
-
-    /**
-     * Подготовка кодов шейдеров. В код вершинного шейдера вставляется код выбора цвета вершин. Код фрагментного
-     * шейдера используется без изменений.
-     */
-    let vertexShaderCode = this.vertexShaderCodeTemplate.replace('{ADDITIONAL-CODE}', this.genShaderColorCode())
-    let fragmentShaderCode = this.fragmentShaderCodeTemplate
+    // Подготовка кодов шейдеров. В код вершинного шейдера вставляется код выбора цвета вершин.
+    const vertexShaderCode = this.vertexShaderCodeTemplate.replace('{ADDITIONAL-CODE}', this.genShaderColorCode())
+    const fragmentShaderCode = this.fragmentShaderCodeTemplate
 
     // Создание шейдеров WebGL.
-    let vertexShader = this.createWebGlShader('VERTEX_SHADER', vertexShaderCode)
-    let fragmentShader = this.createWebGlShader('FRAGMENT_SHADER', fragmentShaderCode)
+    const vertexShader = this.createWebGlShader('VERTEX_SHADER', vertexShaderCode)
+    const fragmentShader = this.createWebGlShader('FRAGMENT_SHADER', fragmentShaderCode)
 
     // Создание программы WebGL.
     this.createWebGlProgram(vertexShader, fragmentShader)
@@ -282,12 +260,10 @@ export default class SPlot {
     this.setWebGlVariable('attribute', 'a_shape')
     this.setWebGlVariable('uniform', 'u_matrix')
 
-    // Вычисление данных обо всех полигонах и заполнение ими буферов WebGL.
-    this.createWbGlBuffers()
+    this.createWbGlBuffers()    // Заполнение буферов WebGL.
 
-    // Если необходимо, то рендеринг запускается сразу после установки параметров экземпляра.
     if (this.forceRun) {
-      this.run()
+      this.run()                // Форсированный запуск рендеринга (если требуется).
     }
   }
 
@@ -298,43 +274,16 @@ export default class SPlot {
    */
   protected setOptions(options: SPlotOptions): void {
 
-    /**
-     * Копирование пользовательских настроек в соответсвующие поля экземпляра. Копируются только те из них, которым
-     * имеются соответствующие эквиваленты в полях экземпляра. Копируется также первый уровень вложенных настроек.
-     */
-    for (let option in options) {
+    copyMatchingKeyValues(this, options)    // Применение пользовательских настроек.
 
-      if (!this.hasOwnProperty(option)) continue
-
-      if (isObject((options as any)[option]) && isObject((this as any)[option]) ) {
-        for (let nestedOption in (options as any)[option]) {
-          if ((this as any)[option].hasOwnProperty(nestedOption)) {
-            (this as any)[option][nestedOption] = (options as any)[option][nestedOption]
-          }
-        }
-      } else {
-        (this as any)[option] = (options as any)[option]
-      }
-    }
-
-    /**
-     * Если пользователь задает размер плоскости, но при этом на задает начальное положение области просмотра, то
-     * область просмотра помещается в центр заданной плоскости.
-     */
+    // Если задан размер плоскости, но не задано положение области просмотра, то область помещается в центр плоскости.
     if (options.hasOwnProperty('gridSize') && !options.hasOwnProperty('camera')) {
-      this.camera = {
-        x: this.gridSize.width / 2,
-        y: this.gridSize.height / 2,
-        zoom: 1
-      }
+      this.camera.x = this.gridSize.width / 2
+      this.camera.y = this.gridSize.height / 2
     }
 
-    /**
-     * Если запрошен демо-режим, то для итерирования объектов будет использоваться внутренний имитирующий итерирование
-     * метод. При этом внешняя функция итерирования использована не будет.
-     */
     if (this.demoMode.isEnable) {
-      this.iterationCallback = this.demoIterationCallback
+      this.iterationCallback = this.demoIterationCallback    // Имитация итерирования для демо-режима.
     }
   }
 
@@ -348,7 +297,7 @@ export default class SPlot {
   protected createWebGlShader(shaderType: WebGlShaderType, shaderCode: string): WebGLShader {
 
     // Создание, привязка кода и компиляция шейдера.
-    const shader = this.gl.createShader(this.gl[shaderType]) as WebGLShader
+    const shader = this.gl.createShader(this.gl[shaderType])!
     this.gl.shaderSource(shader, shaderCode)
     this.gl.compileShader(shader)
 
@@ -359,9 +308,7 @@ export default class SPlot {
     // Вывод отладочной информации.
     if (this.debugMode.isEnable) {
       console.group('%cСоздан шейдер [' + shaderType + ']', this.debugMode.groupStyle)
-      {
-        console.log(shaderCode)
-      }
+      console.log(shaderCode)
       console.groupEnd()
     }
 
@@ -375,17 +322,10 @@ export default class SPlot {
    * @param {WebGLShader} fragmentShader Фрагментный шейдер.
    */
   protected createWebGlProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): void {
-
-    this.gpuProgram = this.gl.createProgram() as WebGLProgram
-
+    this.gpuProgram = this.gl.createProgram()!
     this.gl.attachShader(this.gpuProgram, vertexShader)
     this.gl.attachShader(this.gpuProgram, fragmentShader)
     this.gl.linkProgram(this.gpuProgram)
-
-    if (!this.gl.getProgramParameter(this.gpuProgram, this.gl.LINK_STATUS)) {
-      throw new Error('Ошибка создания программы WebGL. ' + this.gl.getProgramInfoLog(this.gpuProgram))
-    }
-
     this.gl.useProgram(this.gpuProgram)
   }
 

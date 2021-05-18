@@ -10,6 +10,31 @@ export function isObject(obj: any): boolean {
 }
 
 /**
+ * Переопределяет значения полей объекта target на значения полей объекта source. Переопределяются только те поля,
+ * которые существуеют в target. Если в source есть поля, которых нет в target, то они игнорируются. Если какие-то поля
+ * сами являются являются объектами, то то они также рекурсивно копируются (при том же условии, что в целеом объекте
+ * существуют поля объекта-источника).
+ *
+ * @param target - Целевой (изменяемый) объект.
+ * @param source - Объект с данными, которые нужно установить у целевого объекта.
+ */
+export function copyMatchingKeyValues(target: any, source: any): void {
+  Object.keys(source).forEach(key => {
+    if (key in target) {
+      if (isObject(source[key])) {
+        if (isObject(target[key])) {
+          copyMatchingKeyValues(target[key], source[key])
+        }
+      } else {
+        if (!isObject(target[key]) && (typeof target[key] !== 'function')) {
+          target[key] = source[key]
+        }
+      }
+    }
+  })
+}
+
+/**
  * Возвращает случайное целое число в диапазоне: [0...range-1].
  *
  * @param range - Верхний предел диапазона случайного выбора.
