@@ -46,6 +46,7 @@ scatterPlot.setup({
   demoMode: {
     isEnable: false,
   },
+  useVertexIndices: false
 })
 
 scatterPlot.run()

@@ -149,7 +149,7 @@ export default class SPlot {
    * Каждая форма представляется функцией, вычисляющей ее вершины и названием формы.
    * Для указания формы полигонов в приложении используются числовые индексы в данном массиве.
    */
-  protected shapes: {calc: SPlotCalcShapeFunc, name: string}[] = []
+  protected shapes: {name: string}[] = []
 
   protected handleMouseDownWithContext: EventListener = this.handleMouseDown.bind(this) as EventListener
   protected handleMouseWheelWithContext: EventListener = this.handleMouseWheel.bind(this) as EventListener
@@ -174,7 +174,12 @@ export default class SPlot {
       throw new Error('Канвас с идентификатором "#' + canvasId +  '" не найден!')
     }
 
-    this.registerShape(this.getVerticesOfPoint, 'Точка')
+    // Добавление формы в массив форм.
+    this.shapes.push({
+      name: 'Точка'
+    })
+    // Добавление формы в массив частот появления в демо-режиме.
+    this.demoMode.shapeQuota!.push(1)
 
     if (options) {
       this.setOptions(options)    // Если переданы настройки, то они применяются.
@@ -196,28 +201,6 @@ export default class SPlot {
     this.canvas.height = this.canvas.clientHeight
 
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height)
-  }
-
-  /**
-   * Регистрирует новую форму полигонов. Регистрация означает возможность в дальнейшем отображать на графике полигоны данной формы.
-   *
-   * @param polygonCalc - Функция вычисления координат вершин полигона данной формы.
-   * @param polygonName - Название формы полигона.
-   * @returns Индекс новой формы, по которому задается ее отображение на графике.
-   */
-  public registerShape(polygonCalc: SPlotCalcShapeFunc, polygonName: string): number {
-
-    // Добавление формы в массив форм.
-    this.shapes.push({
-      calc: polygonCalc,
-      name: polygonName
-    })
-
-    // Добавление формы в массив частот появления в демо-режиме.
-    this.demoMode.shapeQuota!.push(1)
-
-    // Полученный индекс формы в массиве форм.
-    return this.shapes.length - 1
   }
 
   /**
@@ -470,15 +453,6 @@ export default class SPlot {
     this.buffers.sizeInBytes[key] += data.length * data.BYTES_PER_ELEMENT
   }
 
-  protected getVerticesOfPoint(x: number, y: number, size: number, shape: number): SPlotPolygonVertices {
-    return {
-      values: [x, y],
-      indices: [0, 0, 0],
-      size: size,
-      shape: shape
-    }
-  }
-
   /**
    * Создает и добавляет в группу полигонов новый полигон.
    *
@@ -488,46 +462,19 @@ export default class SPlot {
   protected addPolygon(polygonGroup: SPlotPolygonGroup, polygon: SPlotPolygon): void {
 
     /**
-     * В зависимости от формы полигона и координат его центра вызывается соответсвующая функция нахождения координат его
-     * вершин.
-     */
-    const vertices = this.shapes[0].calc(
-      polygon.x, polygon.y, polygon.size, polygon.shape
-    )
-
-    // Количество вершин - это количество пар чисел в массиве вершин.
-    const amountOfVertices = Math.trunc(vertices.values.length / 2)
-
-    // Нахождение индекса первой добавляемой в группу полигонов вершины.
-    const indexOfLastVertex = polygonGroup.amountOfVertices
-
-    /**
-     * Номера индексов вершин - относительные. Для вычисления абсолютных индексов необходимо прибавить к относительным
-     * индексам индекс первой добавляемой в группу полигонов вершины.
-     */
-    for (let i = 0; i < vertices.indices.length; i++) {
-      vertices.indices[i] += indexOfLastVertex
-    }
-
-    /**
      * Добавление в группу полигонов индексов вершин нового полигона и подсчет общего количества вершин GL-треугольников
      * в группе.
      */
-    polygonGroup.indices.push(...vertices.indices)
-    polygonGroup.amountOfGLVertices += vertices.indices.length
+    polygonGroup.indices.push(polygonGroup.amountOfVertices)
+    polygonGroup.amountOfGLVertices++
 
     // Добавление в группу полигонов вершин нового полигона и подсчет общего количества вершин в группе.
-    polygonGroup.vertices.push(...vertices.values)
-    polygonGroup.amountOfVertices += amountOfVertices
+    polygonGroup.vertices.push(polygon.x, polygon.y)
+    polygonGroup.amountOfVertices++
 
-    polygonGroup.shapes.push(vertices.shape)
-
-    polygonGroup.sizes.push(vertices.size)
-
-    // Добавление цветов вершин - по одному цвету на каждую вершину.
-    for (let i = 0; i < amountOfVertices; i++) {
-      polygonGroup.colors.push(polygon.color)
-    }
+    polygonGroup.shapes.push(polygon.shape)
+    polygonGroup.sizes.push(polygon.size)
+    polygonGroup.colors.push(polygon.color)
   }
 
   /**
