@@ -12,10 +12,10 @@ export default class SPlotDemo {
 
   constructor(splot: SPlot) {
     this.splot = splot
-    this.init()
+    this.prepare()
   }
 
-  public init() {
+  public prepare() {
     this.index = 0
   }
 

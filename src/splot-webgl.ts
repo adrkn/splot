@@ -82,12 +82,19 @@ export default class SPlotWebGl {
    * @param {WebGLShader} vertexShader Вершинный шейдер.
    * @param {WebGLShader} fragmentShader Фрагментный шейдер.
    */
-  public createProgram(shaderVert: WebGLShader, shaderFrag: WebGLShader) {
+  public createProgramFromShaders(shaderVert: WebGLShader, shaderFrag: WebGLShader): void {
     this.gpuProgram = this.gl.createProgram()!
     this.gl.attachShader(this.gpuProgram, shaderVert)
     this.gl.attachShader(this.gpuProgram, shaderFrag)
     this.gl.linkProgram(this.gpuProgram)
     this.gl.useProgram(this.gpuProgram)
+  }
+
+  public createProgram(shaderCodeVert: string, shaderCodeFrag: string): void {
+    this.createProgramFromShaders(
+      this.createShader('VERTEX_SHADER', shaderCodeVert),
+      this.createShader('FRAGMENT_SHADER', shaderCodeFrag)
+    )
   }
 
   /**
@@ -96,14 +103,24 @@ export default class SPlotWebGl {
    * @param varType Тип переменной.
    * @param varName Имя переменной.
    */
-  public createVariable(varType: WebGlVariableType, varName: string): void {
-    if (varType === 'uniform') {
+  public createVariable(varName: string): void {
+
+    const varType = varName.slice(0, 2)
+
+    if (varType === 'u_') {
       this.variables[varName] = this.gl.getUniformLocation(this.gpuProgram, varName)
-    } else if (varType === 'attribute') {
+    } else if (varType === 'a_') {
       this.variables[varName] = this.gl.getAttribLocation(this.gpuProgram, varName)
+    } else {
+      throw new Error('Не указан тип (префикс) переменной шейдера: ' + varName)
     }
   }
 
+  public createVariables(...varNames: string[]): void {
+    varNames.forEach(varName => {
+      this.createVariable(varName)
+    });
+  }
   /**
    * Создает в массиве буферов WebGL новый буфер и записывает в него переданные данные.
    *
