@@ -528,7 +528,7 @@ export default class SPlot {
 
     if (this.isRunning) {
 
-      this.control.run()
+      this.control.stop()
 
       if (clear) {
         this.clear()
