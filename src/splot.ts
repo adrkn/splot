@@ -1,14 +1,17 @@
 // @ts-ignore
 import m3 from './m3'
-import { copyMatchingKeyValues, randomInt, jsonStringify, randomQuotaIndex, colorFromHexToGlRgb, getCurrentTime } from './utils'
+import { copyMatchingKeyValues, randomInt, randomQuotaIndex, colorFromHexToGlRgb} from './utils'
 import SPlotDebug from './debug'
 import shaderCodeVert from './shader-vert'
 import shaderCodeFrag from './shader-frag'
 
 export default class SPlot {
 
-  // Функция по умолчанию для итерирования объектов не задается.
-  public iterationCallback: SPlotIterationFunction = undefined
+  public iterationCallback: SPlotIterationFunction = undefined    // Функция итерирования объектов.
+  public debug: SPlotDebug = new SPlotDebug(this)                 // Параметры режима отладки.
+  public forceRun: boolean = false                                // Признак форсированного запуска рендера.
+  public maxAmountOfPolygons: number = 1_000_000_000              // Искусственное ограничение кол-ва объектов.
+  public isRunning: boolean = false                               // Признак активного процесса рендера.
 
   // Цветовая палитра полигонов по умолчанию.
   public polygonPalette: string[] = [
@@ -24,9 +27,6 @@ export default class SPlot {
     rulesColor: '#c0c0c0'
   }
 
-  // Параметры режима отладки по умолчанию.
-  public debug: SPlotDebug = new SPlotDebug(this)
-
   // Параметры режима демострационных данных по умолчанию.
   public demoMode: SPlotDemoMode = {
     isEnable: false,
@@ -35,15 +35,6 @@ export default class SPlot {
     index: 0
   }
 
-  // Признак по умолчанию форсированного запуска рендера.
-  public forceRun: boolean = false
-
-  /**
-   * По умолчанию искусственного ограничения на количество отображаемых полигонов нет (за счет задания большого заведомо
-   * недостижимого порогового числа).
-   */
-  public maxAmountOfPolygons: number = 1_000_000_000
-
   // По умолчанию область просмотра устанавливается в центр координатной плооскости.
   public camera: SPlotCamera = {
     x: this.grid.width! / 2,
@@ -51,10 +42,9 @@ export default class SPlot {
     zoom: 1
   }
 
-  /**
-   * По умолчанию настройки контекста рендеринга WebGL максимизируют производительность графической системы. Специальных
-   * пользовательских предустановок не требуется, однако приложение позволяет экспериментировать с настройками графики.
-   */
+  public readonly shapes: { name: string }[] = []
+
+  // Настройки контекста рендеринга WebGL максимизирующие производительность графической системы.
   public webGlSettings: WebGLContextAttributes = {
     alpha: false,
     depth: false,
@@ -67,52 +57,24 @@ export default class SPlot {
     desynchronized: false
   }
 
-  // Признак активного процесса рендера (только чтение).
-  public isRunning: boolean = false
-
-  public readonly shapes: { name: string }[] = []
-
-  // Объект канваса.
-  protected readonly canvas: HTMLCanvasElement
-
-  // Объект контекста рендеринга WebGL.
-  protected gl!: WebGLRenderingContext
-
-  // Объект программы WebGL.
-  protected gpuProgram!: WebGLProgram
-
-  // Переменные для связи приложения с программой WebGL.
-  protected variables: { [key: string]: any } = {}
-
-  /**
-   * Шаблон GLSL-кода для вершинного шейдера. Содержит специальную вставку "{ADDITIONAL-CODE}", которая перед
-   * созданием шейдера заменяется на GLSL-код выбора цвета вершин.
-   */
-  protected readonly shaderCodeVert: string = shaderCodeVert
-
-  // Шаблон GLSL-кода для фрагментного шейдера.
-  protected readonly shaderCodeFrag: string = shaderCodeFrag
-
-  // Счетчик числа обработанных полигонов.
-  protected amountOfPolygons: number = 0
+  protected canvas: HTMLCanvasElement                    // Объект канваса.
+  protected gl!: WebGLRenderingContext                   // Объект контекста рендеринга WebGL.
+  protected gpuProgram!: WebGLProgram                    // Объект программы WebGL.
+  protected variables: { [key: string]: any } = {}       // Переменные для связи приложения с программой WebGL.
+  protected shaderCodeVert: string = shaderCodeVert      // Шаблон GLSL-кода для вершинного шейдера.
+  protected shaderCodeFrag: string = shaderCodeFrag      // Шаблон GLSL-кода для фрагментного шейдера.
+  protected amountOfPolygons: number = 0                 // Счетчик числа обработанных полигонов.
+  protected maxAmountOfVertexInGroup: number = 10_000    // Максимальное кол-во вершин в группе.
 
   // Техническая информация, используемая приложением для расчета трансформаций.
   protected transform: SPlotTransform = {
     viewProjectionMat: [],
     startInvViewProjMat: [],
-    startCamera: {x:0, y:0, zoom: 1},
+    startCamera: {x: 0, y: 0, zoom: 1},
     startPos: [],
     startClipPos: [],
     startMousePos: []
   }
-
-  /**
-   * Максимальное возможное количество вершин в группе полигонов, которое еще допускает добавление одного самого
-   * многовершинного полигона. Это количество имеет объективное техническое ограничение, т.к. функция
-   * {@link drawElements} не позволяет корректно принимать больше 65536 индексов (32768 вершин).
-   */
-//  protected maxAmountOfVertexPerPolygonGroup: number = 32768 - (this.circleApproxLevel + 1);
-  protected maxAmountOfVertexPerPolygonGroup: number = 10_000
 
   // Информация о буферах, хранящих данные для видеопамяти.
   protected buffers: SPlotBuffers = {
@@ -389,7 +351,7 @@ export default class SPlot {
        * Если общее количество всех вершин в группе полигонов превысило техническое ограничение, то группа полигонов
        * считается сформированной и итерирование исходных объектов приостанавливается.
        */
-      if (polygonGroup.amountOfVertices >= this.maxAmountOfVertexPerPolygonGroup) break
+      if (polygonGroup.amountOfVertices >= this.maxAmountOfVertexInGroup) break
     }
 
     // Счетчик общего количества вершин всех вершинных буферов.
