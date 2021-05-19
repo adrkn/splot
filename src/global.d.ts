@@ -26,7 +26,7 @@ type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array
  * @param bgColor - Фоновый цвет канваса.
  * @param rulesColor - Цвет направляющих.
  * @param camera - Положение координатной плоскости в области просмотра.
- * @param webGl - Инициализирующие настройки контекста рендеринга WebGL.
+ * @param webgl - Инициализирующие настройки контекста рендеринга WebGL.
  */
 interface SPlotOptions {
   iterator?: SPlotIterator,
@@ -39,7 +39,7 @@ interface SPlotOptions {
   maxAmountOfPolygons?: number,
   camera?: SPlotCamera,
   useVertexIndices?: boolean,
-  webGl?: WebGLContextAttributes
+  webgl?: WebGLContextAttributes
 }
 
 /**

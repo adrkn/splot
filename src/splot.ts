@@ -10,8 +10,8 @@ export default class SPlot {
 
   public iterator: SPlotIterator = undefined         // Функция итерирования исходных данных.
   public demo: SPlotDemo = new SPlotDemo(this)       // Хелпер режима демо-данных.
-  public webgl: SPlotWebGl = new SPlotWebGl(this)    // Хелпер WebGL.
   public debug: SPlotDebug = new SPlotDebug(this)    // Хелпер режима отладки
+  public webgl: SPlotWebGl = new SPlotWebGl(this)    // Хелпер WebGL.
   public forceRun: boolean = false                   // Признак форсированного запуска рендера.
   public globalLimit: number = 1_000_000_000         // Ограничение кол-ва объектов на графике.
   public groupLimit: number = 10_000                 // Ограничение кол-ва объектов в группе.

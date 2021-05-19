@@ -3,23 +3,22 @@ import { colorFromHexToGlRgb } from './utils'
 
 export default class SPlotWebGl {
 
-  public webGlSettings: WebGLContextAttributes = {
-    alpha: false,
-    depth: false,
-    stencil: false,
-    antialias: false,
-    premultipliedAlpha: false,
-    preserveDrawingBuffer: false,
-    powerPreference: 'high-performance',
-    failIfMajorPerformanceCaveat: false,
-    desynchronized: false
-  }
+  public alpha: boolean = false
+  public depth: boolean = false
+  public stencil: boolean = false
+  public antialias: boolean = false
+  public desynchronized: boolean = false
+  public premultipliedAlpha: boolean = false
+  public preserveDrawingBuffer: boolean = false
+  public failIfMajorPerformanceCaveat: boolean = false
+  public powerPreference: WebGLPowerPreference = 'high-performance'
 
   private splot: SPlot
   public canvas!: HTMLCanvasElement
   public gl!: WebGLRenderingContext
   private gpuProgram!: WebGLProgram
-  private variables: { [key: string]: any } = {}
+
+  private variables: Map<string, any> = new Map()
 
   constructor(splot: SPlot) {
     this.splot = splot
@@ -38,7 +37,17 @@ export default class SPlotWebGl {
    */
   public create(): void {
 
-    this.gl = this.canvas.getContext('webgl', this.webGlSettings)!
+    this.gl = this.canvas.getContext('webgl', {
+      alpha: this.alpha,
+      depth: this.depth,
+      stencil: this.stencil,
+      antialias: this.antialias,
+      desynchronized: this.desynchronized,
+      premultipliedAlpha: this.premultipliedAlpha,
+      preserveDrawingBuffer: this.preserveDrawingBuffer,
+      failIfMajorPerformanceCaveat: this.failIfMajorPerformanceCaveat,
+      powerPreference: this.powerPreference
+    })!
 
     this.canvas.width = this.canvas.clientWidth
     this.canvas.height = this.canvas.clientHeight
@@ -108,9 +117,9 @@ export default class SPlotWebGl {
     const varType = varName.slice(0, 2)
 
     if (varType === 'u_') {
-      this.variables[varName] = this.gl.getUniformLocation(this.gpuProgram, varName)
+      this.variables.set(varName, this.gl.getUniformLocation(this.gpuProgram, varName))
     } else if (varType === 'a_') {
-      this.variables[varName] = this.gl.getAttribLocation(this.gpuProgram, varName)
+      this.variables.set(varName, this.gl.getAttribLocation(this.gpuProgram, varName))
     } else {
       throw new Error('Не указан тип (префикс) переменной шейдера: ' + varName)
     }
@@ -143,13 +152,13 @@ export default class SPlotWebGl {
   }
 
   public setVariable(varName: string, varValue: number[]) {
-    this.gl.uniformMatrix3fv(this.variables[varName], false, varValue)
+    this.gl.uniformMatrix3fv(this.variables.get(varName), false, varValue)
   }
 
   public setBuffer(buffer: WebGLBuffer, varName: string, type: number, size: number, stride: number, offset: number) {
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
-    this.gl.enableVertexAttribArray(this.variables[varName])
-    this.gl.vertexAttribPointer(this.variables[varName], size, type, false, stride, offset)
+    this.gl.enableVertexAttribArray(this.variables.get(varName))
+    this.gl.vertexAttribPointer(this.variables.get(varName), size, type, false, stride, offset)
   }
 
   public draw(first: number, count: number) {
