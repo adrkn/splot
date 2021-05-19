@@ -26,7 +26,7 @@ export default class SPlotDebug {
   public logIntro(canvas: HTMLCanvasElement): void {
     console.log('%cОтладка SPlot на объекте #' + canvas.id, this.headerStyle)
 
-    if (this.splot.demoMode.isEnable) {
+    if (this.splot.demo.isEnable) {
       console.log('%cВключен демонстрационный режим данных', this.groupStyle)
     }
 
@@ -53,7 +53,7 @@ export default class SPlotDebug {
       console.log('Размер канваса: ' + canvas.width + ' x ' + canvas.height + ' px')
       console.log('Размер плоскости: ' + this.splot.grid.width + ' x ' + this.splot.grid.height + ' px')
 
-      if (this.splot.demoMode.isEnable) {
+      if (this.splot.demo.isEnable) {
         console.log('Способ получения данных: ' + 'демо-данные')
       } else {
         console.log('Способ получения данных: ' + 'итерирование')

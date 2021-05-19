@@ -1,4 +1,5 @@
-import { copyMatchingKeyValues, randomInt, randomQuotaIndex, colorFromHexToGlRgb } from './utils'
+import { copyMatchingKeyValues, colorFromHexToGlRgb } from './utils'
+import SPlotDemo from './splot-demo'
 import SPlotWebGl from './splot-webgl'
 import SPlotDebug from './splot-debug'
 import SPlotContol from './splot-control'
@@ -28,13 +29,8 @@ export default class SPlot {
     rulesColor: '#c0c0c0'
   }
 
-  // Параметры режима демострационных данных по умолчанию.
-  public demoMode: SPlotDemoMode = {
-    isEnable: false,
-    amount: 1_000_000,
-    shapeQuota: [],
-    index: 0
-  }
+  // Параметры режима демострационных данных.
+  public demo: SPlotDemo = new SPlotDemo(this)
 
   // По умолчанию область просмотра устанавливается в центр координатной плооскости.
   public camera: SPlotCamera = {
@@ -104,7 +100,7 @@ export default class SPlot {
       name: 'Точка'
     })
     // Добавление формы в массив частот появления в демо-режиме.
-    this.demoMode.shapeQuota!.push(1)
+    this.demo.shapeQuota!.push(1)
 
     if (options) {
       this.setOptions(options)    // Если переданы настройки, то они применяются.
@@ -125,7 +121,7 @@ export default class SPlot {
     this.setOptions(options)     // Применение пользовательских настроек.
     this.webGl.create()              // Создание контекста рендеринга.
     this.amountOfPolygons = 0    // Обнуление счетчика полигонов.
-    this.demoMode.index = 0      // Обнуление технического счетчика режима демо-данных.
+    this.demo.init()      // Обнуление технического счетчика режима демо-данных.
 
     for (const key in this.shapes) {
       this.buffers.amountOfShapes[key] = 0    // Обнуление счетчиков форм полигонов.
@@ -185,8 +181,8 @@ export default class SPlot {
       this.camera.y = this.grid.height! / 2
     }
 
-    if (this.demoMode.isEnable) {
-      this.iterationCallback = this.demoIterationCallback    // Имитация итерирования для демо-режима.
+    if (this.demo.isEnable) {
+      this.iterationCallback = this.demo.demoIterationCallback    // Имитация итерирования для демо-режима.
     }
   }
 
@@ -387,26 +383,6 @@ export default class SPlot {
 
       this.gl.drawArrays(this.gl.POINTS, 0, this.buffers.amountOfGLVertices[i] / 3)
     }
-  }
-
-  /**
-   * Имитирует итерирование исходных объектов.
-   *
-   * @returns Информация о полигоне или null, если итерирование завершилось.
-   */
-  protected demoIterationCallback(): SPlotPolygon | null {
-    if (this.demoMode.index! < this.demoMode.amount!) {
-      this.demoMode.index! ++;
-      return {
-        x: randomInt(this.grid.width!),
-        y: randomInt(this.grid.height!),
-        shape: randomQuotaIndex(this.demoMode.shapeQuota!),
-        size: 10 + randomInt(21),
-        color: randomInt(this.polygonPalette.length)
-      }
-    }
-    else
-      return null
   }
 
   /**
