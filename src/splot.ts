@@ -17,22 +17,19 @@ export default class SPlot {
   public groupLimit: number = 10_000                 // Ограничение кол-ва объектов в группе.
   public isRunning: boolean = false                  // Признак активного процесса рендера.
 
-  // Цветовая палитра объектов.
-  public colors: string[] = [
+  public colors: string[] = [    // Цветовая палитра объектов.
     '#D81C01', '#E9967A', '#BA55D3', '#FFD700', '#FFE4B5', '#FF8C00',
     '#228B22', '#90EE90', '#4169E1', '#00BFFF', '#8B4513', '#00CED1'
   ]
 
-  // Параметры координатной плоскости.
-  public grid: SPlotGrid = {
+  public grid: SPlotGrid = {    // Параметры координатной плоскости.
     width: 32_000,
     height: 16_000,
     bgColor: '#ffffff',
     rulesColor: '#c0c0c0'
   }
 
-  // Параметры области просмотра.
-  public camera: SPlotCamera = {
+  public camera: SPlotCamera = {    // Параметры области просмотра.
     x: this.grid.width! / 2,
     y: this.grid.height! / 2,
     zoom: 1
@@ -41,7 +38,7 @@ export default class SPlot {
   public readonly shapes: { name: string }[] = []
   protected shaderCodeVert: string = SHADER_CODE_VERT_TMPL         // Шаблон GLSL-кода для вершинного шейдера.
   protected shaderCodeFrag: string = SHADER_CODE_FRAG_TMPL         // Шаблон GLSL-кода для фрагментного шейдера.
-  protected amountOfPolygons: number = 0                    // Счетчик числа обработанных полигонов.
+  protected objectCounter: number = 0                    // Счетчик числа обработанных полигонов.
 
   protected control: SPlotContol = new SPlotContol(this)    // Хелпер взаимодействия с устройством ввода.
 
@@ -99,7 +96,7 @@ export default class SPlot {
     this.setOptions(options)     // Применение пользовательских настроек.
     this.webgl.create()              // Создание контекста рендеринга.
     this.demo.prepare()      // Обнуление технического счетчика режима демо-данных.
-    this.amountOfPolygons = 0    // Обнуление счетчика полигонов.
+    this.objectCounter = 0    // Обнуление счетчика полигонов.
 
     for (const key in this.shapes) {
       this.buffers.amountOfShapes[key] = 0    // Обнуление счетчиков форм полигонов.
@@ -125,7 +122,7 @@ export default class SPlot {
     }
 
     // Создание переменных WebGl.
-    this.webgl.createVariables('a_position', 'a_color', 'a_polygonsize', 'a_shape', 'u_matrix')
+    this.webgl.createVariables('a_position', 'a_color', 'a_size', 'a_shape', 'u_matrix')
 
     this.createWebGlBuffers()    // Заполнение буферов WebGL.
 
@@ -187,8 +184,8 @@ export default class SPlot {
 
     // Вывод отладочной информации.
     if (this.debug.isEnable) {
-      this.debug.logDataLoadingComplete(this.amountOfPolygons, this.globalLimit)
-      this.debug.logObjectStats(this.buffers, this.amountOfPolygons)
+      this.debug.logDataLoadingComplete(this.objectCounter, this.globalLimit)
+      this.debug.logObjectStats(this.buffers, this.objectCounter)
       this.debug.logGpuMemStats(this.buffers)
     }
   }
@@ -220,7 +217,7 @@ export default class SPlot {
      * приостанавливается - формирование групп полигонов завершается возвратом значения null (симуляция достижения
      * последнего обрабатываемого исходного объекта).
      */
-    if (this.amountOfPolygons >= this.globalLimit) return null
+    if (this.objectCounter >= this.globalLimit) return null
 
     // Итерирование исходных объектов.
     while (polygon = this.iterator!()) {
@@ -242,14 +239,14 @@ export default class SPlot {
       this.buffers.amountOfShapes[polygon.shape]++
 
       // Счетчик общего количество полигонов.
-      this.amountOfPolygons++
+      this.objectCounter++
 
       /**
        * Если количество полигонов канваса достигло допустимого максимума, то дальнейшая обработка исходных объектов
        * приостанавливается - формирование групп полигонов завершается возвратом значения null (симуляция достижения
        * последнего обрабатываемого исходного объекта).
        */
-      if (this.amountOfPolygons >= this.globalLimit) break
+      if (this.objectCounter >= this.globalLimit) break
 
       /**
        * Если общее количество всех вершин в группе полигонов превысило техническое ограничение, то группа полигонов
@@ -319,10 +316,10 @@ export default class SPlot {
 
       this.webgl.setBuffer(this.buffers.vertexBuffers[i], 'a_position', this.webgl.gl.FLOAT, 2, 0, 0)
       this.webgl.setBuffer(this.buffers.colorBuffers[i], 'a_color', this.webgl.gl.UNSIGNED_BYTE, 1, 0, 0)
-      this.webgl.setBuffer(this.buffers.sizeBuffers[i], 'a_polygonsize', this.webgl.gl.FLOAT, 1, 0, 0)
+      this.webgl.setBuffer(this.buffers.sizeBuffers[i], 'a_size', this.webgl.gl.FLOAT, 1, 0, 0)
       this.webgl.setBuffer(this.buffers.shapeBuffers[i], 'a_shape', this.webgl.gl.UNSIGNED_BYTE, 1, 0, 0)
 
-      this.webgl.draw(0, this.buffers.amountOfGLVertices[i] / 3)
+      this.webgl.drawPoints(0, this.buffers.amountOfGLVertices[i] / 3)
     }
   }
 

@@ -161,7 +161,7 @@ export default class SPlotWebGl {
     this.gl.vertexAttribPointer(this.variables.get(varName), size, type, false, stride, offset)
   }
 
-  public draw(first: number, count: number) {
+  public drawPoints(first: number, count: number) {
     this.gl.drawArrays(this.gl.POINTS, first, count)
   }
 }
