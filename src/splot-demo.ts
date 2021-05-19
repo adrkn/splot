@@ -1,21 +1,23 @@
 import { randomInt, randomQuotaIndex } from './utils'
-import SPlot from './splot'
 
 export default class SPlotDemo {
 
   public isEnable: boolean = false
   public amount: number = 1_000_000
   public shapeQuota: number[] = []
+  public sizeMin: number = 10
+  public sizeMax: number = 30
 
+  private grid!: SPlotGrid
   private index: number = 0
-  private splot: SPlot
 
-  constructor(splot: SPlot) {
-    this.splot = splot
-    this.prepare()
-  }
+  public colors: string[] = [
+    '#D81C01', '#E9967A', '#BA55D3', '#FFD700', '#FFE4B5', '#FF8C00',
+    '#228B22', '#90EE90', '#4169E1', '#00BFFF', '#8B4513', '#00CED1'
+  ]
 
-  public prepare() {
+  public prepare(grid: SPlotGrid): void {
+    this.grid = grid
     this.index = 0
   }
 
@@ -24,15 +26,15 @@ export default class SPlotDemo {
    *
    * @returns Информация о полигоне или null, если итерирование завершилось.
    */
-  public demoIterationCallback(): SPlotPolygon | null {
+  public iterator(): SPlotPolygon | null {
     if (this.index! < this.amount!) {
       this.index! ++;
       return {
-        x: randomInt(this.splot.grid.width!),
-        y: randomInt(this.splot.grid.height!),
+        x: randomInt(this.grid.width!),
+        y: randomInt(this.grid.height!),
         shape: randomQuotaIndex(this.shapeQuota!),
-        size: 10 + randomInt(21),
-        color: randomInt(this.splot.colors.length)
+        size: this.sizeMin + randomInt(this.sizeMax - this.sizeMin + 1),
+        color: randomInt(this.colors.length)
       }
     }
     else {

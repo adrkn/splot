@@ -44,7 +44,7 @@ scatterPlot.setup({
     isEnable: true,
   },
   demo: {
-    isEnable: false,
+    isEnable: false
   },
   useVertexIndices: false
 })

@@ -9,18 +9,14 @@ import SPlotDemo from './splot-demo'
 export default class SPlot {
 
   public iterator: SPlotIterator = undefined         // Функция итерирования исходных данных.
-  public demo: SPlotDemo = new SPlotDemo(this)       // Хелпер режима демо-данных.
+  public demo: SPlotDemo = new SPlotDemo()       // Хелпер режима демо-данных.
   public debug: SPlotDebug = new SPlotDebug(this)    // Хелпер режима отладки
   public webgl: SPlotWebGl = new SPlotWebGl()        // Хелпер WebGL.
   public forceRun: boolean = false                   // Признак форсированного запуска рендера.
   public globalLimit: number = 1_000_000_000         // Ограничение кол-ва объектов на графике.
   public groupLimit: number = 10_000                 // Ограничение кол-ва объектов в группе.
   public isRunning: boolean = false                  // Признак активного процесса рендера.
-
-  public colors: string[] = [    // Цветовая палитра объектов.
-    '#D81C01', '#E9967A', '#BA55D3', '#FFD700', '#FFE4B5', '#FF8C00',
-    '#228B22', '#90EE90', '#4169E1', '#00BFFF', '#8B4513', '#00CED1'
-  ]
+  public colors: string[] = []
 
   public grid: SPlotGrid = {    // Параметры координатной плоскости.
     width: 32_000,
@@ -95,7 +91,7 @@ export default class SPlot {
 
     this.setOptions(options)     // Применение пользовательских настроек.
     this.webgl.create()              // Создание контекста рендеринга.
-    this.demo.prepare()      // Обнуление технического счетчика режима демо-данных.
+    this.demo.prepare(this.grid)      // Обнуление технического счетчика режима демо-данных.
     this.objectCounter = 0    // Обнуление счетчика полигонов.
 
     for (const key in this.shapes) {
@@ -147,7 +143,8 @@ export default class SPlot {
     }
 
     if (this.demo.isEnable) {
-      this.iterator = this.demo.demoIterationCallback    // Имитация итерирования для демо-режима.
+      this.iterator = this.demo.iterator    // Имитация итерирования для демо-режима.
+      this.colors = this.demo.colors
     }
   }
 
