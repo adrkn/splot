@@ -224,9 +224,19 @@ export default class SPlot {
 
     // Итерирование исходных объектов.
     while (polygon = this.iterator!()) {
+      /**
+       * Добавление в группу полигонов индексов вершин нового полигона и подсчет общего количества вершин GL-треугольников
+       * в группе.
+       */
+      polygonGroup.amountOfGLVertices++
 
-      // Добавление в группу полигонов нового полигона.
-      this.addPolygon(polygonGroup, polygon)
+      // Добавление в группу полигонов вершин нового полигона и подсчет общего количества вершин в группе.
+      polygonGroup.vertices.push(polygon.x, polygon.y)
+      polygonGroup.amountOfVertices++
+
+      polygonGroup.shapes.push(polygon.shape)
+      polygonGroup.sizes.push(polygon.size)
+      polygonGroup.colors.push(polygon.color)
 
       // Счетчик числа применений каждой из форм полигонов.
       this.buffers.amountOfShapes[polygon.shape]++
@@ -253,29 +263,6 @@ export default class SPlot {
 
     // Если группа полигонов непустая, то возвращаем ее. Если пустая - возвращаем null.
     return (polygonGroup.amountOfVertices > 0) ? polygonGroup : null
-  }
-
-  /**
-   * Создает и добавляет в группу полигонов новый полигон.
-   *
-   * @param polygonGroup - Группа полигонов, в которую происходит добавление.
-   * @param polygon - Информация о добавляемом полигоне.
-   */
-  protected addPolygon(polygonGroup: SPlotPolygonGroup, polygon: SPlotPolygon): void {
-
-    /**
-     * Добавление в группу полигонов индексов вершин нового полигона и подсчет общего количества вершин GL-треугольников
-     * в группе.
-     */
-    polygonGroup.amountOfGLVertices++
-
-    // Добавление в группу полигонов вершин нового полигона и подсчет общего количества вершин в группе.
-    polygonGroup.vertices.push(polygon.x, polygon.y)
-    polygonGroup.amountOfVertices++
-
-    polygonGroup.shapes.push(polygon.shape)
-    polygonGroup.sizes.push(polygon.size)
-    polygonGroup.colors.push(polygon.color)
   }
 
   /**
