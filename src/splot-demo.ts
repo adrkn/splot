@@ -32,7 +32,7 @@ export default class SPlotDemo {
         y: randomInt(this.splot.grid.height!),
         shape: randomQuotaIndex(this.shapeQuota!),
         size: 10 + randomInt(21),
-        color: randomInt(this.splot.polygonPalette.length)
+        color: randomInt(this.splot.colorPalette.length)
       }
     }
     else {

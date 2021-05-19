@@ -3,7 +3,7 @@
  * очередном полигоне, который необходимо отобразить (его координаты, форму и цвет). Когда исходные объекты закончатся
  * функция должна вернуть null.
  */
-type SPlotIterationFunction = (() => SPlotPolygon | null) | undefined
+type SPlotIterator = (() => SPlotPolygon | null) | undefined
 
 /**
  * Тип шейдера WebGL.
@@ -35,12 +35,12 @@ type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array
 /**
  * Тип для настроек приложения.
  *
- * @param iterationCallback - Функция итерирования исходных объектов.
- * @param polygonPalette - Цветовая палитра полигонов.
+ * @param iterator - Функция итерирования исходных объектов.
+ * @param colorPalette - Цветовая палитра полигонов.
  * @param grid - Размер координатной плоскости в пикселях.
  * @param polygonSize - Размер полигона на графике в пикселях (сторона для квадрата, диаметр для круга и т.п.)
- * @param debugMode - Параметры режима отладки приложения.
- * @param demoMode - Параметры режима использования демонстрационных данных.
+ * @param debug - Параметры режима отладки приложения.
+ * @param demo - Параметры режима использования демонстрационных данных.
  * @param forceRun - Признак того, что рендеринг необходимо начать сразу после задания настроек экземпляра (по умолчанию
  *     рендеринг запускается только после вызова метода start).
  * @param maxAmountOfPolygons - Искусственное ограничение количества отображаемых полигонов. При достижении этого числа
@@ -48,20 +48,20 @@ type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array
  * @param bgColor - Фоновый цвет канваса.
  * @param rulesColor - Цвет направляющих.
  * @param camera - Положение координатной плоскости в области просмотра.
- * @param webGlSettings - Инициализирующие настройки контекста рендеринга WebGL.
+ * @param webGl - Инициализирующие настройки контекста рендеринга WebGL.
  */
 interface SPlotOptions {
-  iterationCallback?: SPlotIterationFunction,
-  polygonPalette?: string[],
+  iterator?: SPlotIterator,
+  colorPalette?: string[],
   grid?: SPlotGrid,
   polygonSize?: number,
   debug?: SPlotDebug,
-  demoMode?: SPlotDemoMode,
+  demo?: SPlotDemoMode,
   forceRun?: boolean,
   maxAmountOfPolygons?: number,
   camera?: SPlotCamera,
   useVertexIndices?: boolean,
-  webGlSettings?: WebGLContextAttributes
+  webGl?: WebGLContextAttributes
 }
 
 /**
@@ -105,13 +105,11 @@ interface SPlotGrid {
  * @param shapeQuota - Частота появления в итерировании различных форм полигонов - треугольников[0], квадратов[1],
  *     кругов[2] и т.д. Пример: массив [3, 2, 5] означает, что частота появления треугольников = 3/(3+2+5) = 3/10,
  *     частота появления квадратов = 2/(3+2+5) = 2/10, частота появления кругов = 5/(3+2+5) = 5/10.
- * @param index - Параметр используемый для имитации итерирования. Задания пользовательского значения не требует.
  */
 interface SPlotDemoMode {
   isEnable?: boolean,
   amount?: number,
   shapeQuota?: number[],
-  index?: number
 }
 
 /**

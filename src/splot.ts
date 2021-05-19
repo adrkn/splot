@@ -1,22 +1,22 @@
 import { copyMatchingKeyValues, colorFromHexToGlRgb } from './utils'
-import SPlotDemo from './splot-demo'
+import SHADER_CODE_VERT_TMPL from './shader-code-vert-tmpl'
+import SHADER_CODE_FRAG_TMPL from './shader-code-frag-tmpl'
+import SPlotContol from './splot-control'
 import SPlotWebGl from './splot-webgl'
 import SPlotDebug from './splot-debug'
-import SPlotContol from './splot-control'
-import shaderCodeVertTmpl from './shader-code-vert-tmpl'
-import shaderCodeFragTmpl from './shader-code-frag-tmpl'
+import SPlotDemo from './splot-demo'
 
 export default class SPlot {
 
-  public iterationCallback: SPlotIterationFunction = undefined    // Функция итерирования объектов.
-  public debug: SPlotDebug = new SPlotDebug(this)                 // Объект, управляющий режимом отладки.
-  public webGl: SPlotWebGl = new SPlotWebGl(this)                 // Объект управления webGL.
+  public iterator: SPlotIterator = undefined    // Функция итерирования исходных данных.
+  public debug: SPlotDebug = new SPlotDebug(this)                 // Хелпер режима отладки
+  public webGl: SPlotWebGl = new SPlotWebGl(this)                 // Хелпер webGL.
   public forceRun: boolean = false                                // Признак форсированного запуска рендера.
-  public maxAmountOfPolygons: number = 1_000_000_000              // Искусственное ограничение кол-ва объектов.
+  public objectsLimit: number = 1_000_000_000              // Искусственное ограничение кол-ва объектов.
   public isRunning: boolean = false                               // Признак активного процесса рендера.
 
   // Цветовая палитра полигонов по умолчанию.
-  public polygonPalette: string[] = [
+  public colorPalette: string[] = [
     '#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00',
     '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080'
   ]
@@ -46,8 +46,8 @@ export default class SPlot {
 
   public gpuProgram!: WebGLProgram                       // Объект программы WebGL.
   public variables: { [key: string]: any } = {}          // Переменные для связи приложения с программой WebGL.
-  protected shaderCodeVert: string = shaderCodeVertTmpl         // Шаблон GLSL-кода для вершинного шейдера.
-  protected shaderCodeFrag: string = shaderCodeFragTmpl         // Шаблон GLSL-кода для фрагментного шейдера.
+  protected shaderCodeVert: string = SHADER_CODE_VERT_TMPL         // Шаблон GLSL-кода для вершинного шейдера.
+  protected shaderCodeFrag: string = SHADER_CODE_FRAG_TMPL         // Шаблон GLSL-кода для фрагментного шейдера.
   protected amountOfPolygons: number = 0                    // Счетчик числа обработанных полигонов.
   protected maxAmountOfVertexInGroup: number = 10_000       // Максимальное кол-во вершин в группе.
 
@@ -182,7 +182,7 @@ export default class SPlot {
     }
 
     if (this.demo.isEnable) {
-      this.iterationCallback = this.demo.demoIterationCallback    // Имитация итерирования для демо-режима.
+      this.iterator = this.demo.demoIterationCallback    // Имитация итерирования для демо-режима.
     }
   }
 
@@ -219,7 +219,7 @@ export default class SPlot {
 
     // Вывод отладочной информации.
     if (this.debug.isEnable) {
-      this.debug.logDataLoadingComplete(this.amountOfPolygons, this.maxAmountOfPolygons)
+      this.debug.logDataLoadingComplete(this.amountOfPolygons, this.objectsLimit)
       this.debug.logObjectStats(this.buffers, this.amountOfPolygons)
       this.debug.logGpuMemStats(this.buffers)
     }
@@ -252,10 +252,10 @@ export default class SPlot {
      * приостанавливается - формирование групп полигонов завершается возвратом значения null (симуляция достижения
      * последнего обрабатываемого исходного объекта).
      */
-    if (this.amountOfPolygons >= this.maxAmountOfPolygons) return null
+    if (this.amountOfPolygons >= this.objectsLimit) return null
 
     // Итерирование исходных объектов.
-    while (polygon = this.iterationCallback!()) {
+    while (polygon = this.iterator!()) {
 
       // Добавление в группу полигонов нового полигона.
       this.addPolygon(polygonGroup, polygon)
@@ -271,7 +271,7 @@ export default class SPlot {
        * приостанавливается - формирование групп полигонов завершается возвратом значения null (симуляция достижения
        * последнего обрабатываемого исходного объекта).
        */
-      if (this.amountOfPolygons >= this.maxAmountOfPolygons) break
+      if (this.amountOfPolygons >= this.objectsLimit) break
 
       /**
        * Если общее количество всех вершин в группе полигонов превысило техническое ограничение, то группа полигонов
@@ -323,14 +323,14 @@ export default class SPlot {
   protected genShaderColorCode(): string {
 
     // Временное добавление в палитру цветов вершин цвета направляющих.
-    this.polygonPalette.push(this.grid.rulesColor!)
+    this.colorPalette.push(this.grid.rulesColor!)
 
     let code: string = ''
 
-    for (let i = 0; i < this.polygonPalette.length; i++) {
+    for (let i = 0; i < this.colorPalette.length; i++) {
 
       // Получение цвета в нужном формате.
-      let [r, g, b] = colorFromHexToGlRgb(this.polygonPalette[i])
+      let [r, g, b] = colorFromHexToGlRgb(this.colorPalette[i])
 
       // Формировние строк GLSL-кода проверки индекса цвета.
       code += ((i === 0) ? '' : '  else ') + 'if (a_color == ' + i + '.0) v_color = vec3(' +
@@ -340,7 +340,7 @@ export default class SPlot {
     }
 
     // Удаление из палитры вершин временно добавленного цвета направляющих.
-    this.polygonPalette.pop()
+    this.colorPalette.pop()
 
     return code
   }

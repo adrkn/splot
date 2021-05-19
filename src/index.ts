@@ -34,8 +34,8 @@ let scatterPlot = new SPlot('canvas1')
 // Настройка экземпляра на режим вывода отладочной информации в консоль браузера.
 // Другие примеры работы описаны в файле splot.js со строки 214.
 scatterPlot.setup({
-  iterationCallback: readNextObject,
-  polygonPalette: palette,
+  iterator: readNextObject,
+  colorPalette: palette,
   grid: {
     width: plotWidth,
     height: plotHeight,
@@ -43,13 +43,14 @@ scatterPlot.setup({
   debug: {
     isEnable: true,
   },
-  demoMode: {
+  demo: {
     isEnable: false,
   },
   useVertexIndices: false
 })
 
 scatterPlot.run()
+
 //scatterPlot.stop()
 
 //setTimeout(() => scatterPlot.stop(), 3000)
