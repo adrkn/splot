@@ -8,20 +8,21 @@ import SPlotDemo from './splot-demo'
 
 export default class SPlot {
 
-  public iterator: SPlotIterator = undefined    // Функция итерирования исходных данных.
-  public debug: SPlotDebug = new SPlotDebug(this)                 // Хелпер режима отладки
-  public webGl: SPlotWebGl = new SPlotWebGl(this)                 // Хелпер webGL.
-  public forceRun: boolean = false                                // Признак форсированного запуска рендера.
-  public objectsLimit: number = 1_000_000_000              // Искусственное ограничение кол-ва объектов.
-  public isRunning: boolean = false                               // Признак активного процесса рендера.
+  public iterator: SPlotIterator = undefined         // Функция итерирования исходных данных.
+  public demo: SPlotDemo = new SPlotDemo(this)       // Хелпер режима демо-данных.
+  public webGl: SPlotWebGl = new SPlotWebGl(this)    // Хелпер WebGL.
+  public debug: SPlotDebug = new SPlotDebug(this)    // Хелпер режима отладки
+  public forceRun: boolean = false                   // Признак форсированного запуска рендера.
+  public limit: number = 1_000_000_000               // Ограничение кол-ва объектов на графике.
+  public isRunning: boolean = false                  // Признак активного процесса рендера.
 
-  // Цветовая палитра полигонов по умолчанию.
-  public colorPalette: string[] = [
+  // Цветовая палитра объектов.
+  public colors: string[] = [
     '#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00',
     '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080'
   ]
 
-  // Параметры координатной плоскости по умолчанию.
+  // Параметры координатной плоскости.
   public grid: SPlotGrid = {
     width: 32_000,
     height: 16_000,
@@ -29,10 +30,7 @@ export default class SPlot {
     rulesColor: '#c0c0c0'
   }
 
-  // Параметры режима демострационных данных.
-  public demo: SPlotDemo = new SPlotDemo(this)
-
-  // По умолчанию область просмотра устанавливается в центр координатной плооскости.
+  // Параметры области просмотра.
   public camera: SPlotCamera = {
     x: this.grid.width! / 2,
     y: this.grid.height! / 2,
@@ -219,7 +217,7 @@ export default class SPlot {
 
     // Вывод отладочной информации.
     if (this.debug.isEnable) {
-      this.debug.logDataLoadingComplete(this.amountOfPolygons, this.objectsLimit)
+      this.debug.logDataLoadingComplete(this.amountOfPolygons, this.limit)
       this.debug.logObjectStats(this.buffers, this.amountOfPolygons)
       this.debug.logGpuMemStats(this.buffers)
     }
@@ -252,7 +250,7 @@ export default class SPlot {
      * приостанавливается - формирование групп полигонов завершается возвратом значения null (симуляция достижения
      * последнего обрабатываемого исходного объекта).
      */
-    if (this.amountOfPolygons >= this.objectsLimit) return null
+    if (this.amountOfPolygons >= this.limit) return null
 
     // Итерирование исходных объектов.
     while (polygon = this.iterator!()) {
@@ -271,7 +269,7 @@ export default class SPlot {
        * приостанавливается - формирование групп полигонов завершается возвратом значения null (симуляция достижения
        * последнего обрабатываемого исходного объекта).
        */
-      if (this.amountOfPolygons >= this.objectsLimit) break
+      if (this.amountOfPolygons >= this.limit) break
 
       /**
        * Если общее количество всех вершин в группе полигонов превысило техническое ограничение, то группа полигонов
@@ -323,14 +321,14 @@ export default class SPlot {
   protected genShaderColorCode(): string {
 
     // Временное добавление в палитру цветов вершин цвета направляющих.
-    this.colorPalette.push(this.grid.rulesColor!)
+    this.colors.push(this.grid.rulesColor!)
 
     let code: string = ''
 
-    for (let i = 0; i < this.colorPalette.length; i++) {
+    for (let i = 0; i < this.colors.length; i++) {
 
       // Получение цвета в нужном формате.
-      let [r, g, b] = colorFromHexToGlRgb(this.colorPalette[i])
+      let [r, g, b] = colorFromHexToGlRgb(this.colors[i])
 
       // Формировние строк GLSL-кода проверки индекса цвета.
       code += ((i === 0) ? '' : '  else ') + 'if (a_color == ' + i + '.0) v_color = vec3(' +
@@ -340,7 +338,7 @@ export default class SPlot {
     }
 
     // Удаление из палитры вершин временно добавленного цвета направляющих.
-    this.colorPalette.pop()
+    this.colors.pop()
 
     return code
   }

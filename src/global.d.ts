@@ -36,7 +36,7 @@ type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array
  * Тип для настроек приложения.
  *
  * @param iterator - Функция итерирования исходных объектов.
- * @param colorPalette - Цветовая палитра полигонов.
+ * @param colors - Цветовая палитра полигонов.
  * @param grid - Размер координатной плоскости в пикселях.
  * @param polygonSize - Размер полигона на графике в пикселях (сторона для квадрата, диаметр для круга и т.п.)
  * @param debug - Параметры режима отладки приложения.
@@ -52,7 +52,7 @@ type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array
  */
 interface SPlotOptions {
   iterator?: SPlotIterator,
-  colorPalette?: string[],
+  colors?: string[],
   grid?: SPlotGrid,
   polygonSize?: number,
   debug?: SPlotDebug,
@@ -73,7 +73,7 @@ interface SPlotOptions {
  * @param shape - Форма полигона. Форма - это индекс в массиве форм {@link shapes}. Основные формы: 0 - треугольник, 1 -
  *     квадрат, 2 - круг.
  * @param color - Цвет полигона. Цвет - это индекс в диапазоне от 0 до 255, представляющий собой индекс цвета в
- *     предопределенном массиве цветов {@link polygonPalette}.
+ *     предопределенном массиве цветов {@link colors}.
  */
 interface SPlotPolygon {
   x: number,

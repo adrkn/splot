@@ -93,7 +93,7 @@ export default class SPlotDebug {
         ' [~' + Math.round(100 * shapeAmount / amountOfPolygons) + '%]')
     }
 
-    console.log('Кол-во цветов в палитре: ' + this.splot.colorPalette.length)
+    console.log('Кол-во цветов в палитре: ' + this.splot.colors.length)
     console.groupEnd()
   }
 

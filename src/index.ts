@@ -7,7 +7,7 @@ function randomInt(range: number) {
 
 let i = 0
 let n = 1_000_000  // Имитируемое число объектов.
-let palette = ['#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00', '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080']
+let colors = ['#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00', '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080']
 let plotWidth = 32_000
 let plotHeight = 16_000
 
@@ -20,7 +20,7 @@ function readNextObject() {
       y: randomInt(plotHeight),
       shape: randomInt(2),
       size: 10 + randomInt(21),
-      color: randomInt(palette.length),  // Индекс цвета в массиве цветов
+      color: randomInt(colors.length),  // Индекс цвета в массиве цветов
     }
   }
   else
@@ -35,7 +35,7 @@ let scatterPlot = new SPlot('canvas1')
 // Другие примеры работы описаны в файле splot.js со строки 214.
 scatterPlot.setup({
   iterator: readNextObject,
-  colorPalette: palette,
+  colors: colors,
   grid: {
     width: plotWidth,
     height: plotHeight,
