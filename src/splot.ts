@@ -390,10 +390,9 @@ export default class SPlot {
   }
 
   /**
-   * Метод имитации итерирования исходных объектов. При каждом новом вызове возвращает информацию о полигоне со случаным
-   * положением, случайной формой и случайным цветом.
+   * Имитирует итерирование исходных объектов.
    *
-   * @returns Информация о полигоне или null, если перебор исходных объектов закончился.
+   * @returns Информация о полигоне или null, если итерирование завершилось.
    */
   protected demoIterationCallback(): SPlotPolygon | null {
     if (this.demoMode.index! < this.demoMode.amount!) {
@@ -411,15 +410,17 @@ export default class SPlot {
   }
 
   /**
-   * Запускает рендеринг и "прослушку" событий мыши/трекпада на канвасе.
+   * Запускает рендеринг и контроль управления.
    */
   public run(): void {
 
-    if (!this.isRunning) {
-      this.render()
-      this.control.run()
-      this.isRunning = true
+    if (this.isRunning) {
+      return
     }
+
+    this.render()
+    this.control.run()
+    this.isRunning = true
 
     if (this.debug.isEnable) {
       this.debug.logRenderStarted()
@@ -427,14 +428,16 @@ export default class SPlot {
   }
 
   /**
-   * Останавливает рендеринг и "прослушку" событий мыши/трекпада на канвасе.
+   * Останавливает рендеринг и контроль управления.
    */
   public stop(): void {
 
-    if (this.isRunning) {
-      this.control.stop()
-      this.isRunning = false
+    if (!this.isRunning) {
+      return
     }
+
+    this.control.stop()
+    this.isRunning = false
 
     if (this.debug.isEnable) {
       this.debug.logRenderStoped()
@@ -442,7 +445,7 @@ export default class SPlot {
   }
 
   /**
-   * Очищает канвас, закрашивая его в фоновый цвет.
+   * Очищает фон.
    */
   public clear(): void {
 
