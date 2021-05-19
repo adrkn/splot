@@ -23,7 +23,7 @@ export default class SPlotDebug {
     this.splot = splot
   }
 
-  logIntro(canvas: HTMLCanvasElement): void {
+  public logIntro(canvas: HTMLCanvasElement): void {
     console.log('%cОтладка SPlot на объекте #' + canvas.id, this.headerStyle)
 
     if (this.splot.demoMode.isEnable) {
@@ -35,7 +35,7 @@ export default class SPlotDebug {
     console.groupEnd()
   }
 
-  logGpuInfo(gl: WebGLRenderingContext): void {
+  public logGpuInfo(gl: WebGLRenderingContext): void {
     console.group('%cВидеосистема', this.groupStyle)
     let ext = gl.getExtension('WEBGL_debug_renderer_info')
     let graphicsCardName = (ext) ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '[неизвестно]'
@@ -44,7 +44,7 @@ export default class SPlotDebug {
     console.groupEnd()
   }
 
-  logInstanceInfo(canvas: HTMLCanvasElement, options: SPlotOptions): void {
+  public logInstanceInfo(canvas: HTMLCanvasElement, options: SPlotOptions): void {
     console.group('%cНастройка параметров экземпляра', this.groupStyle)
     {
       console.dir(this)
@@ -62,18 +62,18 @@ export default class SPlotDebug {
     console.groupEnd()
   }
 
-  logShaderInfo(shaderType: string, shaderCode: string, ): void {
+  public logShaderInfo(shaderType: string, shaderCode: string, ): void {
     console.group('%cСоздан шейдер [' + shaderType + ']', this.groupStyle)
     console.log(shaderCode)
     console.groupEnd()
   }
 
-  logDataLoadingStart(): void {
+  public logDataLoadingStart(): void {
     console.log('%cЗапущен процесс загрузки данных [' + getCurrentTime() + ']...', this.groupStyle)
     console.time('Длительность')
   }
 
-  logDataLoadingComplete(amount: number, maxAmount: number): void {
+  public logDataLoadingComplete(amount: number, maxAmount: number): void {
     console.group('%cЗагрузка данных завершена [' + getCurrentTime() + ']', this.groupStyle)
     console.timeEnd('Длительность')
     console.log('Результат: ' +
@@ -83,7 +83,7 @@ export default class SPlotDebug {
     console.groupEnd()
   }
 
-  logObjectStats(buffers: SPlotBuffers, amountOfPolygons: number): void {
+  public logObjectStats(buffers: SPlotBuffers, amountOfPolygons: number): void {
     console.group('%cКол-во объектов: ' + amountOfPolygons.toLocaleString(), this.groupStyle)
 
     for (let i = 0; i < this.splot.shapes.length; i++) {
@@ -97,7 +97,7 @@ export default class SPlotDebug {
     console.groupEnd()
   }
 
-  logGpuMemStats(buffers: SPlotBuffers): void {
+  public logGpuMemStats(buffers: SPlotBuffers): void {
     let bytesUsedByBuffers = buffers.sizeInBytes[0] + buffers.sizeInBytes[1] + buffers.sizeInBytes[3]
 
     console.group('%cРасход видеопамяти: ' + (bytesUsedByBuffers / 1000000).toFixed(2).toLocaleString() + ' МБ', this.groupStyle)
