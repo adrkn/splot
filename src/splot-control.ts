@@ -6,6 +6,16 @@ export default class SPlotContol {
 
   private splot: SPlot
 
+  // Техническая информация, используемая приложением для расчета трансформаций.
+  public transform: SPlotTransform = {
+    viewProjectionMat: [],
+    startInvViewProjMat: [],
+    startCamera: { x: 0, y: 0, zoom: 1 },
+    startPos: [],
+    startClipPos: [],
+    startMousePos: []
+  }
+
   protected handleMouseDownWithContext: EventListener = this.handleMouseDown.bind(this) as EventListener
   protected handleMouseWheelWithContext: EventListener = this.handleMouseWheel.bind(this) as EventListener
   protected handleMouseMoveWithContext: EventListener = this.handleMouseMove.bind(this) as EventListener
@@ -51,7 +61,7 @@ export default class SPlotContol {
     const projectionMat = m3.projection(this.splot.webGl.gl.canvas.width, this.splot.webGl.gl.canvas.height);
     const cameraMat = this.makeCameraMatrix();
     let viewMat = m3.inverse(cameraMat);
-    this.splot.transform.viewProjectionMat = m3.multiply(projectionMat, viewMat);
+    this.transform.viewProjectionMat = m3.multiply(projectionMat, viewMat);
   }
 
   /**
@@ -81,15 +91,15 @@ export default class SPlotContol {
   protected moveCamera(event: MouseEvent): void {
 
     const pos = m3.transformPoint(
-      this.splot.transform.startInvViewProjMat,
+      this.transform.startInvViewProjMat,
       this.getClipSpaceMousePosition(event)
     );
 
     this.splot.camera.x =
-      this.splot.transform.startCamera.x! + this.splot.transform.startPos[0] - pos[0];
+      this.transform.startCamera.x! + this.transform.startPos[0] - pos[0];
 
     this.splot.camera.y =
-      this.splot.transform.startCamera.y! + this.splot.transform.startPos[1] - pos[1];
+      this.transform.startCamera.y! + this.transform.startPos[1] - pos[1];
 
     this.splot.render();
   }
@@ -143,11 +153,11 @@ export default class SPlotContol {
     this.splot.webGl.canvas.addEventListener('mousemove', this.handleMouseMoveWithContext);
     this.splot.webGl.canvas.addEventListener('mouseup', this.handleMouseUpWithContext);
 
-    this.splot.transform.startInvViewProjMat = m3.inverse(this.splot.transform.viewProjectionMat);
-    this.splot.transform.startCamera = Object.assign({}, this.splot.camera);
-    this.splot.transform.startClipPos = this.getClipSpaceMousePosition.call(this, event);
-    this.splot.transform.startPos = m3.transformPoint(this.splot.transform.startInvViewProjMat, this.splot.transform.startClipPos);
-    this.splot.transform.startMousePos = [event.clientX, event.clientY];
+    this.transform.startInvViewProjMat = m3.inverse(this.transform.viewProjectionMat);
+    this.transform.startCamera = Object.assign({}, this.splot.camera);
+    this.transform.startClipPos = this.getClipSpaceMousePosition.call(this, event);
+    this.transform.startPos = m3.transformPoint(this.transform.startInvViewProjMat, this.transform.startClipPos);
+    this.transform.startMousePos = [event.clientX, event.clientY];
 
     this.splot.render();
   }
@@ -169,7 +179,7 @@ export default class SPlotContol {
     const [clipX, clipY] = this.getClipSpaceMousePosition.call(this, event);
 
     // position before zooming
-    const [preZoomX, preZoomY] = m3.transformPoint(m3.inverse(this.splot.transform.viewProjectionMat), [clipX, clipY]);
+    const [preZoomX, preZoomY] = m3.transformPoint(m3.inverse(this.transform.viewProjectionMat), [clipX, clipY]);
 
     // multiply the wheel movement by the current zoom level, so we zoom less when zoomed in and more when zoomed out
     const newZoom = this.splot.camera.zoom! * Math.pow(2, event.deltaY * -0.01);
@@ -178,7 +188,7 @@ export default class SPlotContol {
     this.updateViewProjection.call(this);
 
     // position after zooming
-    const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse(this.splot.transform.viewProjectionMat), [clipX, clipY]);
+    const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse(this.transform.viewProjectionMat), [clipX, clipY]);
 
     // camera needs to be moved the difference of before and after
     this.splot.camera.x! += preZoomX - postZoomX;

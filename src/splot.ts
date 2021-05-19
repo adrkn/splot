@@ -45,16 +45,6 @@ export default class SPlot {
 
   protected control: SPlotContol = new SPlotContol(this)    // Объект управления графиком устройствами ввода.
 
-  // Техническая информация, используемая приложением для расчета трансформаций.
-  public transform: SPlotTransform = {
-    viewProjectionMat: [],
-    startInvViewProjMat: [],
-    startCamera: {x: 0, y: 0, zoom: 1},
-    startPos: [],
-    startClipPos: [],
-    startMousePos: []
-  }
-
   // Информация о буферах, хранящих данные для видеопамяти.
   public buffers: SPlotBuffers = {
     vertexBuffers: [],
@@ -344,7 +334,7 @@ export default class SPlot {
     this.control.updateViewProjection()
 
     // Привязка матрицы трансформации к переменной шейдера.
-    this.webGl.setVariable('u_matrix', this.transform.viewProjectionMat)
+    this.webGl.setVariable('u_matrix', this.control.transform.viewProjectionMat)
 
     // Итерирование и рендеринг групп буферов WebGL.
     for (let i = 0; i < this.buffers.amountOfBufferGroups; i++) {
