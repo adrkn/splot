@@ -170,10 +170,10 @@ export default class SPlot {
     while (polygonGroup = this.createPolygonGroup()) {
 
       // Создание и заполнение буферов данными о текущей группе полигонов.
-      this.webgl.createBuffer(this.buffers.vertexBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.vertices), 0)
-      this.webgl.createBuffer(this.buffers.colorBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.colors), 1)
-      this.webgl.createBuffer(this.buffers.shapeBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.shapes), 4)
-      this.webgl.createBuffer(this.buffers.sizeBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.sizes), 3)
+      this.webgl.createBuffer(this.buffers.vertexBuffers, new Float32Array(polygonGroup.vertices), 0)
+      this.webgl.createBuffer(this.buffers.colorBuffers, new Uint8Array(polygonGroup.colors), 1)
+      this.webgl.createBuffer(this.buffers.shapeBuffers, new Uint8Array(polygonGroup.shapes), 4)
+      this.webgl.createBuffer(this.buffers.sizeBuffers, new Float32Array(polygonGroup.sizes), 3)
 
       // Счетчик количества буферов.
       this.buffers.amountOfBufferGroups++

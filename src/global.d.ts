@@ -6,28 +6,6 @@
 type SPlotIterator = (() => SPlotPolygon | null) | undefined
 
 /**
- * Тип шейдера WebGL.
- * Значение "VERTEX_SHADER" задает вершинный шейдер.
- * Значение "FRAGMENT_SHADER" задает фрагментный шейдер.
- */
-type WebGlShaderType = 'VERTEX_SHADER' | 'FRAGMENT_SHADER'
-
-/**
- * Тип буфера WebGL.
- * Значение "ARRAY_BUFFER" задает буфер содержащий вершинные атрибуты.
- * Значение "ELEMENT_ARRAY_BUFFER" задает буфер использующийся для индексирования элементов.
- */
-type WebGlBufferType = 'ARRAY_BUFFER' | 'ELEMENT_ARRAY_BUFFER'
-
-/**
- * Тип переменной WebGL.
- * Значение "uniform" задает общую для всех вершинных шейдеров переменную.
- * Значение "attribute" задает уникальную переменную для каждого вершинного шейдера.
- * Значение "varying" задает уникальную переменную с общей областью видимости для вершинного и фрагментного шейдеров.
- */
-type WebGlVariableType = 'uniform' | 'attribute' | 'varying'
-
-/**
  * Тип массива данных, занимающих в памяти непрерывный объем.
  */
 type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array

@@ -62,7 +62,7 @@ export default class SPlotWebGl {
    * @param shaderCode Код шейдера на языке GLSL.
    * @returns Созданный объект шейдера.
    */
-  public createShader(shaderType: WebGlShaderType, shaderCode: string): WebGLShader {
+  public createShader(shaderType: 'VERTEX_SHADER' | 'FRAGMENT_SHADER', shaderCode: string): WebGLShader {
 
     // Создание, привязка кода и компиляция шейдера.
     const shader = this.gl.createShader(this.gl[shaderType])!
@@ -117,9 +117,7 @@ export default class SPlotWebGl {
   }
 
   public createVariables(...varNames: string[]): void {
-    varNames.forEach(varName => {
-      this.createVariable(varName)
-    });
+    varNames.forEach(varName => this.createVariable(varName));
   }
   /**
    * Создает в массиве буферов WebGL новый буфер и записывает в него переданные данные.
@@ -130,15 +128,15 @@ export default class SPlotWebGl {
    * @param key - Ключ (индекс), идентифицирующий тип буфера (для вершин, для цветов, для индексов). Используется для
    *     раздельного подсчета памяти, занимаемой каждым типом буфера.
    */
-  public createBuffer(buffers: WebGLBuffer[], type: WebGlBufferType, data: TypedArray, key: number): void {
+  public createBuffer(buffers: WebGLBuffer[], data: TypedArray, key: number): void {
 
     // Определение индекса нового элемента в массиве буферов WebGL.
     const index = this.splot.buffers.amountOfBufferGroups
 
     // Создание и заполнение данными нового буфера.
     buffers[index] = this.gl.createBuffer()!
-    this.gl.bindBuffer(this.gl[type], buffers[index])
-    this.gl.bufferData(this.gl[type], data, this.gl.STATIC_DRAW)
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffers[index])
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW)
 
     // Счетчик памяти, занимаемой буферами данных (раздельно по каждому типу буферов)
     this.splot.buffers.sizeInBytes[key] += data.length * data.BYTES_PER_ELEMENT
