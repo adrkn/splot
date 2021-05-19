@@ -11,7 +11,7 @@ export default class SPlot {
   public iterator: SPlotIterator = undefined         // Функция итерирования исходных данных.
   public demo: SPlotDemo = new SPlotDemo(this)       // Хелпер режима демо-данных.
   public debug: SPlotDebug = new SPlotDebug(this)    // Хелпер режима отладки
-  public webgl: SPlotWebGl = new SPlotWebGl(this)    // Хелпер WebGL.
+  public webgl: SPlotWebGl = new SPlotWebGl()        // Хелпер WebGL.
   public forceRun: boolean = false                   // Признак форсированного запуска рендера.
   public globalLimit: number = 1_000_000_000         // Ограничение кол-ва объектов на графике.
   public groupLimit: number = 10_000                 // Ограничение кол-ва объектов в группе.
@@ -44,16 +44,16 @@ export default class SPlot {
 
   // Информация о буферах, хранящих данные для видеопамяти.
   public buffers: SPlotBuffers = {
-    vertexBuffers: [],
-    colorBuffers: [],
-    sizeBuffers: [],
-    shapeBuffers: [],
     amountOfGLVertices: [],
     amountOfShapes: [],
     amountOfBufferGroups: 0,
     amountOfTotalVertices: 0,
     amountOfTotalGLVertices: 0,
     sizeInBytes: [0, 0, 0, 0]
+  }
+
+  public stats = {
+    bytes: 0
   }
 
   /**
@@ -124,7 +124,7 @@ export default class SPlot {
     // Создание переменных WebGl.
     this.webgl.createVariables('a_position', 'a_color', 'a_size', 'a_shape', 'u_matrix')
 
-    this.createWebGlBuffers()    // Заполнение буферов WebGL.
+    this.loadData()    // Заполнение буферов WebGL.
 
     if (this.forceRun) {
       this.run()                // Форсированный запуск рендеринга (если требуется).
@@ -154,7 +154,7 @@ export default class SPlot {
   /**
    * Создает и заполняет данными обо всех полигонах буферы WebGL.
    */
-  protected createWebGlBuffers(): void {
+  protected loadData(): void {
 
     // Вывод отладочной информации.
     if (this.debug.isEnable) {
@@ -162,15 +162,16 @@ export default class SPlot {
     }
 
     let polygonGroup: SPlotPolygonGroup | null
-
+    this.stats.bytes = 0
     // Итерирование групп полигонов.
     while (polygonGroup = this.createPolygonGroup()) {
 
       // Создание и заполнение буферов данными о текущей группе полигонов.
-      this.webgl.createBuffer(this.buffers.vertexBuffers, new Float32Array(polygonGroup.vertices), 0)
-      this.webgl.createBuffer(this.buffers.colorBuffers, new Uint8Array(polygonGroup.colors), 1)
-      this.webgl.createBuffer(this.buffers.shapeBuffers, new Uint8Array(polygonGroup.shapes), 4)
-      this.webgl.createBuffer(this.buffers.sizeBuffers, new Float32Array(polygonGroup.sizes), 3)
+      this.stats.bytes +=
+        this.webgl.createBuffer('vertices', new Float32Array(polygonGroup.vertices)) +
+        this.webgl.createBuffer('colors', new Uint8Array(polygonGroup.colors)) +
+        this.webgl.createBuffer('shapes', new Uint8Array(polygonGroup.shapes)) +
+        this.webgl.createBuffer('sizes', new Float32Array(polygonGroup.sizes))
 
       // Счетчик количества буферов.
       this.buffers.amountOfBufferGroups++
@@ -185,8 +186,8 @@ export default class SPlot {
     // Вывод отладочной информации.
     if (this.debug.isEnable) {
       this.debug.logDataLoadingComplete(this.objectCounter, this.globalLimit)
-      this.debug.logObjectStats(this.buffers, this.objectCounter)
-      this.debug.logGpuMemStats(this.buffers)
+      this.debug.logObjectStats(this.stats, this.objectCounter)
+      this.debug.logGpuMemStats(this.stats)
     }
   }
 
@@ -314,10 +315,10 @@ export default class SPlot {
     // Итерирование и рендеринг групп буферов WebGL.
     for (let i = 0; i < this.buffers.amountOfBufferGroups; i++) {
 
-      this.webgl.setBuffer(this.buffers.vertexBuffers[i], 'a_position', this.webgl.gl.FLOAT, 2, 0, 0)
-      this.webgl.setBuffer(this.buffers.colorBuffers[i], 'a_color', this.webgl.gl.UNSIGNED_BYTE, 1, 0, 0)
-      this.webgl.setBuffer(this.buffers.sizeBuffers[i], 'a_size', this.webgl.gl.FLOAT, 1, 0, 0)
-      this.webgl.setBuffer(this.buffers.shapeBuffers[i], 'a_shape', this.webgl.gl.UNSIGNED_BYTE, 1, 0, 0)
+      this.webgl.setBuffer('vertices', i, 'a_position', 2, 0, 0)
+      this.webgl.setBuffer('colors', i, 'a_color', 1, 0, 0)
+      this.webgl.setBuffer('sizes', i, 'a_size', 1, 0, 0)
+      this.webgl.setBuffer('shapes', i, 'a_shape', 1, 0, 0)
 
       this.webgl.drawPoints(0, this.buffers.amountOfGLVertices[i] / 3)
     }

@@ -138,10 +138,6 @@ interface SPlotTransform {
  * @param sizeInBytes - Размеры буферов каждого типа (для вершин, для цветов, для индексов) в байтах.
  */
 interface SPlotBuffers {
-  vertexBuffers: WebGLBuffer[],
-  colorBuffers: WebGLBuffer[],
-  sizeBuffers: WebGLBuffer[],
-  shapeBuffers: WebGLBuffer[],
   amountOfBufferGroups: number,
   amountOfGLVertices: number[],
   amountOfShapes: number[],

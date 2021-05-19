@@ -81,40 +81,26 @@ export default class SPlotDebug {
     console.groupEnd()
   }
 
-  public logObjectStats(buffers: SPlotBuffers, amountOfPolygons: number): void {
-    console.group('%cКол-во объектов: ' + amountOfPolygons.toLocaleString(), this.groupStyle)
+  public logObjectStats(stats: any, objectCounter: number): void {
+    console.group('%cКол-во объектов: ' + objectCounter.toLocaleString(), this.groupStyle)
 
     for (let i = 0; i < this.splot.shapes.length; i++) {
       const shapeCapction = this.splot.shapes[i].name
-      const shapeAmount = buffers.amountOfShapes[i]
+      /*const shapeAmount = buffers.amountOfShapes[i]
       console.log(shapeCapction + ': ' + shapeAmount.toLocaleString() +
-        ' [~' + Math.round(100 * shapeAmount / amountOfPolygons) + '%]')
+        ' [~' + Math.round(100 * shapeAmount / objectCounter) + '%]')*/
     }
 
     console.log('Кол-во цветов в палитре: ' + this.splot.colors.length)
     console.groupEnd()
   }
 
-  public logGpuMemStats(buffers: SPlotBuffers): void {
-    let bytesUsedByBuffers = buffers.sizeInBytes[0] + buffers.sizeInBytes[1] + buffers.sizeInBytes[3]
+  public logGpuMemStats(stats: any): void {
 
-    console.group('%cРасход видеопамяти: ' + (bytesUsedByBuffers / 1000000).toFixed(2).toLocaleString() + ' МБ', this.groupStyle)
-
-    console.log('Буферы вершин: ' +
-      (buffers.sizeInBytes[0] / 1000000).toFixed(2).toLocaleString() + ' МБ' +
-      ' [~' + Math.round(100 * buffers.sizeInBytes[0] / bytesUsedByBuffers) + '%]')
-
-    console.log('Буферы цветов: '
-      + (buffers.sizeInBytes[1] / 1000000).toFixed(2).toLocaleString() + ' МБ' +
-      ' [~' + Math.round(100 * buffers.sizeInBytes[1] / bytesUsedByBuffers) + '%]')
-
-    console.log('Буферы размеров: '
-      + (buffers.sizeInBytes[3] / 1000000).toFixed(2).toLocaleString() + ' МБ' +
-      ' [~' + Math.round(100 * buffers.sizeInBytes[2] / bytesUsedByBuffers) + '%]')
-
-    console.log('Кол-во групп буферов: ' + buffers.amountOfBufferGroups.toLocaleString())
+    console.group('%cРасход видеопамяти: ' + (stats.bytes / 1000000).toFixed(2).toLocaleString() + ' МБ', this.groupStyle)
+    /*console.log('Кол-во групп буферов: ' + buffers.amountOfBufferGroups.toLocaleString())
     console.log('Кол-во GL-треугольников: ' + (buffers.amountOfTotalGLVertices / 3).toLocaleString())
-    console.log('Кол-во вершин: ' + buffers.amountOfTotalVertices.toLocaleString())
+    console.log('Кол-во вершин: ' + buffers.amountOfTotalVertices.toLocaleString())*/
 
     console.groupEnd()
   }

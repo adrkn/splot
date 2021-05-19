@@ -1,4 +1,3 @@
-import SPlot from './splot'
 import { colorFromHexToGlRgb } from './utils'
 
 export default class SPlotWebGl {
@@ -13,16 +12,15 @@ export default class SPlotWebGl {
   public failIfMajorPerformanceCaveat: boolean = false
   public powerPreference: WebGLPowerPreference = 'high-performance'
 
-  private splot: SPlot
   public canvas!: HTMLCanvasElement
   public gl!: WebGLRenderingContext
   private gpuProgram!: WebGLProgram
 
   private variables: Map<string, any> = new Map()
 
-  constructor(splot: SPlot) {
-    this.splot = splot
-  }
+  public data: Map<string, {buffers: WebGLBuffer[], type: number}> = new Map()
+
+  private glNumberTypes: Map<string, number> = new Map()
 
   public prepare(canvasId: string) {
     if (document.getElementById(canvasId)) {
@@ -48,6 +46,12 @@ export default class SPlotWebGl {
       failIfMajorPerformanceCaveat: this.failIfMajorPerformanceCaveat,
       powerPreference: this.powerPreference
     })!
+
+    this.glNumberTypes.set('Float32Array', this.gl.FLOAT)
+    this.glNumberTypes.set('Uint8Array', this.gl.UNSIGNED_BYTE)
+    this.glNumberTypes.set('Uint16Array', this.gl.UNSIGNED_SHORT)
+    this.glNumberTypes.set('Int8Array', this.gl.BYTE)
+    this.glNumberTypes.set('Int16Array', this.gl.SHORT)
 
     this.canvas.width = this.canvas.clientWidth
     this.canvas.height = this.canvas.clientHeight
@@ -137,28 +141,32 @@ export default class SPlotWebGl {
    * @param key - Ключ (индекс), идентифицирующий тип буфера (для вершин, для цветов, для индексов). Используется для
    *     раздельного подсчета памяти, занимаемой каждым типом буфера.
    */
-  public createBuffer(buffers: WebGLBuffer[], data: TypedArray, key: number): void {
+  public createBuffer(groupName: string, data: TypedArray): number {
 
-    // Определение индекса нового элемента в массиве буферов WebGL.
-    const index = this.splot.buffers.amountOfBufferGroups
-
-    // Создание и заполнение данными нового буфера.
-    buffers[index] = this.gl.createBuffer()!
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffers[index])
+    const buffer = this.gl.createBuffer()!
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
     this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW)
 
-    // Счетчик памяти, занимаемой буферами данных (раздельно по каждому типу буферов)
-    this.splot.buffers.sizeInBytes[key] += data.length * data.BYTES_PER_ELEMENT
+    if (!this.data.has(groupName)) {
+      this.data.set(groupName, { buffers: [], type: this.glNumberTypes.get(data.constructor.name)!})
+    }
+
+    this.data.get(groupName)!.buffers.push(buffer)
+
+    return data.length * data.BYTES_PER_ELEMENT
   }
 
   public setVariable(varName: string, varValue: number[]) {
     this.gl.uniformMatrix3fv(this.variables.get(varName), false, varValue)
   }
 
-  public setBuffer(buffer: WebGLBuffer, varName: string, type: number, size: number, stride: number, offset: number) {
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
-    this.gl.enableVertexAttribArray(this.variables.get(varName))
-    this.gl.vertexAttribPointer(this.variables.get(varName), size, type, false, stride, offset)
+  public setBuffer(groupName: string, index: number, varName: string, size: number, stride: number, offset: number) {
+    const group = this.data.get(groupName)!
+    const variable = this.variables.get(varName)
+
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, group.buffers[index])
+    this.gl.enableVertexAttribArray(variable)
+    this.gl.vertexAttribPointer(variable, size, group.type, false, stride, offset)
   }
 
   public drawPoints(first: number, count: number) {
