@@ -114,4 +114,18 @@ export default class SPlotWebGl {
     // Счетчик памяти, занимаемой буферами данных (раздельно по каждому типу буферов)
     this.splot.buffers.sizeInBytes[key] += data.length * data.BYTES_PER_ELEMENT
   }
+
+  public setVariable(varName: WebGLUniformLocation, varValue: number[]) {
+    this.splot.gl.uniformMatrix3fv(varName, false, varValue)
+  }
+
+  public setBuffer(buffer: WebGLBuffer, varName: number, type: number, size: number, stride: number, offset: number) {
+    this.splot.gl.bindBuffer(this.splot.gl.ARRAY_BUFFER, buffer)
+    this.splot.gl.enableVertexAttribArray(varName)
+    this.splot.gl.vertexAttribPointer(varName, size, type, false, stride, offset)
+  }
+
+  public draw(first: number, count: number) {
+    this.splot.gl.drawArrays(this.splot.gl.POINTS, first, count)
+  }
 }

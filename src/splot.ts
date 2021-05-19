@@ -149,7 +149,6 @@ export default class SPlot {
     // Создание программы WebGL.
     this.webGl.createProgram(shaderVert, shaderFrag)
 
-
     // Установка связей переменных приложения с программой WebGl.
     this.webGl.createVariable('attribute', 'a_position')
     this.webGl.createVariable('attribute', 'a_color')
@@ -349,37 +348,23 @@ export default class SPlot {
   public render(): void {
 
     // Очистка объекта рендеринга WebGL.
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT)
+    this.webGl.clearBackground()
 
     // Обновление матрицы трансформации.
     this.control.updateViewProjection()
 
     // Привязка матрицы трансформации к переменной шейдера.
-    this.gl.uniformMatrix3fv(this.variables['u_matrix'], false, this.transform.viewProjectionMat)
+    this.webGl.setVariable(this.variables['u_matrix'], this.transform.viewProjectionMat)
 
     // Итерирование и рендеринг групп буферов WebGL.
     for (let i = 0; i < this.buffers.amountOfBufferGroups; i++) {
 
-      // Установка текущего буфера вершин и его привязка к переменной шейдера.
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.vertexBuffers[i])
-      this.gl.enableVertexAttribArray(this.variables['a_position'])
-      this.gl.vertexAttribPointer(this.variables['a_position'], 2, this.gl.FLOAT, false, 0, 0)
+      this.webGl.setBuffer(this.buffers.vertexBuffers[i], this.variables['a_position'], this.gl.FLOAT, 2, 0, 0)
+      this.webGl.setBuffer(this.buffers.colorBuffers[i], this.variables['a_color'], this.gl.UNSIGNED_BYTE, 1, 0, 0)
+      this.webGl.setBuffer(this.buffers.sizeBuffers[i], this.variables['a_polygonsize'], this.gl.FLOAT, 1, 0, 0)
+      this.webGl.setBuffer(this.buffers.shapeBuffers[i], this.variables['a_shape'], this.gl.UNSIGNED_BYTE, 1, 0, 0)
 
-      // Установка текущего буфера цветов вершин и его привязка к переменной шейдера.
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.colorBuffers[i])
-      this.gl.enableVertexAttribArray(this.variables['a_color'])
-      this.gl.vertexAttribPointer(this.variables['a_color'], 1, this.gl.UNSIGNED_BYTE, false, 0, 0)
-
-      // Установка текущего буфера размеров вершин и его привязка к переменной шейдера.
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.sizeBuffers[i])
-      this.gl.enableVertexAttribArray(this.variables['a_polygonsize'])
-      this.gl.vertexAttribPointer(this.variables['a_polygonsize'], 1, this.gl.FLOAT, false, 0, 0)
-
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.shapeBuffers[i])
-      this.gl.enableVertexAttribArray(this.variables['a_shape'])
-      this.gl.vertexAttribPointer(this.variables['a_shape'], 1, this.gl.UNSIGNED_BYTE, false, 0, 0)
-
-      this.gl.drawArrays(this.gl.POINTS, 0, this.buffers.amountOfGLVertices[i] / 3)
+      this.webGl.draw(0, this.buffers.amountOfGLVertices[i] / 3)
     }
   }
 
