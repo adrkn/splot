@@ -1,19 +1,9 @@
-
 /**
  * Тип функции итерирования массива исходных объектов. Каждый вызов такой функции должен возвращать информацию об
  * очередном полигоне, который необходимо отобразить (его координаты, форму и цвет). Когда исходные объекты закончатся
  * функция должна вернуть null.
  */
-type SPlotIterationFunction = () => SPlotPolygon | null
-
-/**
- * Тип места вывода системной информации при активированном режиме отладки приложения.
- * Значение "console" устанавливает в качестве места вывода консоль браузера.
- *
- * @todo Добавить место вывода - HTML документ (значение "document")
- * @todo Добавить место вывода - файл (значение "file")
- */
-type SPlotDebugOutput = 'console'
+type SPlotIterationFunction = (() => SPlotPolygon | null) | undefined
 
 /**
  * Тип шейдера WebGL.
@@ -47,7 +37,7 @@ type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array
  *
  * @param iterationCallback - Функция итерирования исходных объектов.
  * @param polygonPalette - Цветовая палитра полигонов.
- * @param gridSize - Размер координатной плоскости в пикселях.
+ * @param grid - Размер координатной плоскости в пикселях.
  * @param polygonSize - Размер полигона на графике в пикселях (сторона для квадрата, диаметр для круга и т.п.)
  * @param debugMode - Параметры режима отладки приложения.
  * @param demoMode - Параметры режима использования демонстрационных данных.
@@ -63,14 +53,12 @@ type TypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array
 interface SPlotOptions {
   iterationCallback?: SPlotIterationFunction,
   polygonPalette?: string[],
-  gridSize?: SPlotGridSize,
+  grid?: SPlotGrid,
   polygonSize?: number,
-  debugMode?: SPlotDebugMode,
+  debug?: SPlotDebug,
   demoMode?: SPlotDemoMode,
   forceRun?: boolean,
   maxAmountOfPolygons?: number,
-  bgColor?: string,
-  rulesColor?: string,
   camera?: SPlotCamera,
   useVertexIndices?: boolean,
   webGlSettings?: WebGLContextAttributes
@@ -101,24 +89,11 @@ interface SPlotPolygon {
  * @param width - Ширина координатной плоскости в пикселях.
  * @param height - Высота координатноой плоскости в пикселях.
  */
-interface SPlotGridSize {
-  width: number,
-  height: number
-}
-
-/**
- * Тип для параметров режима отладки.
- *
- * @param isEnable - Признак включения отладочного режима.
- * @param output - Место вывода отладочной информации.
- * @param headerStyle - Стиль для заголовка всего отладочного блока.
- * @param groupStyle - Стиль для заголовка группировки отладочных данных.
- */
-interface SPlotDebugMode {
-  isEnable?: boolean,
-  output?: SPlotDebugOutput,
-  headerStyle?: string,
-  groupStyle?: string
+interface SPlotGrid {
+  width?: number,
+  height?: number,
+  bgColor?: string,
+  rulesColor?: string
 }
 
 /**
@@ -177,6 +152,7 @@ interface SPlotTransform {
  *
  * @param vertexBuffers - Массив буферов с информацией о вершинах полигонов.
  * @param colorBuffers - Массив буферов с информацией о цветах вершин полигонов.
+ * @param indexBuffers - Массив буферов с индексами вершин полигонов.
  * @param amountOfBufferGroups - Количество буферных групп в массиве. Все указанные выше массивы буферов содержат
  *     одинаковое количество буферов.
  * @param amountOfGLVertices - Количество вершин, образующих GL-треугольники каждого вершинного буфера.

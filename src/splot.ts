@@ -1,13 +1,14 @@
 // @ts-ignore
 import m3 from './m3'
 import { copyMatchingKeyValues, randomInt, jsonStringify, randomQuotaIndex, colorFromHexToGlRgb, getCurrentTime } from './utils'
-import vertexShaderCode from './vertex-shader'
-import fragmentShaderCode from './fragment-shader'
+import SPlotDebug from './debug'
+import shaderCodeVert from './shader-vert'
+import shaderCodeFrag from './shader-frag'
 
 export default class SPlot {
 
   // Функция по умолчанию для итерирования объектов не задается.
-  public iterationCallback: SPlotIterationFunction | undefined = undefined
+  public iterationCallback: SPlotIterationFunction = undefined
 
   // Цветовая палитра полигонов по умолчанию.
   public polygonPalette: string[] = [
@@ -15,31 +16,21 @@ export default class SPlot {
     '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080'
   ]
 
-  // Размер координатной плоскости по умолчанию.
-  public gridSize: SPlotGridSize = {
+  // Параметры координатной плоскости по умолчанию.
+  public grid: SPlotGrid = {
     width: 32_000,
-    height: 16_000
+    height: 16_000,
+    bgColor: '#ffffff',
+    rulesColor: '#c0c0c0'
   }
-
-  // Размер полигона по умолчанию.
-  public polygonSize: number = 20
 
   // Параметры режима отладки по умолчанию.
-  public debugMode: SPlotDebugMode = {
-    isEnable: false,
-    output: 'console',
-    headerStyle: 'font-weight: bold; color: #ffffff; background-color: #cc0000;',
-    groupStyle: 'font-weight: bold; color: #ffffff;'
-  }
+  public debug: SPlotDebug = new SPlotDebug(this)
 
   // Параметры режима демострационных данных по умолчанию.
   public demoMode: SPlotDemoMode = {
     isEnable: false,
     amount: 1_000_000,
-    /**
-     * По умолчанию в режиме демо-данных будут поровну отображаться полигоны всех возможных форм. Соответствующие
-     * значения массива инициализируются при регистрации функций создания форм методом {@link registerShape}.
-     */
     shapeQuota: [],
     index: 0
   }
@@ -53,16 +44,10 @@ export default class SPlot {
    */
   public maxAmountOfPolygons: number = 1_000_000_000
 
-  // Фоновый цвет по умолчанию для канваса.
-  public bgColor: string = '#ffffff'
-
-  // Цвет по умолчанию для направляющих.
-  public rulesColor: string = '#c0c0c0'
-
   // По умолчанию область просмотра устанавливается в центр координатной плооскости.
   public camera: SPlotCamera = {
-    x: this.gridSize.width / 2,
-    y: this.gridSize.height / 2,
+    x: this.grid.width! / 2,
+    y: this.grid.height! / 2,
     zoom: 1
   }
 
@@ -82,8 +67,10 @@ export default class SPlot {
     desynchronized: false
   }
 
-  // Признак активного процесса рендера. Доступен пользователю приложения только для чтения.
+  // Признак активного процесса рендера (только чтение).
   public isRunning: boolean = false
+
+  public readonly shapes: { name: string }[] = []
 
   // Объект канваса.
   protected readonly canvas: HTMLCanvasElement
@@ -101,10 +88,10 @@ export default class SPlot {
    * Шаблон GLSL-кода для вершинного шейдера. Содержит специальную вставку "{ADDITIONAL-CODE}", которая перед
    * созданием шейдера заменяется на GLSL-код выбора цвета вершин.
    */
-  protected readonly vertexShaderCodeTemplate: string = vertexShaderCode
+  protected readonly shaderCodeVert: string = shaderCodeVert
 
   // Шаблон GLSL-кода для фрагментного шейдера.
-  protected readonly fragmentShaderCodeTemplate: string = fragmentShaderCode
+  protected readonly shaderCodeFrag: string = shaderCodeFrag
 
   // Счетчик числа обработанных полигонов.
   protected amountOfPolygons: number = 0
@@ -140,13 +127,6 @@ export default class SPlot {
     amountOfTotalGLVertices: 0,
     sizeInBytes: [0, 0, 0, 0]
   }
-
-  /**
-   * Информация о возможных формах полигонов.
-   * Каждая форма представляется функцией, вычисляющей ее вершины и названием формы.
-   * Для указания формы полигонов в приложении используются числовые индексы в данном массиве.
-   */
-  protected shapes: {name: string}[] = []
 
   protected handleMouseDownWithContext: EventListener = this.handleMouseDown.bind(this) as EventListener
   protected handleMouseWheelWithContext: EventListener = this.handleMouseWheel.bind(this) as EventListener
@@ -216,22 +196,19 @@ export default class SPlot {
       this.buffers.amountOfShapes[key] = 0    // Обнуление счетчиков форм полигонов.
     }
 
-    if (this.debugMode.isEnable) {
-      this.reportMainInfo(options)    // Вывод отладочной информации.
+    if (this.debug.isEnable) {
+      this.debug.logIntro(this.canvas)
+      this.debug.logGpuInfo(this.gl)
+      this.debug.logInstanceInfo(this.canvas, options)
     }
 
-    (this.gl.clearColor as any)(...colorFromHexToGlRgb(this.bgColor), 0.0)    // Установка цвета очистки рендеринга
+    (this.gl.clearColor as any)(...colorFromHexToGlRgb(this.grid.bgColor!), 0.0)    // Установка цвета очистки рендеринга
 
-    // Подготовка кодов шейдеров. В код вершинного шейдера вставляется код выбора цвета вершин.
-    const vertexShaderCode = this.vertexShaderCodeTemplate.replace('{ADDITIONAL-CODE}', this.genShaderColorCode())
-    const fragmentShaderCode = this.fragmentShaderCodeTemplate
-
-    // Создание шейдеров WebGL.
-    const vertexShader = this.createWebGlShader('VERTEX_SHADER', vertexShaderCode)
-    const fragmentShader = this.createWebGlShader('FRAGMENT_SHADER', fragmentShaderCode)
-
-    // Создание программы WebGL.
-    this.createWebGlProgram(vertexShader, fragmentShader)
+    // Создание шейдеров и программы WebGL.
+    this.createWebGlProgram(
+      this.createWebGlShader('VERTEX_SHADER', this.shaderCodeVert.replace('{EXTERNAL-CODE}', this.genShaderColorCode())),
+      this.createWebGlShader('FRAGMENT_SHADER', this.shaderCodeFrag)
+    )
 
     // Установка связей переменных приложения с программой WebGl.
     this.setWebGlVariable('attribute', 'a_position')
@@ -240,7 +217,7 @@ export default class SPlot {
     this.setWebGlVariable('attribute', 'a_shape')
     this.setWebGlVariable('uniform', 'u_matrix')
 
-    this.createWbGlBuffers()    // Заполнение буферов WebGL.
+    this.createWebGlBuffers()    // Заполнение буферов WebGL.
 
     if (this.forceRun) {
       this.run()                // Форсированный запуск рендеринга (если требуется).
@@ -257,9 +234,9 @@ export default class SPlot {
     copyMatchingKeyValues(this, options)    // Применение пользовательских настроек.
 
     // Если задан размер плоскости, но не задано положение области просмотра, то область помещается в центр плоскости.
-    if (options.hasOwnProperty('gridSize') && !options.hasOwnProperty('camera')) {
-      this.camera.x = this.gridSize.width / 2
-      this.camera.y = this.gridSize.height / 2
+    if (('grid' in options) && !('camera' in options)) {
+      this.camera.x = this.grid.width! / 2
+      this.camera.y = this.grid.height! / 2
     }
 
     if (this.demoMode.isEnable) {
@@ -286,10 +263,8 @@ export default class SPlot {
     }
 
     // Вывод отладочной информации.
-    if (this.debugMode.isEnable) {
-      console.group('%cСоздан шейдер [' + shaderType + ']', this.debugMode.groupStyle)
-      console.log(shaderCode)
-      console.groupEnd()
+    if (this.debug.isEnable) {
+      this.debug.logShaderInfo(shaderType, shaderCode)
     }
 
     return shader
@@ -326,14 +301,11 @@ export default class SPlot {
   /**
    * Создает и заполняет данными обо всех полигонах буферы WebGL.
    */
-  protected createWbGlBuffers(): void {
+  protected createWebGlBuffers(): void {
 
     // Вывод отладочной информации.
-    if (this.debugMode.isEnable) {
-      console.log('%cЗапущен процесс загрузки данных [' + getCurrentTime() + ']...', this.debugMode.groupStyle)
-
-      // Запуск консольного таймера, измеряющего длительность процесса загрузки данных в видеопамять.
-      console.time('Длительность')
+    if (this.debug.isEnable) {
+      this.debug.logDataLoadingStart()
     }
 
     let polygonGroup: SPlotPolygonGroup | null
@@ -342,10 +314,10 @@ export default class SPlot {
     while (polygonGroup = this.createPolygonGroup()) {
 
       // Создание и заполнение буферов данными о текущей группе полигонов.
-      this.addWbGlBuffer(this.buffers.vertexBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.vertices), 0)
-      this.addWbGlBuffer(this.buffers.colorBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.colors), 1)
-      this.addWbGlBuffer(this.buffers.shapeBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.shapes), 4)
-      this.addWbGlBuffer(this.buffers.sizeBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.sizes), 3)
+      this.addWebGlBuffer(this.buffers.vertexBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.vertices), 0)
+      this.addWebGlBuffer(this.buffers.colorBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.colors), 1)
+      this.addWebGlBuffer(this.buffers.shapeBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.shapes), 4)
+      this.addWebGlBuffer(this.buffers.sizeBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.sizes), 3)
 
       // Счетчик количества буферов.
       this.buffers.amountOfBufferGroups++
@@ -358,8 +330,10 @@ export default class SPlot {
     }
 
     // Вывод отладочной информации.
-    if (this.debugMode.isEnable) {
-      this.reportAboutObjectReading()
+    if (this.debug.isEnable) {
+      this.debug.logDataLoadingComplete(this.amountOfPolygons, this.maxAmountOfPolygons)
+      this.debug.logObjectStats(this.buffers, this.amountOfPolygons)
+      this.debug.logGpuMemStats(this.buffers)
     }
   }
 
@@ -383,7 +357,7 @@ export default class SPlot {
       amountOfGLVertices: 0
     }
 
-    let polygon: SPlotPolygon | null
+    let polygon: SPlotPolygon | null | undefined
 
     /**
      * Если количество полигонов канваса достигло допустимого максимума, то дальнейшая обработка исходных объектов
@@ -434,7 +408,7 @@ export default class SPlot {
    * @param key - Ключ (индекс), идентифицирующий тип буфера (для вершин, для цветов, для индексов). Используется для
    *     раздельного подсчета памяти, занимаемой каждым типом буфера.
    */
-  protected addWbGlBuffer(buffers: WebGLBuffer[], type: WebGlBufferType, data: TypedArray, key: number): void {
+  protected addWebGlBuffer(buffers: WebGLBuffer[], type: WebGlBufferType, data: TypedArray, key: number): void {
 
     // Определение индекса нового элемента в массиве буферов WebGL.
     const index = this.buffers.amountOfBufferGroups
@@ -472,112 +446,6 @@ export default class SPlot {
   }
 
   /**
-   * Выводит базовую часть отладочной информации.
-   *
-   * @param options - Пользовательские настройки экземпляра.
-   */
-  protected reportMainInfo(options: SPlotOptions): void {
-
-    console.log('%cВключен режим отладки ' + this.constructor.name + ' на объекте [#' + this.canvas.id + ']',
-      this.debugMode.headerStyle)
-
-    if (this.demoMode.isEnable) {
-      console.log('%cВключен демонстрационный режим данных', this.debugMode.groupStyle)
-    }
-
-    console.group('%cПредупреждение', this.debugMode.groupStyle)
-    {
-      console.dir('Открытая консоль браузера и другие активные средства контроля разработки существенно снижают производительность высоконагруженных приложений. Для объективного анализа производительности все подобные средства должны быть отключены, а консоль браузера закрыта. Некоторые данные отладочной информации в зависимости от используемого браузера могут не отображаться или отображаться некорректно. Средство отладки протестировано в браузере Google Chrome v.90')
-    }
-    console.groupEnd()
-
-    console.group('%cВидеосистема', this.debugMode.groupStyle)
-    {
-      let ext = this.gl.getExtension('WEBGL_debug_renderer_info')
-      let graphicsCardName = (ext) ? this.gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '[неизвестно]'
-      console.log('Графическая карта: ' + graphicsCardName)
-      console.log('Версия GL: ' + this.gl.getParameter(this.gl.VERSION))
-    }
-    console.groupEnd()
-
-    console.group('%cНастройка параметров экземпляра', this.debugMode.groupStyle)
-    {
-      console.dir(this)
-      console.log('Пользовательские настройки:\n', jsonStringify(options))
-      console.log('Канвас: #' + this.canvas.id)
-      console.log('Размер канваса: ' + this.canvas.width + ' x ' + this.canvas.height + ' px')
-      console.log('Размер плоскости: ' + this.gridSize.width + ' x ' + this.gridSize.height + ' px')
-      console.log('Размер полигона: ' + this.polygonSize + ' px')
-
-      /**
-       * @todo Обработать этот вывод в зависимости от способа получения данных о полигонах. Ввести типы - заданная
-       * функция итерирования, демо-итерирование, переданный массив данных.
-       */
-      if (this.demoMode.isEnable) {
-        console.log('Способ получения данных: ' + 'демонстрационная функция итерирования')
-      } else {
-        console.log('Способ получения данных: ' + 'пользовательская функция итерирования')
-      }
-    }
-    console.groupEnd()
-  }
-
-  /**
-   * Выводит в консоль отладочную информацию о загрузке данных в видеопамять.
-   */
-  protected reportAboutObjectReading(): void {
-
-    console.group('%cЗагрузка данных завершена [' + getCurrentTime() + ']', this.debugMode.groupStyle)
-    {
-      console.timeEnd('Длительность')
-
-      console.log('Результат: ' +
-        ((this.amountOfPolygons >= this.maxAmountOfPolygons) ? 'достигнут заданный лимит (' +
-          this.maxAmountOfPolygons.toLocaleString() + ')' : 'обработаны все объекты'))
-
-      console.group('Кол-во объектов: ' + this.amountOfPolygons.toLocaleString())
-      {
-        for (let i = 0; i < this.shapes.length; i++) {
-          const shapeCapction = this.shapes[i].name
-          const shapeAmount = this.buffers.amountOfShapes[i]
-          console.log(shapeCapction + ': ' + shapeAmount.toLocaleString() +
-            ' [~' + Math.round(100 * shapeAmount / this.amountOfPolygons) + '%]')
-        }
-
-        console.log('Кол-во цветов в палитре: ' + this.polygonPalette.length)
-      }
-      console.groupEnd()
-
-      let bytesUsedByBuffers = this.buffers.sizeInBytes[0] + this.buffers.sizeInBytes[1] + this.buffers.sizeInBytes[2] + this.buffers.sizeInBytes[3]
-
-      console.group('Занято видеопамяти: ' + (bytesUsedByBuffers / 1000000).toFixed(2).toLocaleString() + ' МБ')
-      {
-        console.log('Буферы вершин: ' +
-          (this.buffers.sizeInBytes[0] / 1000000).toFixed(2).toLocaleString() + ' МБ' +
-          ' [~' + Math.round(100 * this.buffers.sizeInBytes[0] / bytesUsedByBuffers) + '%]')
-
-        console.log('Буферы цветов: '
-          + (this.buffers.sizeInBytes[1] / 1000000).toFixed(2).toLocaleString() + ' МБ' +
-          ' [~' + Math.round(100 * this.buffers.sizeInBytes[1] / bytesUsedByBuffers) + '%]')
-
-        console.log('Буферы индексов: '
-          + (this.buffers.sizeInBytes[2] / 1000000).toFixed(2).toLocaleString() + ' МБ' +
-          ' [~' + Math.round(100 * this.buffers.sizeInBytes[2] / bytesUsedByBuffers) + '%]')
-
-        console.log('Буферы размеров: '
-          + (this.buffers.sizeInBytes[3] / 1000000).toFixed(2).toLocaleString() + ' МБ' +
-          ' [~' + Math.round(100 * this.buffers.sizeInBytes[2] / bytesUsedByBuffers) + '%]')
-      }
-      console.groupEnd()
-
-      console.log('Кол-во групп буферов: ' + this.buffers.amountOfBufferGroups.toLocaleString())
-      console.log('Кол-во GL-треугольников: ' + (this.buffers.amountOfTotalGLVertices / 3).toLocaleString())
-      console.log('Кол-во вершин: ' + this.buffers.amountOfTotalVertices.toLocaleString())
-    }
-    console.groupEnd()
-  }
-
-  /**
    * Создает дополнение к коду на языке GLSL.
    *
    * @remarks
@@ -590,7 +458,7 @@ export default class SPlot {
   protected genShaderColorCode(): string {
 
     // Временное добавление в палитру цветов вершин цвета направляющих.
-    this.polygonPalette.push(this.rulesColor)
+    this.polygonPalette.push(this.grid.rulesColor!)
 
     let code: string = ''
 
@@ -830,10 +698,10 @@ export default class SPlot {
     if (this.demoMode.index! < this.demoMode.amount!) {
       this.demoMode.index! ++;
       return {
-        x: randomInt(this.gridSize.width),
-        y: randomInt(this.gridSize.height),
+        x: randomInt(this.grid.width!),
+        y: randomInt(this.grid.height!),
         shape: randomQuotaIndex(this.demoMode.shapeQuota!),
-        size: 1 + randomInt(20),
+        size: 10 + randomInt(21),
         color: randomInt(this.polygonPalette.length)
       }
     }
@@ -856,8 +724,8 @@ export default class SPlot {
     }
 
     // Вывод отладочной информации.
-    if (this.debugMode.isEnable) {
-      console.log('%cРендеринг запущен', this.debugMode.groupStyle)
+    if (this.debug.isEnable) {
+      console.log('%cРендеринг запущен', this.debug.groupStyle)
     }
   }
 
@@ -884,8 +752,8 @@ export default class SPlot {
     }
 
     // Вывод отладочной информации.
-    if (this.debugMode.isEnable) {
-      console.log('%cРендеринг остановлен', this.debugMode.groupStyle)
+    if (this.debug.isEnable) {
+      console.log('%cРендеринг остановлен', this.debug.groupStyle)
     }
   }
 
@@ -897,8 +765,8 @@ export default class SPlot {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
     // Вывод отладочной информации.
-    if (this.debugMode.isEnable) {
-      console.log('%cКонтекст рендеринга очищен [' + this.bgColor + ']', this.debugMode.groupStyle);
+    if (this.debug.isEnable) {
+      console.log('%cКонтекст рендеринга очищен [' + this.grid.bgColor + ']', this.debug.groupStyle);
     }
   }
 }

@@ -36,11 +36,11 @@ let scatterPlot = new SPlot('canvas1')
 scatterPlot.setup({
   iterationCallback: readNextObject,
   polygonPalette: palette,
-  gridSize: {
+  grid: {
     width: plotWidth,
     height: plotHeight,
   },
-  debugMode: {
+  debug: {
     isEnable: true,
   },
   demoMode: {
