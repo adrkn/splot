@@ -13,13 +13,14 @@ export default class SPlot {
   public webGl: SPlotWebGl = new SPlotWebGl(this)    // Хелпер WebGL.
   public debug: SPlotDebug = new SPlotDebug(this)    // Хелпер режима отладки
   public forceRun: boolean = false                   // Признак форсированного запуска рендера.
-  public limit: number = 1_000_000_000               // Ограничение кол-ва объектов на графике.
+  public globalLimit: number = 1_000_000_000         // Ограничение кол-ва объектов на графике.
+  public groupLimit: number = 10_000                 // Ограничение кол-ва объектов в группе.
   public isRunning: boolean = false                  // Признак активного процесса рендера.
 
   // Цветовая палитра объектов.
   public colors: string[] = [
-    '#FF00FF', '#800080', '#FF0000', '#800000', '#FFFF00',
-    '#00FF00', '#008000', '#00FFFF', '#0000FF', '#000080'
+    '#D81C01', '#E9967A', '#BA55D3', '#FFD700', '#FFE4B5', '#FF8C00',
+    '#228B22', '#90EE90', '#4169E1', '#00BFFF', '#8B4513', '#00CED1'
   ]
 
   // Параметры координатной плоскости.
@@ -41,7 +42,6 @@ export default class SPlot {
   protected shaderCodeVert: string = SHADER_CODE_VERT_TMPL         // Шаблон GLSL-кода для вершинного шейдера.
   protected shaderCodeFrag: string = SHADER_CODE_FRAG_TMPL         // Шаблон GLSL-кода для фрагментного шейдера.
   protected amountOfPolygons: number = 0                    // Счетчик числа обработанных полигонов.
-  protected maxAmountOfVertexInGroup: number = 10_000       // Ограничение количества объектов в группе.
 
   protected control: SPlotContol = new SPlotContol(this)    // Объект управления графиком устройствами ввода.
 
@@ -196,7 +196,7 @@ export default class SPlot {
 
     // Вывод отладочной информации.
     if (this.debug.isEnable) {
-      this.debug.logDataLoadingComplete(this.amountOfPolygons, this.limit)
+      this.debug.logDataLoadingComplete(this.amountOfPolygons, this.globalLimit)
       this.debug.logObjectStats(this.buffers, this.amountOfPolygons)
       this.debug.logGpuMemStats(this.buffers)
     }
@@ -229,7 +229,7 @@ export default class SPlot {
      * приостанавливается - формирование групп полигонов завершается возвратом значения null (симуляция достижения
      * последнего обрабатываемого исходного объекта).
      */
-    if (this.amountOfPolygons >= this.limit) return null
+    if (this.amountOfPolygons >= this.globalLimit) return null
 
     // Итерирование исходных объектов.
     while (polygon = this.iterator!()) {
@@ -248,13 +248,13 @@ export default class SPlot {
        * приостанавливается - формирование групп полигонов завершается возвратом значения null (симуляция достижения
        * последнего обрабатываемого исходного объекта).
        */
-      if (this.amountOfPolygons >= this.limit) break
+      if (this.amountOfPolygons >= this.globalLimit) break
 
       /**
        * Если общее количество всех вершин в группе полигонов превысило техническое ограничение, то группа полигонов
        * считается сформированной и итерирование исходных объектов приостанавливается.
        */
-      if (polygonGroup.amountOfVertices >= this.maxAmountOfVertexInGroup) break
+      if (polygonGroup.amountOfVertices >= this.groupLimit) break
     }
 
     // Счетчик общего количества вершин всех вершинных буферов.

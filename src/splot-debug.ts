@@ -46,18 +46,16 @@ export default class SPlotDebug {
 
   public logInstanceInfo(canvas: HTMLCanvasElement, options: SPlotOptions): void {
     console.group('%cНастройка параметров экземпляра', this.groupStyle)
-    {
-      console.dir(this)
-      console.log('Пользовательские настройки:\n', jsonStringify(options))
-      console.log('Канвас: #' + canvas.id)
-      console.log('Размер канваса: ' + canvas.width + ' x ' + canvas.height + ' px')
-      console.log('Размер плоскости: ' + this.splot.grid.width + ' x ' + this.splot.grid.height + ' px')
+    console.dir(this.splot)
+    console.log('Пользовательские настройки:\n', jsonStringify(options))
+    console.log('Канвас: #' + canvas.id)
+    console.log('Размер канваса: ' + canvas.width + ' x ' + canvas.height + ' px')
+    console.log('Размер плоскости: ' + this.splot.grid.width + ' x ' + this.splot.grid.height + ' px')
 
-      if (this.splot.demo.isEnable) {
-        console.log('Способ получения данных: ' + 'демо-данные')
-      } else {
-        console.log('Способ получения данных: ' + 'итерирование')
-      }
+    if (this.splot.demo.isEnable) {
+      console.log('Способ получения данных: ' + 'демо-данные')
+    } else {
+      console.log('Способ получения данных: ' + 'итерирование')
     }
     console.groupEnd()
   }
