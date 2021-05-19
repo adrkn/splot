@@ -1,13 +1,15 @@
-import { copyMatchingKeyValues, randomInt, randomQuotaIndex, colorFromHexToGlRgb} from './utils'
+import { copyMatchingKeyValues, randomInt, randomQuotaIndex, colorFromHexToGlRgb } from './utils'
+import SPlotWebGl from './splot-webgl'
 import SPlotDebug from './splot-debug'
-import shaderCodeVert from './shader-vert'
-import shaderCodeFrag from './shader-frag'
 import SPlotContol from './splot-control'
+import shaderCodeVertTmpl from './shader-code-vert-tmpl'
+import shaderCodeFragTmpl from './shader-code-frag-tmpl'
 
 export default class SPlot {
 
   public iterationCallback: SPlotIterationFunction = undefined    // Функция итерирования объектов.
   public debug: SPlotDebug = new SPlotDebug(this)                 // Объект, управляющий режимом отладки.
+  public webGl: SPlotWebGl = new SPlotWebGl(this)                 // Объект управления webGL.
   public forceRun: boolean = false                                // Признак форсированного запуска рендера.
   public maxAmountOfPolygons: number = 1_000_000_000              // Искусственное ограничение кол-ва объектов.
   public isRunning: boolean = false                               // Признак активного процесса рендера.
@@ -43,28 +45,16 @@ export default class SPlot {
 
   public readonly shapes: { name: string }[] = []
 
-  // Настройки контекста рендеринга WebGL максимизирующие производительность графической системы.
-  public webGlSettings: WebGLContextAttributes = {
-    alpha: false,
-    depth: false,
-    stencil: false,
-    antialias: false,
-    premultipliedAlpha: false,
-    preserveDrawingBuffer: false,
-    powerPreference: 'high-performance',
-    failIfMajorPerformanceCaveat: false,
-    desynchronized: false
-  }
-
   public canvas: HTMLCanvasElement                       // Объект канваса.
   public gl!: WebGLRenderingContext                      // Объект контекста рендеринга WebGL.
 
-  protected gpuProgram!: WebGLProgram                       // Объект программы WebGL.
-  protected variables: { [key: string]: any } = {}          // Переменные для связи приложения с программой WebGL.
-  protected shaderCodeVert: string = shaderCodeVert         // Шаблон GLSL-кода для вершинного шейдера.
-  protected shaderCodeFrag: string = shaderCodeFrag         // Шаблон GLSL-кода для фрагментного шейдера.
+  public gpuProgram!: WebGLProgram                       // Объект программы WebGL.
+  public variables: { [key: string]: any } = {}          // Переменные для связи приложения с программой WebGL.
+  protected shaderCodeVert: string = shaderCodeVertTmpl         // Шаблон GLSL-кода для вершинного шейдера.
+  protected shaderCodeFrag: string = shaderCodeFragTmpl         // Шаблон GLSL-кода для фрагментного шейдера.
   protected amountOfPolygons: number = 0                    // Счетчик числа обработанных полигонов.
   protected maxAmountOfVertexInGroup: number = 10_000       // Максимальное кол-во вершин в группе.
+
   protected control: SPlotContol = new SPlotContol(this)    // Объект управления графиком устройствами ввода.
 
   // Техническая информация, используемая приложением для расчета трансформаций.
@@ -78,7 +68,7 @@ export default class SPlot {
   }
 
   // Информация о буферах, хранящих данные для видеопамяти.
-  protected buffers: SPlotBuffers = {
+  public buffers: SPlotBuffers = {
     vertexBuffers: [],
     colorBuffers: [],
     sizeBuffers: [],
@@ -126,19 +116,6 @@ export default class SPlot {
   }
 
   /**
-   * Создает контекст рендеринга WebGL и устанавливает корректный размер области просмотра.
-   */
-  protected createGl(): void {
-
-    this.gl = this.canvas.getContext('webgl', this.webGlSettings)!
-
-    this.canvas.width = this.canvas.clientWidth
-    this.canvas.height = this.canvas.clientHeight
-
-    this.gl.viewport(0, 0, this.canvas.width, this.canvas.height)
-  }
-
-  /**
    * Инициализирует необходимые для рендера параметры экземпляра и WebGL.
    *
    * @param options - Пользовательские настройки экземпляра.
@@ -146,7 +123,7 @@ export default class SPlot {
   public setup(options: SPlotOptions): void {
 
     this.setOptions(options)     // Применение пользовательских настроек.
-    this.createGl()              // Создание контекста рендеринга.
+    this.webGl.create()              // Создание контекста рендеринга.
     this.amountOfPolygons = 0    // Обнуление счетчика полигонов.
     this.demoMode.index = 0      // Обнуление технического счетчика режима демо-данных.
 
@@ -160,20 +137,31 @@ export default class SPlot {
       this.debug.logInstanceInfo(this.canvas, options)
     }
 
-    (this.gl.clearColor as any)(...colorFromHexToGlRgb(this.grid.bgColor!), 0.0)    // Установка цвета очистки рендеринга
+    this.webGl.setBgColor(this.grid.bgColor!)    // Установка цвета очистки рендеринга
 
-    // Создание шейдеров и программы WebGL.
-    this.createWebGlProgram(
-      this.createWebGlShader('VERTEX_SHADER', this.shaderCodeVert.replace('{EXTERNAL-CODE}', this.genShaderColorCode())),
-      this.createWebGlShader('FRAGMENT_SHADER', this.shaderCodeFrag)
-    )
+    // Создание шейдеров WebGL.
+    const shaderCodeVert = this.shaderCodeVert.replace('{EXTERNAL-CODE}', this.genShaderColorCode())
+    const shaderCodeFrag = this.shaderCodeFrag
+
+    const shaderVert = this.webGl.createShader('VERTEX_SHADER', shaderCodeVert)
+    const shaderFrag = this.webGl.createShader('FRAGMENT_SHADER', shaderCodeFrag)
+
+    // Вывод отладочной информации.
+    if (this.debug.isEnable) {
+      this.debug.logShaderInfo('VERTEX_SHADER', shaderCodeVert)
+      this.debug.logShaderInfo('FRAGMENT_SHADER', shaderCodeFrag)
+    }
+
+    // Создание программы WebGL.
+    this.webGl.createProgram(shaderVert, shaderFrag)
+
 
     // Установка связей переменных приложения с программой WebGl.
-    this.setWebGlVariable('attribute', 'a_position')
-    this.setWebGlVariable('attribute', 'a_color')
-    this.setWebGlVariable('attribute', 'a_polygonsize')
-    this.setWebGlVariable('attribute', 'a_shape')
-    this.setWebGlVariable('uniform', 'u_matrix')
+    this.webGl.createVariable('attribute', 'a_position')
+    this.webGl.createVariable('attribute', 'a_color')
+    this.webGl.createVariable('attribute', 'a_polygonsize')
+    this.webGl.createVariable('attribute', 'a_shape')
+    this.webGl.createVariable('uniform', 'u_matrix')
 
     this.createWebGlBuffers()    // Заполнение буферов WebGL.
 
@@ -203,60 +191,6 @@ export default class SPlot {
   }
 
   /**
-   * Создает шейдер WebGL.
-   *
-   * @param shaderType Тип шейдера.
-   * @param shaderCode Код шейдера на языке GLSL.
-   * @returns Созданный объект шейдера.
-   */
-  protected createWebGlShader(shaderType: WebGlShaderType, shaderCode: string): WebGLShader {
-
-    // Создание, привязка кода и компиляция шейдера.
-    const shader = this.gl.createShader(this.gl[shaderType])!
-    this.gl.shaderSource(shader, shaderCode)
-    this.gl.compileShader(shader)
-
-    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-      throw new Error('Ошибка компиляции шейдера [' + shaderType + ']. ' + this.gl.getShaderInfoLog(shader))
-    }
-
-    // Вывод отладочной информации.
-    if (this.debug.isEnable) {
-      this.debug.logShaderInfo(shaderType, shaderCode)
-    }
-
-    return shader
-  }
-
-  /**
-   * Создает программу WebGL.
-   *
-   * @param {WebGLShader} vertexShader Вершинный шейдер.
-   * @param {WebGLShader} fragmentShader Фрагментный шейдер.
-   */
-  protected createWebGlProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader): void {
-    this.gpuProgram = this.gl.createProgram()!
-    this.gl.attachShader(this.gpuProgram, vertexShader)
-    this.gl.attachShader(this.gpuProgram, fragmentShader)
-    this.gl.linkProgram(this.gpuProgram)
-    this.gl.useProgram(this.gpuProgram)
-  }
-
-  /**
-   * Устанавливает связь переменной приложения с программой WebGl.
-   *
-   * @param varType Тип переменной.
-   * @param varName Имя переменной.
-   */
-  protected setWebGlVariable(varType: WebGlVariableType, varName: string): void {
-    if (varType === 'uniform') {
-      this.variables[varName] = this.gl.getUniformLocation(this.gpuProgram, varName)
-    } else if (varType === 'attribute') {
-      this.variables[varName] = this.gl.getAttribLocation(this.gpuProgram, varName)
-    }
-  }
-
-  /**
    * Создает и заполняет данными обо всех полигонах буферы WebGL.
    */
   protected createWebGlBuffers(): void {
@@ -272,10 +206,10 @@ export default class SPlot {
     while (polygonGroup = this.createPolygonGroup()) {
 
       // Создание и заполнение буферов данными о текущей группе полигонов.
-      this.addWebGlBuffer(this.buffers.vertexBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.vertices), 0)
-      this.addWebGlBuffer(this.buffers.colorBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.colors), 1)
-      this.addWebGlBuffer(this.buffers.shapeBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.shapes), 4)
-      this.addWebGlBuffer(this.buffers.sizeBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.sizes), 3)
+      this.webGl.createBuffer(this.buffers.vertexBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.vertices), 0)
+      this.webGl.createBuffer(this.buffers.colorBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.colors), 1)
+      this.webGl.createBuffer(this.buffers.shapeBuffers, 'ARRAY_BUFFER', new Uint8Array(polygonGroup.shapes), 4)
+      this.webGl.createBuffer(this.buffers.sizeBuffers, 'ARRAY_BUFFER', new Float32Array(polygonGroup.sizes), 3)
 
       // Счетчик количества буферов.
       this.buffers.amountOfBufferGroups++
@@ -355,29 +289,6 @@ export default class SPlot {
 
     // Если группа полигонов непустая, то возвращаем ее. Если пустая - возвращаем null.
     return (polygonGroup.amountOfVertices > 0) ? polygonGroup : null
-  }
-
-  /**
-   * Создает в массиве буферов WebGL новый буфер и записывает в него переданные данные.
-   *
-   * @param buffers - Массив буферов WebGL, в который будет добавлен создаваемый буфер.
-   * @param type - Тип создаваемого буфера.
-   * @param data - Данные в виде типизированного массива для записи в создаваемый буфер.
-   * @param key - Ключ (индекс), идентифицирующий тип буфера (для вершин, для цветов, для индексов). Используется для
-   *     раздельного подсчета памяти, занимаемой каждым типом буфера.
-   */
-  protected addWebGlBuffer(buffers: WebGLBuffer[], type: WebGlBufferType, data: TypedArray, key: number): void {
-
-    // Определение индекса нового элемента в массиве буферов WebGL.
-    const index = this.buffers.amountOfBufferGroups
-
-    // Создание и заполнение данными нового буфера.
-    buffers[index] = this.gl.createBuffer()!
-    this.gl.bindBuffer(this.gl[type], buffers[index])
-    this.gl.bufferData(this.gl[type], data, this.gl.STATIC_DRAW)
-
-    // Счетчик памяти, занимаемой буферами данных (раздельно по каждому типу буферов)
-    this.buffers.sizeInBytes[key] += data.length * data.BYTES_PER_ELEMENT
   }
 
   /**
@@ -503,43 +414,30 @@ export default class SPlot {
    * Запускает рендеринг и "прослушку" событий мыши/трекпада на канвасе.
    */
   public run(): void {
+
     if (!this.isRunning) {
-
-      this.control.run()
-
       this.render()
-
+      this.control.run()
       this.isRunning = true
     }
 
-    // Вывод отладочной информации.
     if (this.debug.isEnable) {
-      console.log('%cРендеринг запущен', this.debug.groupStyle)
+      this.debug.logRenderStarted()
     }
   }
 
   /**
    * Останавливает рендеринг и "прослушку" событий мыши/трекпада на канвасе.
-   *
-   * @param clear - Признак неообходимости вместе с остановкой рендеринга очистить канвас. Значение true очищает канвас,
-   * значение false - оставляет его неочищенным. По умолчанию очистка не происходит.
    */
-  public stop(clear: boolean = false): void {
+  public stop(): void {
 
     if (this.isRunning) {
-
       this.control.stop()
-
-      if (clear) {
-        this.clear()
-      }
-
       this.isRunning = false
     }
 
-    // Вывод отладочной информации.
     if (this.debug.isEnable) {
-      console.log('%cРендеринг остановлен', this.debug.groupStyle)
+      this.debug.logRenderStoped()
     }
   }
 
@@ -548,11 +446,10 @@ export default class SPlot {
    */
   public clear(): void {
 
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    this.webGl.clearBackground()
 
-    // Вывод отладочной информации.
     if (this.debug.isEnable) {
-      console.log('%cКонтекст рендеринга очищен [' + this.grid.bgColor + ']', this.debug.groupStyle);
+      this.debug.logCanvasCleared()
     }
   }
 }

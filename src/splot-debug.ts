@@ -120,4 +120,16 @@ export default class SPlotDebug {
 
     console.groupEnd()
   }
+
+  public logRenderStarted() {
+    console.log('%cРендеринг запущен', this.splot.debug.groupStyle)
+  }
+
+  public logRenderStoped() {
+    console.log('%cРендеринг остановлен', this.splot.debug.groupStyle)
+  }
+
+  public logCanvasCleared() {
+    console.log('%cКонтекст рендеринга очищен [' + this.splot.grid.bgColor + ']', this.splot.debug.groupStyle);
+  }
 }
