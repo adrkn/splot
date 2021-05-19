@@ -1,7 +1,7 @@
 // @ts-ignore
 import m3 from './m3'
 import { copyMatchingKeyValues, randomInt, randomQuotaIndex, colorFromHexToGlRgb} from './utils'
-import SPlotDebug from './debug'
+import SPlotDebug from './splot-debug'
 import shaderCodeVert from './shader-vert'
 import shaderCodeFrag from './shader-frag'
 
