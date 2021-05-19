@@ -16,9 +16,21 @@ export default class SPlotWebGl {
   }
 
   private splot: SPlot
+  public canvas!: HTMLCanvasElement
+  public gl!: WebGLRenderingContext
+  private gpuProgram!: WebGLProgram
+  private variables: { [key: string]: any } = {}
 
   constructor(splot: SPlot) {
     this.splot = splot
+  }
+
+  public prepare(canvasId: string) {
+    if (document.getElementById(canvasId)) {
+      this.canvas = document.getElementById(canvasId) as HTMLCanvasElement
+    } else {
+      throw new Error('Канвас с идентификатором "#' + canvasId + '" не найден!')
+    }
   }
 
   /**
@@ -26,21 +38,21 @@ export default class SPlotWebGl {
    */
   public create(): void {
 
-    this.splot.gl = this.splot.canvas.getContext('webgl', this.webGlSettings)!
+    this.gl = this.canvas.getContext('webgl', this.webGlSettings)!
 
-    this.splot.canvas.width = this.splot.canvas.clientWidth
-    this.splot.canvas.height = this.splot.canvas.clientHeight
+    this.canvas.width = this.canvas.clientWidth
+    this.canvas.height = this.canvas.clientHeight
 
-    this.splot.gl.viewport(0, 0, this.splot.canvas.width, this.splot.canvas.height)
+    this.gl.viewport(0, 0, this.canvas.width, this.canvas.height)
   }
 
   public setBgColor(color: string) {
     let [r, g, b] = colorFromHexToGlRgb(color)
-    this.splot.gl.clearColor(r, g, b, 0.0)
+    this.gl.clearColor(r, g, b, 0.0)
   }
 
   public clearBackground() {
-    this.splot.gl.clear(this.splot.gl.COLOR_BUFFER_BIT);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
 
   /**
@@ -53,12 +65,12 @@ export default class SPlotWebGl {
   public createShader(shaderType: WebGlShaderType, shaderCode: string): WebGLShader {
 
     // Создание, привязка кода и компиляция шейдера.
-    const shader = this.splot.gl.createShader(this.splot.gl[shaderType])!
-    this.splot.gl.shaderSource(shader, shaderCode)
-    this.splot.gl.compileShader(shader)
+    const shader = this.gl.createShader(this.gl[shaderType])!
+    this.gl.shaderSource(shader, shaderCode)
+    this.gl.compileShader(shader)
 
-    if (!this.splot.gl.getShaderParameter(shader, this.splot.gl.COMPILE_STATUS)) {
-      throw new Error('Ошибка компиляции шейдера [' + shaderType + ']. ' + this.splot.gl.getShaderInfoLog(shader))
+    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+      throw new Error('Ошибка компиляции шейдера [' + shaderType + ']. ' + this.gl.getShaderInfoLog(shader))
     }
 
     return shader
@@ -71,11 +83,11 @@ export default class SPlotWebGl {
    * @param {WebGLShader} fragmentShader Фрагментный шейдер.
    */
   public createProgram(shaderVert: WebGLShader, shaderFrag: WebGLShader) {
-    this.splot.gpuProgram = this.splot.gl.createProgram()!
-    this.splot.gl.attachShader(this.splot.gpuProgram, shaderVert)
-    this.splot.gl.attachShader(this.splot.gpuProgram, shaderFrag)
-    this.splot.gl.linkProgram(this.splot.gpuProgram)
-    this.splot.gl.useProgram(this.splot.gpuProgram)
+    this.gpuProgram = this.gl.createProgram()!
+    this.gl.attachShader(this.gpuProgram, shaderVert)
+    this.gl.attachShader(this.gpuProgram, shaderFrag)
+    this.gl.linkProgram(this.gpuProgram)
+    this.gl.useProgram(this.gpuProgram)
   }
 
   /**
@@ -86,9 +98,9 @@ export default class SPlotWebGl {
    */
   public createVariable(varType: WebGlVariableType, varName: string): void {
     if (varType === 'uniform') {
-      this.splot.variables[varName] = this.splot.gl.getUniformLocation(this.splot.gpuProgram, varName)
+      this.variables[varName] = this.gl.getUniformLocation(this.gpuProgram, varName)
     } else if (varType === 'attribute') {
-      this.splot.variables[varName] = this.splot.gl.getAttribLocation(this.splot.gpuProgram, varName)
+      this.variables[varName] = this.gl.getAttribLocation(this.gpuProgram, varName)
     }
   }
 
@@ -107,25 +119,25 @@ export default class SPlotWebGl {
     const index = this.splot.buffers.amountOfBufferGroups
 
     // Создание и заполнение данными нового буфера.
-    buffers[index] = this.splot.gl.createBuffer()!
-    this.splot.gl.bindBuffer(this.splot.gl[type], buffers[index])
-    this.splot.gl.bufferData(this.splot.gl[type], data, this.splot.gl.STATIC_DRAW)
+    buffers[index] = this.gl.createBuffer()!
+    this.gl.bindBuffer(this.gl[type], buffers[index])
+    this.gl.bufferData(this.gl[type], data, this.gl.STATIC_DRAW)
 
     // Счетчик памяти, занимаемой буферами данных (раздельно по каждому типу буферов)
     this.splot.buffers.sizeInBytes[key] += data.length * data.BYTES_PER_ELEMENT
   }
 
-  public setVariable(varName: WebGLUniformLocation, varValue: number[]) {
-    this.splot.gl.uniformMatrix3fv(varName, false, varValue)
+  public setVariable(varName: string, varValue: number[]) {
+    this.gl.uniformMatrix3fv(this.variables[varName], false, varValue)
   }
 
-  public setBuffer(buffer: WebGLBuffer, varName: number, type: number, size: number, stride: number, offset: number) {
-    this.splot.gl.bindBuffer(this.splot.gl.ARRAY_BUFFER, buffer)
-    this.splot.gl.enableVertexAttribArray(varName)
-    this.splot.gl.vertexAttribPointer(varName, size, type, false, stride, offset)
+  public setBuffer(buffer: WebGLBuffer, varName: string, type: number, size: number, stride: number, offset: number) {
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
+    this.gl.enableVertexAttribArray(this.variables[varName])
+    this.gl.vertexAttribPointer(this.variables[varName], size, type, false, stride, offset)
   }
 
   public draw(first: number, count: number) {
-    this.splot.gl.drawArrays(this.splot.gl.POINTS, first, count)
+    this.gl.drawArrays(this.gl.POINTS, first, count)
   }
 }

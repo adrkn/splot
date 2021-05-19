@@ -16,15 +16,15 @@ export default class SPlotContol {
   }
 
   public run() {
-    this.splot.canvas.addEventListener('mousedown', this.handleMouseDownWithContext)
-    this.splot.canvas.addEventListener('wheel', this.handleMouseWheelWithContext)
+    this.splot.webGl.canvas.addEventListener('mousedown', this.handleMouseDownWithContext)
+    this.splot.webGl.canvas.addEventListener('wheel', this.handleMouseWheelWithContext)
   }
 
   public stop() {
-    this.splot.canvas.removeEventListener('mousedown', this.handleMouseDownWithContext)
-    this.splot.canvas.removeEventListener('wheel', this.handleMouseWheelWithContext)
-    this.splot.canvas.removeEventListener('mousemove', this.handleMouseMoveWithContext)
-    this.splot.canvas.removeEventListener('mouseup', this.handleMouseUpWithContext)
+    this.splot.webGl.canvas.removeEventListener('mousedown', this.handleMouseDownWithContext)
+    this.splot.webGl.canvas.removeEventListener('wheel', this.handleMouseWheelWithContext)
+    this.splot.webGl.canvas.removeEventListener('mousemove', this.handleMouseMoveWithContext)
+    this.splot.webGl.canvas.removeEventListener('mouseup', this.handleMouseUpWithContext)
   }
 
   protected makeCameraMatrix() {
@@ -48,7 +48,7 @@ export default class SPlotContol {
    */
   public updateViewProjection(): void {
 
-    const projectionMat = m3.projection(this.splot.gl.canvas.width, this.splot.gl.canvas.height);
+    const projectionMat = m3.projection(this.splot.webGl.gl.canvas.width, this.splot.webGl.gl.canvas.height);
     const cameraMat = this.makeCameraMatrix();
     let viewMat = m3.inverse(cameraMat);
     this.splot.transform.viewProjectionMat = m3.multiply(projectionMat, viewMat);
@@ -60,13 +60,13 @@ export default class SPlotContol {
   protected getClipSpaceMousePosition(event: MouseEvent) {
 
     // get canvas relative css position
-    const rect = this.splot.canvas.getBoundingClientRect();
+    const rect = this.splot.webGl.canvas.getBoundingClientRect();
     const cssX = event.clientX - rect.left;
     const cssY = event.clientY - rect.top;
 
     // get normalized 0 to 1 position across and down canvas
-    const normalizedX = cssX / this.splot.canvas.clientWidth;
-    const normalizedY = cssY / this.splot.canvas.clientHeight;
+    const normalizedX = cssX / this.splot.webGl.canvas.clientWidth;
+    const normalizedY = cssY / this.splot.webGl.canvas.clientHeight;
 
     // convert to clip space
     const clipX = normalizedX * 2 - 1;
@@ -140,8 +140,8 @@ export default class SPlotContol {
   protected handleMouseDown(event: MouseEvent): void {
 
     event.preventDefault();
-    this.splot.canvas.addEventListener('mousemove', this.handleMouseMoveWithContext);
-    this.splot.canvas.addEventListener('mouseup', this.handleMouseUpWithContext);
+    this.splot.webGl.canvas.addEventListener('mousemove', this.handleMouseMoveWithContext);
+    this.splot.webGl.canvas.addEventListener('mouseup', this.handleMouseUpWithContext);
 
     this.splot.transform.startInvViewProjMat = m3.inverse(this.splot.transform.viewProjectionMat);
     this.splot.transform.startCamera = Object.assign({}, this.splot.camera);

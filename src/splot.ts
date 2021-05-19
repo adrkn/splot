@@ -38,16 +38,10 @@ export default class SPlot {
   }
 
   public readonly shapes: { name: string }[] = []
-
-  public canvas: HTMLCanvasElement                       // Объект канваса.
-  public gl!: WebGLRenderingContext                      // Объект контекста рендеринга WebGL.
-
-  public gpuProgram!: WebGLProgram                       // Объект программы WebGL.
-  public variables: { [key: string]: any } = {}          // Переменные для связи приложения с программой WebGL.
   protected shaderCodeVert: string = SHADER_CODE_VERT_TMPL         // Шаблон GLSL-кода для вершинного шейдера.
   protected shaderCodeFrag: string = SHADER_CODE_FRAG_TMPL         // Шаблон GLSL-кода для фрагментного шейдера.
   protected amountOfPolygons: number = 0                    // Счетчик числа обработанных полигонов.
-  protected maxAmountOfVertexInGroup: number = 10_000       // Максимальное кол-во вершин в группе.
+  protected maxAmountOfVertexInGroup: number = 10_000       // Ограничение количества объектов в группе.
 
   protected control: SPlotContol = new SPlotContol(this)    // Объект управления графиком устройствами ввода.
 
@@ -87,11 +81,7 @@ export default class SPlot {
    */
   constructor(canvasId: string, options?: SPlotOptions) {
 
-    if (document.getElementById(canvasId)) {
-      this.canvas = document.getElementById(canvasId) as HTMLCanvasElement
-    } else {
-      throw new Error('Канвас с идентификатором "#' + canvasId +  '" не найден!')
-    }
+    this.webGl.prepare(canvasId)
 
     // Добавление формы в массив форм.
     this.shapes.push({
@@ -126,9 +116,9 @@ export default class SPlot {
     }
 
     if (this.debug.isEnable) {
-      this.debug.logIntro(this.canvas)
-      this.debug.logGpuInfo(this.gl)
-      this.debug.logInstanceInfo(this.canvas, options)
+      this.debug.logIntro(this.webGl.canvas)
+      this.debug.logGpuInfo(this.webGl.gl)
+      this.debug.logInstanceInfo(this.webGl.canvas, options)
     }
 
     this.webGl.setBgColor(this.grid.bgColor!)    // Установка цвета очистки рендеринга
@@ -354,15 +344,15 @@ export default class SPlot {
     this.control.updateViewProjection()
 
     // Привязка матрицы трансформации к переменной шейдера.
-    this.webGl.setVariable(this.variables['u_matrix'], this.transform.viewProjectionMat)
+    this.webGl.setVariable('u_matrix', this.transform.viewProjectionMat)
 
     // Итерирование и рендеринг групп буферов WebGL.
     for (let i = 0; i < this.buffers.amountOfBufferGroups; i++) {
 
-      this.webGl.setBuffer(this.buffers.vertexBuffers[i], this.variables['a_position'], this.gl.FLOAT, 2, 0, 0)
-      this.webGl.setBuffer(this.buffers.colorBuffers[i], this.variables['a_color'], this.gl.UNSIGNED_BYTE, 1, 0, 0)
-      this.webGl.setBuffer(this.buffers.sizeBuffers[i], this.variables['a_polygonsize'], this.gl.FLOAT, 1, 0, 0)
-      this.webGl.setBuffer(this.buffers.shapeBuffers[i], this.variables['a_shape'], this.gl.UNSIGNED_BYTE, 1, 0, 0)
+      this.webGl.setBuffer(this.buffers.vertexBuffers[i], 'a_position', this.webGl.gl.FLOAT, 2, 0, 0)
+      this.webGl.setBuffer(this.buffers.colorBuffers[i], 'a_color', this.webGl.gl.UNSIGNED_BYTE, 1, 0, 0)
+      this.webGl.setBuffer(this.buffers.sizeBuffers[i], 'a_polygonsize', this.webGl.gl.FLOAT, 1, 0, 0)
+      this.webGl.setBuffer(this.buffers.shapeBuffers[i], 'a_shape', this.webGl.gl.UNSIGNED_BYTE, 1, 0, 0)
 
       this.webGl.draw(0, this.buffers.amountOfGLVertices[i] / 3)
     }
