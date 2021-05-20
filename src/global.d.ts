@@ -16,13 +16,13 @@ type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array
  * Тип - настройки приложения.
  *
  * @param iterator - Функция итерирования исходных объектов.
- * @param demo - Параметры демо-режима.
- * @param debug - Параметры режима отладки.
- * @param webgl - Параметры контекста рендеринга WebGL.
+ * @param demo - Параметры демо-режима. Класс `SPlotDemo` описан в модуле {@link splot-demo}.
+ * @param debug - Параметры режима отладки. Класс `SPlotDebug` описан в модуле {@link splot-debug}.
+ * @param webgl - Параметры контекста рендеринга WebGL. Класс `SPlotWebGl` описан в модуле {@link splot-webgl}.
  * @param forceRun - Признак необходимости ускоренного запуска рендера - сразу после задания настроек.
  * @param globalLimit - Ограничение максимального количества объектов на графике.
  * @param groupLimit - Ограничение максимального количества объектов в группе.
- * @param colors - Цветовая палитра полигонов.
+ * @param colors - Цветовая палитра объектов.
  * @param grid - Параметры координатной плоскости.
  * @param camera - Параметры области просмотра.
  */
@@ -43,9 +43,10 @@ interface SPlotOptions {
  *
  * Тип - отображаемый на графике объект.
  *
- * @param x - Координата на оси абсцисс.
- * @param y - Координата на оси ординат.
- * @param shape - Форма объекта (индекс в массиве форм).
+ * @param x - Координата на плоскости по оси абсцисс.
+ * @param y - Координата на плоскости по оси ординат.
+ * @param shape - Форма объекта (0 - круг, 1 - квадрат).
+ * @param size - Размер объекта в пикселях.
  * @param color - Цвет объекта (индекс в массиве цветов).
  */
 interface SPlotObject {
@@ -119,16 +120,4 @@ interface SPlotPolygonGroup {
   shapes: number[],
   sizes: number[],
   amountOfVertices: number,
-}
-
-/**
- * Тип для информации о вершинах полигона.
- *
- * @param vertices - Массив всех вершин полигона. Каждая вершина - это пара чисел (координаты вершины на
- *     плоскости). Координаты могут быть как целыми, так и вещественными числами.
- */
-interface SPlotPolygonVertices {
-  values: number[],
-  shape: number,
-  size: number
 }

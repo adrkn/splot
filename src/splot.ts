@@ -8,36 +8,59 @@ import SPlotDemo from './splot-demo'
 
 export default class SPlot {
 
-  public iterator: SPlotIterator = undefined     // Функция итерирования исходных данных.
-  public demo: SPlotDemo = new SPlotDemo(this)       // Хелпер режима демо-данных.
-  public debug: SPlotDebug = new SPlotDebug()    // Хелпер режима отладки
-  public webgl: SPlotWebGl = new SPlotWebGl()    // Хелпер WebGL.
-  public forceRun: boolean = false               // Признак форсированного запуска рендера.
-  public globalLimit: number = 1_000_000_000     // Ограничение кол-ва объектов на графике.
-  public groupLimit: number = 10_000             // Ограничение кол-ва объектов в группе.
+  /** Функция итерирования исходных данных. */
+  public iterator: SPlotIterator = undefined
+
+  /** Хелпер режима демо-данных. */
+  public demo: SPlotDemo = new SPlotDemo(this)
+
+  /** Хелпер режима отладки. */
+  public debug: SPlotDebug = new SPlotDebug()
+
+  /** Хелпер WebGL. */
+  public webgl: SPlotWebGl = new SPlotWebGl()
+
+  /** Признак форсированного запуска рендера. */
+  public forceRun: boolean = false
+
+  /** Ограничение кол-ва объектов на графике. */
+  public globalLimit: number = 1_000_000_000
+
+  /** Ограничение кол-ва объектов в группе. */
+  public groupLimit: number = 10_000
+
+  /** Цветовая палитра объектов. */
   public colors: string[] = []
 
-  public grid: SPlotGrid = {    // Параметры координатной плоскости.
+  /** Параметры координатной плоскости. */
+  public grid: SPlotGrid = {
     width: 32_000,
     height: 16_000,
     bgColor: '#ffffff',
     rulesColor: '#c0c0c0'
   }
 
-  public camera: SPlotCamera = {    // Параметры области просмотра.
+  /** Параметры области просмотра. */
+  public camera: SPlotCamera = {
     x: this.grid.width! / 2,
     y: this.grid.height! / 2,
     zoom: 1
   }
 
-  public isRunning: boolean = false              // Признак активного процесса рендера.
+  /** Признак необходимости безотлагательного запуска рендера. */
+  public isRunning: boolean = false
+
+  /** Количество различных форм объектов. */
   public shapesCount: number = 2
 
-  protected shaderCodeVert: string = SHADER_CODE_VERT_TMPL         // Шаблон GLSL-кода для вершинного шейдера.
-  protected shaderCodeFrag: string = SHADER_CODE_FRAG_TMPL         // Шаблон GLSL-кода для фрагментного шейдера.
+  /** Шаблоны GLSL-кодов для шейдеров. */
+  protected shaderCodeVert: string = SHADER_CODE_VERT_TMPL
+  protected shaderCodeFrag: string = SHADER_CODE_FRAG_TMPL
 
-  protected control: SPlotContol = new SPlotContol()    // Хелпер взаимодействия с устройством ввода.
+  /** Хелпер взаимодействия с устройством ввода. */
+  protected control: SPlotContol = new SPlotContol()
 
+  /** Статистическая информация. */
   public stats = {
     objectsCountTotal: 0,
     objectsCountInGroups: [] as number[],
@@ -76,9 +99,9 @@ export default class SPlot {
    */
   public setup(options: SPlotOptions): void {
 
-    this.setOptions(options)     // Применение пользовательских настроек.
-    this.webgl.create()              // Создание контекста рендеринга.
-    this.demo.prepare()      // Обнуление технического счетчика режима демо-данных.
+    this.setOptions(options)    // Применение пользовательских настроек.
+    this.webgl.create()         // Создание контекста рендеринга.
+    this.demo.prepare()
 
     if (this.debug.isEnable) {
       this.debug.logIntro(this, this.webgl.canvas)
