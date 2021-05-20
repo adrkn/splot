@@ -15,7 +15,7 @@ export default class SPlot {
   public demo: SPlotDemo = new SPlotDemo(this)
 
   /** Хелпер режима отладки. */
-  public debug: SPlotDebug = new SPlotDebug()
+  public debug: SPlotDebug = new SPlotDebug(this)
 
   /** Хелпер WebGL. */
   public webgl: SPlotWebGl = new SPlotWebGl()
@@ -102,9 +102,10 @@ export default class SPlot {
     this.setOptions(options)    // Применение пользовательских настроек.
     this.webgl.create()         // Создание контекста рендеринга.
     this.demo.prepare()
+    this.debug.prepare(this.webgl.canvas)
 
     if (this.debug.isEnable) {
-      this.debug.logIntro(this, this.webgl.canvas)
+      this.debug.logIntro()
       this.debug.logGpuInfo(this.webgl.gpu.hardware, this.webgl.gpu.software)
       this.debug.logInstanceInfo(this, this.webgl.canvas, options)
     }
@@ -156,7 +157,6 @@ export default class SPlot {
   /**
    * Создает и заполняет данными обо всех полигонах буферы WebGL.
    */
-
   protected loadData(): void {
 
     if (this.debug.isEnable) {

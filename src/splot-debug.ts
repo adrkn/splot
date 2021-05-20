@@ -5,7 +5,6 @@ import { jsonStringify, getCurrentTime } from './utils'
  * Тип для параметров режима отладки.
  *
  * @param isEnable - Признак включения отладочного режима.
- * @param output - Место вывода отладочной информации.
  * @param headerStyle - Стиль для заголовка всего отладочного блока.
  * @param groupStyle - Стиль для заголовка группировки отладочных данных.
  *
@@ -17,10 +16,21 @@ export default class SPlotDebug {
   public headerStyle: string = 'font-weight: bold; color: #ffffff; background-color: #cc0000;'
   public groupStyle: string = 'font-weight: bold; color: #ffffff;'
 
-  public logIntro(splot: SPlot, canvas: HTMLCanvasElement): void {
-    console.log('%cОтладка SPlot на объекте #' + canvas.id, this.headerStyle)
+  private canvas: HTMLCanvasElement | undefined = undefined
 
-    if (splot.demo.isEnable) {
+  constructor(
+    private readonly splot: SPlot
+  ) {}
+
+  /** Подготовка к использованию отладочного режима. */
+  public prepare(canvas: HTMLCanvasElement): void {
+    this.canvas = canvas
+  }
+
+  public logIntro(): void {
+    console.log('%cОтладка SPlot на объекте #' + this.canvas!.id, this.headerStyle)
+
+    if (this.splot.demo.isEnable) {
       console.log('%cВключен демонстрационный режим данных', this.groupStyle)
     }
 
