@@ -90,10 +90,10 @@ export default class SPlotDebug {
 
   public logGpuMemStats(stats: any): void {
 
-    console.group('%cРасход видеопамяти: ' + (stats.bytes / 1000000).toFixed(2).toLocaleString() + ' МБ', this.groupStyle)
-    /*console.log('Кол-во групп буферов: ' + buffers.amountOfBufferGroups.toLocaleString())
+    console.group('%cРасход видеопамяти: ' + (stats.memUsage / 1000000).toFixed(2).toLocaleString() + ' МБ', this.groupStyle)
+    /*console.log('Кол-во групп буферов: ' + stats.groupsCount.toLocaleString())
     console.log('Кол-во GL-треугольников: ' + (buffers.amountOfTotalGLVertices / 3).toLocaleString())
-    console.log('Кол-во вершин: ' + buffers.amountOfTotalVertices.toLocaleString())*/
+    console.log('Кол-во вершин: ' + stats.objectsCountTotal.toLocaleString())*/
 
     console.groupEnd()
   }

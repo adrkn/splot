@@ -124,29 +124,6 @@ interface SPlotTransform {
 }
 
 /**
- * Тип для информации о буферах, формирующих данные для загрузки в видеопамять.
- *
- * @param vertexBuffers - Массив буферов с информацией о вершинах полигонов.
- * @param colorBuffers - Массив буферов с информацией о цветах вершин полигонов.
- * @param indexBuffers - Массив буферов с индексами вершин полигонов.
- * @param amountOfBufferGroups - Количество буферных групп в массиве. Все указанные выше массивы буферов содержат
- *     одинаковое количество буферов.
- * @param amountOfGLVertices - Количество вершин, образующих GL-треугольники каждого вершинного буфера.
- * @param amountOfShapes - Количество полигонов каждой формы (сколько треугольников, квадратов, кругов и т.д.).
- * @param amountOfTotalVertices - Общее количество вершин всех вершинных буферов (vertexBuffers).
- * @param amountOfTotalGLVertices - Общее количество вершин всех индексных буферов (indexBuffers).
- * @param sizeInBytes - Размеры буферов каждого типа (для вершин, для цветов, для индексов) в байтах.
- */
-interface SPlotBuffers {
-  amountOfBufferGroups: number,
-  amountOfGLVertices: number[],
-  amountOfShapes: number[],
-  amountOfTotalVertices: number,
-  amountOfTotalGLVertices: number,
-  sizeInBytes: number[]
-}
-
-/**
  * Тип для информации о группе полигонов, которую можно отобразить на канвасе за один вызов функции {@link drawElements}.
  *
  * @param vertices - Массив вершин всех полигонов группы. Каждая вершина - это пара чисел (координаты вершины на
@@ -155,7 +132,6 @@ interface SPlotBuffers {
  *     полигон был сплошного однородного цвета необходимо чтобы все вершины полигона имели одинаковый цвет. Цвет - это
  *     целое число в диапазоне от 0 до 255, представляющее собой индекс цвета в предопределенном массиве цветов.
  * @param amountOfVertices - Количество всех вершин в группе полигонов.
- * @param amountOfGLVertices - Количество вершин всех GL-треугольников в группе полигонов.
  */
 interface SPlotPolygonGroup {
   vertices: number[],
@@ -163,7 +139,6 @@ interface SPlotPolygonGroup {
   shapes: number[],
   sizes: number[],
   amountOfVertices: number,
-  amountOfGLVertices: number
 }
 
 /**

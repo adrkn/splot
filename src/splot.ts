@@ -8,14 +8,14 @@ import SPlotDemo from './splot-demo'
 
 export default class SPlot {
 
-  public iterator: SPlotIterator = undefined         // Функция итерирования исходных данных.
+  public iterator: SPlotIterator = undefined     // Функция итерирования исходных данных.
   public demo: SPlotDemo = new SPlotDemo()       // Хелпер режима демо-данных.
   public debug: SPlotDebug = new SPlotDebug()    // Хелпер режима отладки
-  public webgl: SPlotWebGl = new SPlotWebGl()        // Хелпер WebGL.
-  public forceRun: boolean = false                   // Признак форсированного запуска рендера.
-  public globalLimit: number = 1_000_000_000         // Ограничение кол-ва объектов на графике.
-  public groupLimit: number = 10_000                 // Ограничение кол-ва объектов в группе.
-  public isRunning: boolean = false                  // Признак активного процесса рендера.
+  public webgl: SPlotWebGl = new SPlotWebGl()    // Хелпер WebGL.
+  public forceRun: boolean = false               // Признак форсированного запуска рендера.
+  public globalLimit: number = 1_000_000_000     // Ограничение кол-ва объектов на графике.
+  public groupLimit: number = 10_000             // Ограничение кол-ва объектов в группе.
+  public isRunning: boolean = false              // Признак активного процесса рендера.
   public colors: string[] = []
 
   public grid: SPlotGrid = {    // Параметры координатной плоскости.
@@ -38,18 +38,12 @@ export default class SPlot {
 
   protected control: SPlotContol = new SPlotContol()    // Хелпер взаимодействия с устройством ввода.
 
-  // Информация о буферах, хранящих данные для видеопамяти.
-  public buffers: SPlotBuffers = {
-    amountOfGLVertices: [],
-    amountOfShapes: [],
-    amountOfBufferGroups: 0,
-    amountOfTotalVertices: 0,
-    amountOfTotalGLVertices: 0,
-    sizeInBytes: [0, 0, 0, 0]
-  }
-
   public stats = {
-    bytes: 0
+    objectsCountTotal: 0,
+    objectsCountInGroups: [] as number[],
+    groupsCount: 0,
+    memUsage: 0,
+    shapes: []
   }
 
   /**
@@ -95,8 +89,8 @@ export default class SPlot {
     this.demo.prepare(this.grid)      // Обнуление технического счетчика режима демо-данных.
     this.objectCounter = 0    // Обнуление счетчика полигонов.
 
-    for (const key in this.shapes) {
-      this.buffers.amountOfShapes[key] = 0    // Обнуление счетчиков форм полигонов.
+    for (let i = 0; i < this.stats.shapes.length; i++) {
+    //  this.stats.shapes[i] = 0    // Обнуление счетчиков форм полигонов.
     }
 
     if (this.debug.isEnable) {
@@ -160,25 +154,19 @@ export default class SPlot {
     }
 
     let polygonGroup: SPlotPolygonGroup | null
-    this.stats.bytes = 0
+    this.stats.memUsage = 0
     // Итерирование групп полигонов.
     while (polygonGroup = this.createPolygonGroup()) {
 
       // Создание и заполнение буферов данными о текущей группе полигонов.
-      this.stats.bytes +=
+      this.stats.memUsage +=
         this.webgl.createBuffer('vertices', new Float32Array(polygonGroup.vertices)) +
         this.webgl.createBuffer('colors', new Uint8Array(polygonGroup.colors)) +
         this.webgl.createBuffer('shapes', new Uint8Array(polygonGroup.shapes)) +
         this.webgl.createBuffer('sizes', new Float32Array(polygonGroup.sizes))
 
-      // Счетчик количества буферов.
-      this.buffers.amountOfBufferGroups++
-
-      // Счетчик количества вершин GL-треугольников текущей группы буферов.
-      this.buffers.amountOfGLVertices.push(polygonGroup.amountOfGLVertices)
-
-      // Счетчик общего количества вершин GL-треугольников.
-      this.buffers.amountOfTotalGLVertices += polygonGroup.amountOfGLVertices
+      this.stats.objectsCountInGroups.push(polygonGroup.vertices.length / 2)
+      this.stats.groupsCount++              // Счетчик количества буферов.
     }
 
     // Вывод отладочной информации.
@@ -206,7 +194,6 @@ export default class SPlot {
       sizes: [],
       shapes: [],
       amountOfVertices: 0,
-      amountOfGLVertices: 0
     }
 
     let polygon: SPlotPolygon | null | undefined
@@ -220,11 +207,6 @@ export default class SPlot {
 
     // Итерирование исходных объектов.
     while (polygon = this.iterator!()) {
-      /**
-       * Добавление в группу полигонов индексов вершин нового полигона и подсчет общего количества вершин GL-треугольников
-       * в группе.
-       */
-      polygonGroup.amountOfGLVertices++
 
       // Добавление в группу полигонов вершин нового полигона и подсчет общего количества вершин в группе.
       polygonGroup.vertices.push(polygon.x, polygon.y)
@@ -235,7 +217,7 @@ export default class SPlot {
       polygonGroup.colors.push(polygon.color)
 
       // Счетчик числа применений каждой из форм полигонов.
-      this.buffers.amountOfShapes[polygon.shape]++
+     // this.stats.shapes[i]++
 
       // Счетчик общего количество полигонов.
       this.objectCounter++
@@ -255,7 +237,7 @@ export default class SPlot {
     }
 
     // Счетчик общего количества вершин всех вершинных буферов.
-    this.buffers.amountOfTotalVertices += polygonGroup.amountOfVertices
+    this.stats.objectsCountTotal += polygonGroup.amountOfVertices
 
     // Если группа полигонов непустая, то возвращаем ее. Если пустая - возвращаем null.
     return (polygonGroup.amountOfVertices > 0) ? polygonGroup : null
@@ -311,14 +293,14 @@ export default class SPlot {
     this.webgl.setVariable('u_matrix', this.control.transform.viewProjectionMat)
 
     // Итерирование и рендеринг групп буферов WebGL.
-    for (let i = 0; i < this.buffers.amountOfBufferGroups; i++) {
+    for (let i = 0; i < this.stats.groupsCount; i++) {
 
       this.webgl.setBuffer('vertices', i, 'a_position', 2, 0, 0)
       this.webgl.setBuffer('colors', i, 'a_color', 1, 0, 0)
       this.webgl.setBuffer('sizes', i, 'a_size', 1, 0, 0)
       this.webgl.setBuffer('shapes', i, 'a_shape', 1, 0, 0)
 
-      this.webgl.drawPoints(0, this.buffers.amountOfGLVertices[i] / 3)
+      this.webgl.drawPoints(0, this.stats.objectsCountInGroups[i])
     }
   }
 
