@@ -36,7 +36,7 @@ export default class SPlot {
   protected shaderCodeFrag: string = SHADER_CODE_FRAG_TMPL         // Шаблон GLSL-кода для фрагментного шейдера.
   protected objectCounter: number = 0                    // Счетчик числа обработанных полигонов.
 
-  protected control: SPlotContol = new SPlotContol(this)    // Хелпер взаимодействия с устройством ввода.
+  protected control: SPlotContol = new SPlotContol()    // Хелпер взаимодействия с устройством ввода.
 
   // Информация о буферах, хранящих данные для видеопамяти.
   public buffers: SPlotBuffers = {
@@ -65,6 +65,7 @@ export default class SPlot {
   constructor(canvasId: string, options?: SPlotOptions) {
 
     this.webgl.prepare(canvasId)
+    this.control.prepare(this)
 
     // Добавление формы в массив форм.
     this.shapes.push({
