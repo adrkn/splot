@@ -17,42 +17,35 @@ export default class SPlotDebug {
   public headerStyle: string = 'font-weight: bold; color: #ffffff; background-color: #cc0000;'
   public groupStyle: string = 'font-weight: bold; color: #ffffff;'
 
-  private splot: SPlot
-
-  constructor (splot: SPlot) {
-    this.splot = splot
-  }
-
-  public logIntro(canvas: HTMLCanvasElement): void {
+  public logIntro(splot: SPlot, canvas: HTMLCanvasElement): void {
     console.log('%cОтладка SPlot на объекте #' + canvas.id, this.headerStyle)
 
-    if (this.splot.demo.isEnable) {
+    if (splot.demo.isEnable) {
       console.log('%cВключен демонстрационный режим данных', this.groupStyle)
     }
 
-    console.group('%cПредупреждение', this.splot.debug.groupStyle)
+    console.group('%cПредупреждение', this.groupStyle)
     console.log('Открытая консоль браузера и другие активные средства контроля разработки существенно снижают производительность высоконагруженных приложений. Для объективного анализа производительности все подобные средства должны быть отключены, а консоль браузера закрыта. Некоторые данные отладочной информации в зависимости от используемого браузера могут не отображаться или отображаться некорректно. Средство отладки протестировано в браузере Google Chrome v.90')
     console.groupEnd()
   }
 
-  public logGpuInfo(gl: WebGLRenderingContext): void {
+  public logGpuInfo(hardware: string, software: string): void {
     console.group('%cВидеосистема', this.groupStyle)
-    let ext = gl.getExtension('WEBGL_debug_renderer_info')
-    let graphicsCardName = (ext) ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '[неизвестно]'
-    console.log('Графическая карта: ' + graphicsCardName)
-    console.log('Версия GL: ' + gl.getParameter(gl.VERSION))
+    console.log('Графическая карта: ' + hardware)
+    console.log('Версия GL: ' + software)
     console.groupEnd()
   }
 
-  public logInstanceInfo(canvas: HTMLCanvasElement, options: SPlotOptions): void {
+  public logInstanceInfo(splot: SPlot, canvas: HTMLCanvasElement, options: SPlotOptions): void {
+
     console.group('%cНастройка параметров экземпляра', this.groupStyle)
-    console.dir(this.splot)
+    console.dir(splot)
     console.log('Пользовательские настройки:\n', jsonStringify(options))
     console.log('Канвас: #' + canvas.id)
     console.log('Размер канваса: ' + canvas.width + ' x ' + canvas.height + ' px')
-    console.log('Размер плоскости: ' + this.splot.grid.width + ' x ' + this.splot.grid.height + ' px')
+    console.log('Размер плоскости: ' + splot.grid.width + ' x ' + splot.grid.height + ' px')
 
-    if (this.splot.demo.isEnable) {
+    if (splot.demo.isEnable) {
       console.log('Способ получения данных: ' + 'демо-данные')
     } else {
       console.log('Способ получения данных: ' + 'итерирование')
@@ -71,27 +64,27 @@ export default class SPlotDebug {
     console.time('Длительность')
   }
 
-  public logDataLoadingComplete(amount: number, maxAmount: number): void {
+  public logDataLoadingComplete(counter: number, limit: number): void {
     console.group('%cЗагрузка данных завершена [' + getCurrentTime() + ']', this.groupStyle)
     console.timeEnd('Длительность')
     console.log('Результат: ' +
-      ((amount >= maxAmount) ?
-      'достигнут заданный лимит (' + maxAmount.toLocaleString() + ')' :
+      ((counter >= limit) ?
+      'достигнут заданный лимит (' + limit.toLocaleString() + ')' :
       'обработаны все объекты'))
     console.groupEnd()
   }
 
-  public logObjectStats(stats: any, objectCounter: number): void {
+  public logObjectStats(splot: SPlot, objectCounter: number): void {
     console.group('%cКол-во объектов: ' + objectCounter.toLocaleString(), this.groupStyle)
 
-    for (let i = 0; i < this.splot.shapes.length; i++) {
-      const shapeCapction = this.splot.shapes[i].name
+    for (let i = 0; i < splot.shapes.length; i++) {
+      const shapeCapction = splot.shapes[i].name
       /*const shapeAmount = buffers.amountOfShapes[i]
       console.log(shapeCapction + ': ' + shapeAmount.toLocaleString() +
         ' [~' + Math.round(100 * shapeAmount / objectCounter) + '%]')*/
     }
 
-    console.log('Кол-во цветов в палитре: ' + this.splot.colors.length)
+    console.log('Кол-во цветов в палитре: ' + splot.colors.length)
     console.groupEnd()
   }
 
@@ -106,14 +99,14 @@ export default class SPlotDebug {
   }
 
   public logRenderStarted() {
-    console.log('%cРендеринг запущен', this.splot.debug.groupStyle)
+    console.log('%cРендеринг запущен', this.groupStyle)
   }
 
   public logRenderStoped() {
-    console.log('%cРендеринг остановлен', this.splot.debug.groupStyle)
+    console.log('%cРендеринг остановлен', this.groupStyle)
   }
 
-  public logCanvasCleared() {
-    console.log('%cКонтекст рендеринга очищен [' + this.splot.grid.bgColor + ']', this.splot.debug.groupStyle);
+  public logCanvasCleared(color: string) {
+    console.log('%cКонтекст рендеринга очищен [' + color + ']', this.groupStyle);
   }
 }

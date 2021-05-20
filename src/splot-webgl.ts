@@ -12,6 +12,7 @@ export default class SPlotWebGl {
   public failIfMajorPerformanceCaveat: boolean = false
   public powerPreference: WebGLPowerPreference = 'high-performance'
 
+  public gpu = { hardware: '', software: '' }
   public canvas!: HTMLCanvasElement
   public gl!: WebGLRenderingContext
   private gpuProgram!: WebGLProgram
@@ -46,6 +47,10 @@ export default class SPlotWebGl {
       failIfMajorPerformanceCaveat: this.failIfMajorPerformanceCaveat,
       powerPreference: this.powerPreference
     })!
+
+    let ext = this.gl.getExtension('WEBGL_debug_renderer_info')
+    this.gpu.hardware = (ext) ? this.gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '[неизвестно]'
+    this.gpu.software = this.gl.getParameter(this.gl.VERSION)
 
     this.glNumberTypes.set('Float32Array', this.gl.FLOAT)
     this.glNumberTypes.set('Uint8Array', this.gl.UNSIGNED_BYTE)

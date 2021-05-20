@@ -10,7 +10,7 @@ export default class SPlot {
 
   public iterator: SPlotIterator = undefined         // Функция итерирования исходных данных.
   public demo: SPlotDemo = new SPlotDemo()       // Хелпер режима демо-данных.
-  public debug: SPlotDebug = new SPlotDebug(this)    // Хелпер режима отладки
+  public debug: SPlotDebug = new SPlotDebug()    // Хелпер режима отладки
   public webgl: SPlotWebGl = new SPlotWebGl()        // Хелпер WebGL.
   public forceRun: boolean = false                   // Признак форсированного запуска рендера.
   public globalLimit: number = 1_000_000_000         // Ограничение кол-ва объектов на графике.
@@ -99,9 +99,9 @@ export default class SPlot {
     }
 
     if (this.debug.isEnable) {
-      this.debug.logIntro(this.webgl.canvas)
-      this.debug.logGpuInfo(this.webgl.gl)
-      this.debug.logInstanceInfo(this.webgl.canvas, options)
+      this.debug.logIntro(this, this.webgl.canvas)
+      this.debug.logGpuInfo(this.webgl.gpu.hardware, this.webgl.gpu.software)
+      this.debug.logInstanceInfo(this, this.webgl.canvas, options)
     }
 
     this.webgl.setBgColor(this.grid.bgColor!)    // Установка цвета очистки рендеринга
@@ -183,7 +183,7 @@ export default class SPlot {
     // Вывод отладочной информации.
     if (this.debug.isEnable) {
       this.debug.logDataLoadingComplete(this.objectCounter, this.globalLimit)
-      this.debug.logObjectStats(this.stats, this.objectCounter)
+      this.debug.logObjectStats(this, this.objectCounter)
       this.debug.logGpuMemStats(this.stats)
     }
   }
@@ -364,7 +364,7 @@ export default class SPlot {
     this.webgl.clearBackground()
 
     if (this.debug.isEnable) {
-      this.debug.logCanvasCleared()
+      this.debug.logCanvasCleared(this.grid.bgColor!)
     }
   }
 }
