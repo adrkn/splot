@@ -9,7 +9,7 @@ import SPlotDemo from './splot-demo'
 export default class SPlot {
 
   public iterator: SPlotIterator = undefined     // Функция итерирования исходных данных.
-  public demo: SPlotDemo = new SPlotDemo()       // Хелпер режима демо-данных.
+  public demo: SPlotDemo = new SPlotDemo(this)       // Хелпер режима демо-данных.
   public debug: SPlotDebug = new SPlotDebug()    // Хелпер режима отладки
   public webgl: SPlotWebGl = new SPlotWebGl()    // Хелпер WebGL.
   public forceRun: boolean = false               // Признак форсированного запуска рендера.
@@ -31,8 +31,8 @@ export default class SPlot {
   }
 
   public isRunning: boolean = false              // Признак активного процесса рендера.
+  public shapesCount: number = 2
 
-  public readonly shapes: { name: string }[] = []
   protected shaderCodeVert: string = SHADER_CODE_VERT_TMPL         // Шаблон GLSL-кода для вершинного шейдера.
   protected shaderCodeFrag: string = SHADER_CODE_FRAG_TMPL         // Шаблон GLSL-кода для фрагментного шейдера.
 
@@ -42,8 +42,7 @@ export default class SPlot {
     objectsCountTotal: 0,
     objectsCountInGroups: [] as number[],
     groupsCount: 0,
-    memUsage: 0,
-    shapes: []
+    memUsage: 0
   }
 
   /**
@@ -60,13 +59,6 @@ export default class SPlot {
 
     this.webgl.prepare(canvasId)
     this.control.prepare(this)
-
-    // Добавление формы в массив форм.
-    this.shapes.push({
-      name: 'Точка'
-    })
-    // Добавление формы в массив частот появления в демо-режиме.
-    this.demo.shapeQuota!.push(1)
 
     if (options) {
       this.setOptions(options)    // Если переданы настройки, то они применяются.
@@ -86,11 +78,7 @@ export default class SPlot {
 
     this.setOptions(options)     // Применение пользовательских настроек.
     this.webgl.create()              // Создание контекста рендеринга.
-    this.demo.prepare(this.grid)      // Обнуление технического счетчика режима демо-данных.
-
-    for (let i = 0; i < this.stats.shapes.length; i++) {
-    //  this.stats.shapes[i] = 0    // Обнуление счетчиков форм полигонов.
-    }
+    this.demo.prepare()      // Обнуление технического счетчика режима демо-данных.
 
     if (this.debug.isEnable) {
       this.debug.logIntro(this, this.webgl.canvas)
@@ -137,7 +125,7 @@ export default class SPlot {
     }
 
     if (this.demo.isEnable) {
-      this.iterator = this.demo.iterator    // Имитация итерирования для демо-режима.
+      this.iterator = this.demo.iterator.bind(this.demo)    // Имитация итерирования для демо-режима.
       this.colors = this.demo.colors
     }
   }
@@ -158,8 +146,7 @@ export default class SPlot {
       objectsCountTotal: 0,
       objectsCountInGroups: [] as number[],
       groupsCount: 0,
-      memUsage: 0,
-      shapes: []
+      memUsage: 0
     }
 
     let object: SPlotObject | null | undefined
@@ -182,7 +169,9 @@ export default class SPlot {
 
       if ((k >= this.groupLimit) || isObjectEnds) {
         this.stats.objectsCountInGroups[this.stats.groupsCount] = k
-        this.stats.memUsage +=          // Создание и заполнение буферов данными о текущей группе полигонов.
+
+        /** Создание и заполнение буферов данными о текущей группе полигонов. */
+        this.stats.memUsage +=
           this.webgl.createBuffer('vertices', new Float32Array(polygonGroup.vertices)) +
           this.webgl.createBuffer('colors', new Uint8Array(polygonGroup.colors)) +
           this.webgl.createBuffer('shapes', new Uint8Array(polygonGroup.shapes)) +
@@ -198,7 +187,6 @@ export default class SPlot {
 
     if (this.debug.isEnable) {
       this.debug.logDataLoadingComplete(this.stats.objectsCountTotal, this.globalLimit)
-      this.debug.logObjectStats(this, this.stats.objectsCountTotal)
       this.debug.logGpuMemStats(this.stats)
     }
   }

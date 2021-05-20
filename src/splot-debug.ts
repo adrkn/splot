@@ -67,24 +67,11 @@ export default class SPlotDebug {
   public logDataLoadingComplete(counter: number, limit: number): void {
     console.group('%cЗагрузка данных завершена [' + getCurrentTime() + ']', this.groupStyle)
     console.timeEnd('Длительность')
+    console.log('Кол-во объектов: ' + counter.toLocaleString())
     console.log('Результат: ' +
       ((counter >= limit) ?
       'достигнут заданный лимит (' + limit.toLocaleString() + ')' :
       'обработаны все объекты'))
-    console.groupEnd()
-  }
-
-  public logObjectStats(splot: SPlot, objectCounter: number): void {
-    console.group('%cКол-во объектов: ' + objectCounter.toLocaleString(), this.groupStyle)
-
-    for (let i = 0; i < splot.shapes.length; i++) {
-      const shapeCapction = splot.shapes[i].name
-      /*const shapeAmount = buffers.amountOfShapes[i]
-      console.log(shapeCapction + ': ' + shapeAmount.toLocaleString() +
-        ' [~' + Math.round(100 * shapeAmount / objectCounter) + '%]')*/
-    }
-
-    console.log('Кол-во цветов в палитре: ' + splot.colors.length)
     console.groupEnd()
   }
 

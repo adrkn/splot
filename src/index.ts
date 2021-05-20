@@ -1,9 +1,6 @@
+import { randomInt } from './utils'
 import SPlot from './splot'
 import '@/style'
-
-function randomInt(range: number) {
-  return Math.floor(Math.random() * range)
-}
 
 let i = 0
 let n = 1_000_000  // Имитируемое число объектов.
@@ -44,7 +41,7 @@ scatterPlot.setup({
     isEnable: true,
   },
   demo: {
-    isEnable: false
+    isEnable: true
   }
 })
 
