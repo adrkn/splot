@@ -38,8 +38,8 @@ interface SPlotOptions {
   forceRun?: boolean,
   maxAmountOfPolygons?: number,
   camera?: SPlotCamera,
-  useVertexIndices?: boolean,
-  webgl?: WebGLContextAttributes
+  webgl?: WebGLContextAttributes,
+  globalLimit?: number
 }
 
 /**

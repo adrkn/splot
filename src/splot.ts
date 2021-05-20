@@ -146,101 +146,55 @@ export default class SPlot {
   /**
    * Создает и заполняет данными обо всех полигонах буферы WebGL.
    */
+
   protected loadData(): void {
 
-    // Вывод отладочной информации.
     if (this.debug.isEnable) {
       this.debug.logDataLoadingStart()
     }
 
-    let polygonGroup: SPlotPolygonGroup | null
+    let polygonGroup: SPlotPolygonGroup = { vertices: [], colors: [], sizes: [], shapes: [], amountOfVertices: 0 }
     this.stats.memUsage = 0
-    // Итерирование групп полигонов.
-    while (polygonGroup = this.createPolygonGroup()) {
 
-      // Создание и заполнение буферов данными о текущей группе полигонов.
-      this.stats.memUsage +=
-        this.webgl.createBuffer('vertices', new Float32Array(polygonGroup.vertices)) +
-        this.webgl.createBuffer('colors', new Uint8Array(polygonGroup.colors)) +
-        this.webgl.createBuffer('shapes', new Uint8Array(polygonGroup.shapes)) +
-        this.webgl.createBuffer('sizes', new Float32Array(polygonGroup.sizes))
+    let object: SPlotPolygon | null | undefined
+    let k: number = 0
+    let isObjectEnds: boolean = false
 
-      this.stats.objectsCountInGroups.push(polygonGroup.vertices.length / 2)
-      this.stats.groupsCount++              // Счетчик количества буферов.
+    while (!isObjectEnds) {
+
+      object = this.iterator!()
+      isObjectEnds = (object === null) || (this.stats.objectsCountTotal >= this.globalLimit)
+
+      if (!isObjectEnds) {
+        polygonGroup.vertices.push(object!.x, object!.y)
+        polygonGroup.shapes.push(object!.shape)
+        polygonGroup.sizes.push(object!.size)
+        polygonGroup.colors.push(object!.color)
+        k++
+        this.stats.objectsCountTotal++
+      }
+
+      if ((k >= this.groupLimit) || isObjectEnds) {
+        this.stats.objectsCountInGroups[this.stats.groupsCount] = k
+        this.stats.memUsage +=          // Создание и заполнение буферов данными о текущей группе полигонов.
+          this.webgl.createBuffer('vertices', new Float32Array(polygonGroup.vertices)) +
+          this.webgl.createBuffer('colors', new Uint8Array(polygonGroup.colors)) +
+          this.webgl.createBuffer('shapes', new Uint8Array(polygonGroup.shapes)) +
+          this.webgl.createBuffer('sizes', new Float32Array(polygonGroup.sizes))
+      }
+
+      if ((k >= this.groupLimit) && !isObjectEnds) {
+        this.stats.groupsCount++
+        polygonGroup = { vertices: [], colors: [], sizes: [], shapes: [], amountOfVertices: 0 }
+        k = 0
+      }
     }
 
-    // Вывод отладочной информации.
     if (this.debug.isEnable) {
       this.debug.logDataLoadingComplete(this.objectCounter, this.globalLimit)
       this.debug.logObjectStats(this, this.objectCounter)
       this.debug.logGpuMemStats(this.stats)
     }
-  }
-
-  /**
-   * Считывает данные об исходных объектах и формирует соответсвующую этим объектам группу полигонов.
-   *
-   * @remarks
-   * Группа формируется с учетом технического ограничения на количество вершин в группе и лимита на общее количество
-   * полигонов на канвасе.
-   *
-   * @returns Созданная группа полигонов или null, если формирование всех групп полигонов завершилось.
-   */
-  protected createPolygonGroup(): SPlotPolygonGroup | null {
-
-    let polygonGroup: SPlotPolygonGroup = {
-      vertices: [],
-      colors: [],
-      sizes: [],
-      shapes: [],
-      amountOfVertices: 0,
-    }
-
-    let polygon: SPlotPolygon | null | undefined
-
-    /**
-     * Если количество полигонов канваса достигло допустимого максимума, то дальнейшая обработка исходных объектов
-     * приостанавливается - формирование групп полигонов завершается возвратом значения null (симуляция достижения
-     * последнего обрабатываемого исходного объекта).
-     */
-    if (this.objectCounter >= this.globalLimit) return null
-
-    // Итерирование исходных объектов.
-    while (polygon = this.iterator!()) {
-
-      // Добавление в группу полигонов вершин нового полигона и подсчет общего количества вершин в группе.
-      polygonGroup.vertices.push(polygon.x, polygon.y)
-      polygonGroup.amountOfVertices++
-
-      polygonGroup.shapes.push(polygon.shape)
-      polygonGroup.sizes.push(polygon.size)
-      polygonGroup.colors.push(polygon.color)
-
-      // Счетчик числа применений каждой из форм полигонов.
-     // this.stats.shapes[i]++
-
-      // Счетчик общего количество полигонов.
-      this.objectCounter++
-
-      /**
-       * Если количество полигонов канваса достигло допустимого максимума, то дальнейшая обработка исходных объектов
-       * приостанавливается - формирование групп полигонов завершается возвратом значения null (симуляция достижения
-       * последнего обрабатываемого исходного объекта).
-       */
-      if (this.objectCounter >= this.globalLimit) break
-
-      /**
-       * Если общее количество всех вершин в группе полигонов превысило техническое ограничение, то группа полигонов
-       * считается сформированной и итерирование исходных объектов приостанавливается.
-       */
-      if (polygonGroup.amountOfVertices >= this.groupLimit) break
-    }
-
-    // Счетчик общего количества вершин всех вершинных буферов.
-    this.stats.objectsCountTotal += polygonGroup.amountOfVertices
-
-    // Если группа полигонов непустая, то возвращаем ее. Если пустая - возвращаем null.
-    return (polygonGroup.amountOfVertices > 0) ? polygonGroup : null
   }
 
   /**
