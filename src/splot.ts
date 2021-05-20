@@ -34,7 +34,6 @@ export default class SPlot {
   public readonly shapes: { name: string }[] = []
   protected shaderCodeVert: string = SHADER_CODE_VERT_TMPL         // Шаблон GLSL-кода для вершинного шейдера.
   protected shaderCodeFrag: string = SHADER_CODE_FRAG_TMPL         // Шаблон GLSL-кода для фрагментного шейдера.
-  protected objectCounter: number = 0                    // Счетчик числа обработанных полигонов.
 
   protected control: SPlotContol = new SPlotContol()    // Хелпер взаимодействия с устройством ввода.
 
@@ -87,7 +86,6 @@ export default class SPlot {
     this.setOptions(options)     // Применение пользовательских настроек.
     this.webgl.create()              // Создание контекста рендеринга.
     this.demo.prepare(this.grid)      // Обнуление технического счетчика режима демо-данных.
-    this.objectCounter = 0    // Обнуление счетчика полигонов.
 
     for (let i = 0; i < this.stats.shapes.length; i++) {
     //  this.stats.shapes[i] = 0    // Обнуление счетчиков форм полигонов.
@@ -154,7 +152,14 @@ export default class SPlot {
     }
 
     let polygonGroup: SPlotPolygonGroup = { vertices: [], colors: [], sizes: [], shapes: [], amountOfVertices: 0 }
-    this.stats.memUsage = 0
+
+    this.stats = {
+      objectsCountTotal: 0,
+      objectsCountInGroups: [] as number[],
+      groupsCount: 0,
+      memUsage: 0,
+      shapes: []
+    }
 
     let object: SPlotPolygon | null | undefined
     let k: number = 0
@@ -191,8 +196,8 @@ export default class SPlot {
     }
 
     if (this.debug.isEnable) {
-      this.debug.logDataLoadingComplete(this.objectCounter, this.globalLimit)
-      this.debug.logObjectStats(this, this.objectCounter)
+      this.debug.logDataLoadingComplete(this.stats.objectsCountTotal, this.globalLimit)
+      this.debug.logObjectStats(this, this.stats.objectsCountTotal)
       this.debug.logGpuMemStats(this.stats)
     }
   }
