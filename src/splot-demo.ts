@@ -8,13 +8,13 @@ export default class SPlotDemo {
   public sizeMin: number = 10
   public sizeMax: number = 30
 
-  private grid!: SPlotGrid
-  private index: number = 0
-
   public colors: string[] = [
     '#D81C01', '#E9967A', '#BA55D3', '#FFD700', '#FFE4B5', '#FF8C00',
     '#228B22', '#90EE90', '#4169E1', '#00BFFF', '#8B4513', '#00CED1'
   ]
+
+  private grid!: SPlotGrid
+  private index: number = 0
 
   public prepare(grid: SPlotGrid): void {
     this.grid = grid
@@ -26,7 +26,7 @@ export default class SPlotDemo {
    *
    * @returns Информация о полигоне или null, если итерирование завершилось.
    */
-  public iterator(): SPlotPolygon | null {
+  public iterator(): SPlotObject | null {
     if (this.index! < this.amount!) {
       this.index! ++;
       return {

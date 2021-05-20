@@ -15,7 +15,6 @@ export default class SPlot {
   public forceRun: boolean = false               // Признак форсированного запуска рендера.
   public globalLimit: number = 1_000_000_000     // Ограничение кол-ва объектов на графике.
   public groupLimit: number = 10_000             // Ограничение кол-ва объектов в группе.
-  public isRunning: boolean = false              // Признак активного процесса рендера.
   public colors: string[] = []
 
   public grid: SPlotGrid = {    // Параметры координатной плоскости.
@@ -30,6 +29,8 @@ export default class SPlot {
     y: this.grid.height! / 2,
     zoom: 1
   }
+
+  public isRunning: boolean = false              // Признак активного процесса рендера.
 
   public readonly shapes: { name: string }[] = []
   protected shaderCodeVert: string = SHADER_CODE_VERT_TMPL         // Шаблон GLSL-кода для вершинного шейдера.
@@ -161,7 +162,7 @@ export default class SPlot {
       shapes: []
     }
 
-    let object: SPlotPolygon | null | undefined
+    let object: SPlotObject | null | undefined
     let k: number = 0
     let isObjectEnds: boolean = false
 
