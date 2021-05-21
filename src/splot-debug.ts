@@ -1,6 +1,10 @@
 import SPlot from './splot'
 import { getCurrentTime } from './utils'
 
+/** ****************************************************************************
+ *
+ * Класс, реализующий поддержку режима отладки для класса SPlot.
+ */
 export default class SPlotDebug {
 
   /** Признак активации режим отладки. */
@@ -16,7 +20,10 @@ export default class SPlotDebug {
     private readonly splot: SPlot
   ) {}
 
-  /** Подготовка к использованию режима отладки. */
+  /** ****************************************************************************
+   *
+   * Подготавливает к использованию режим отладки.
+   */
   public setup(clearConsole: boolean = false): void {
     if (clearConsole) {
       console.clear()
