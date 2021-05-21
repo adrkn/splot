@@ -1,5 +1,5 @@
 import SPlot from './splot'
-import * as m3 from './m3'
+import * as m3 from './math3x3'
 
 /** ****************************************************************************
  *
@@ -59,7 +59,7 @@ export default class SPlotContol {
 
   /** ****************************************************************************
    *
-   *
+   * Создает матрицу для текущего положения области просмотра.
    */
   protected makeCameraMatrix(): number[] {
 
@@ -89,7 +89,7 @@ export default class SPlotContol {
    */
   protected getClipSpaceMousePosition(event: MouseEvent): number[] {
 
-    // get canvas relative css position
+    /** Расчет положения канваса по отношению к мыши. */
     const rect = this.splot.canvas.getBoundingClientRect()
     const cssX = event.clientX - rect.left
     const cssY = event.clientY - rect.top
@@ -107,7 +107,7 @@ export default class SPlotContol {
 
   /** ****************************************************************************
    *
-   *
+   * Перемещает область видимости.
    */
   protected moveCamera(event: MouseEvent): void {
 
@@ -133,7 +133,9 @@ export default class SPlotContol {
    * Реагирует на отжатие клавиши мыши. В момент отжатия клавиши анализ движения мыши с зажатой клавишей прекращается.
    */
   protected handleMouseUp(event: MouseEvent): void {
+
     this.splot.render()
+
     event.target!.removeEventListener('mousemove', this.handleMouseMoveWithContext)
     event.target!.removeEventListener('mouseup', this.handleMouseUpWithContext)
   }
@@ -146,9 +148,11 @@ export default class SPlotContol {
   protected handleMouseDown(event: MouseEvent): void {
 
     event.preventDefault()
+
     this.splot.canvas.addEventListener('mousemove', this.handleMouseMoveWithContext)
     this.splot.canvas.addEventListener('mouseup', this.handleMouseUpWithContext)
 
+    /** Расчет трансформаций. */
     this.transform.startInvViewProjMat = m3.inverse(this.transform.viewProjectionMat)
     this.transform.startCamera = Object.assign({}, this.splot.camera)
     this.transform.startClipPos = this.getClipSpaceMousePosition(event)
@@ -165,21 +169,26 @@ export default class SPlotContol {
   protected handleMouseWheel(event: WheelEvent): void {
 
     event.preventDefault()
+
+    /** Вычисление позиции мыши в GL-координатах. */
     const [clipX, clipY] = this.getClipSpaceMousePosition(event)
 
-    // position before zooming
+    /** Позиция мыши до зумирования. */
     const [preZoomX, preZoomY] = m3.transformPoint(m3.inverse(this.transform.viewProjectionMat), [clipX, clipY])
 
-    // multiply the wheel movement by the current zoom level, so we zoom less when zoomed in and more when zoomed out
+    /** Новое значение зума области просмотра экспоненциально зависит от величины зумирования мыши. */
     const newZoom = this.splot.camera.zoom! * Math.pow(2, event.deltaY * -0.01)
+
+    /** Максимальное и минимальное значения зума области просмотра. */
     this.splot.camera.zoom = Math.max(0.002, Math.min(200, newZoom))
 
+    /** Обновление матрицы трансформации. */
     this.updateViewProjection()
 
-    // position after zooming
+    /** Позиция мыши после зумирования. */
     const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse(this.transform.viewProjectionMat), [clipX, clipY])
 
-    // camera needs to be moved the difference of before and after
+    /** Вычисление нового положения области просмотра после зумирования. */
     this.splot.camera.x! += preZoomX - postZoomX
     this.splot.camera.y! += preZoomY - postZoomY
 

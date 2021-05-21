@@ -1,7 +1,6 @@
 
 /**
- * Takes two Matrix3s, a and b, and computes the product in the order
- * that pre-composes b with a.  In other words, the matrix returned will
+ * Умножает матрицы.
  */
 export function multiply(a: number[], b: number[]): number[] {
   return [
@@ -18,7 +17,7 @@ export function multiply(a: number[], b: number[]): number[] {
 }
 
 /**
- * Creates a 3x3 identity matrix
+ * Создает единичную матрицу.
  */
 export function identity(): number[] {
   return [
