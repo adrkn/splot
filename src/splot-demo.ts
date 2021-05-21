@@ -1,5 +1,5 @@
-import { randomInt } from './utils'
 import SPlot from './splot'
+import { randomInt } from './utils'
 
 /** ****************************************************************************
  *

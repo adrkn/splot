@@ -77,27 +77,25 @@ export function scale(m: number[], sx: number, sy: number): number[] {
 }
 
 export function transformPoint(m: number[], v: number[]): number[] {
-  const v0 = v[0]
-  const v1 = v[1]
-  const d = v0 * m[0 * 3 + 2] + v1 * m[1 * 3 + 2] + m[2 * 3 + 2]
+  const d = v[0] * m[2] + v[1] * m[5] + m[8]
   return [
-    (v0 * m[0 * 3 + 0] + v1 * m[1 * 3 + 0] + m[2 * 3 + 0]) / d,
-    (v0 * m[0 * 3 + 1] + v1 * m[1 * 3 + 1] + m[2 * 3 + 1]) / d
+    (v[0] * m[0] + v[1] * m[3] + m[6]) / d,
+    (v[0] * m[1] + v[1] * m[4] + m[7]) / d
   ]
 }
 
 export function inverse(m: number[]): number[] {
-  const t00 = m[1 * 3 + 1] * m[2 * 3 + 2] - m[1 * 3 + 2] * m[2 * 3 + 1]
-  const t10 = m[0 * 3 + 1] * m[2 * 3 + 2] - m[0 * 3 + 2] * m[2 * 3 + 1]
-  const t20 = m[0 * 3 + 1] * m[1 * 3 + 2] - m[0 * 3 + 2] * m[1 * 3 + 1]
-  const d = 1.0 / (m[0 * 3 + 0] * t00 - m[1 * 3 + 0] * t10 + m[2 * 3 + 0] * t20)
+  const t00 = m[4] * m[8] - m[5] * m[7]
+  const t10 = m[1] * m[8] - m[2] * m[7]
+  const t20 = m[1] * m[5] - m[2] * m[4]
+  const d = 1.0 / (m[0] * t00 - m[3] * t10 + m[6] * t20)
   return [
-      d * t00, -d * t10, d * t20,
-    -d * (m[1 * 3 + 0] * m[2 * 3 + 2] - m[1 * 3 + 2] * m[2 * 3 + 0]),
-      d * (m[0 * 3 + 0] * m[2 * 3 + 2] - m[0 * 3 + 2] * m[2 * 3 + 0]),
-    -d * (m[0 * 3 + 0] * m[1 * 3 + 2] - m[0 * 3 + 2] * m[1 * 3 + 0]),
-      d * (m[1 * 3 + 0] * m[2 * 3 + 1] - m[1 * 3 + 1] * m[2 * 3 + 0]),
-    -d * (m[0 * 3 + 0] * m[2 * 3 + 1] - m[0 * 3 + 1] * m[2 * 3 + 0]),
-      d * (m[0 * 3 + 0] * m[1 * 3 + 1] - m[0 * 3 + 1] * m[1 * 3 + 0])
+     d * t00, -d * t10, d * t20,
+    -d * (m[3] * m[8] - m[5] * m[6]),
+     d * (m[0] * m[8] - m[2] * m[6]),
+    -d * (m[0] * m[5] - m[2] * m[3]),
+     d * (m[3] * m[7] - m[4] * m[6]),
+    -d * (m[0] * m[7] - m[1] * m[6]),
+     d * (m[0] * m[4] - m[1] * m[3])
   ]
 }
