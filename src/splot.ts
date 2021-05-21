@@ -106,12 +106,14 @@ export default class SPlot {
 
     this.setOptions(options)    // Применение пользовательских настроек.
 
+    this.debug.log('intro')
+
     this.webgl.setup()         // Создание контекста рендеринга.
     this.control.setup(this)
     this.debug.setup()
     this.demo.setup()
 
-    this.debug.log('intro', 'gpu', 'instance')
+    this.debug.log('instance')
 
     this.webgl.setBgColor(this.grid.bgColor!)    // Установка цвета очистки рендеринга
 
@@ -119,8 +121,6 @@ export default class SPlot {
     this.shaderCodeFrag = SHADER_CODE_FRAG_TMPL.trim()
 
     this.webgl.createProgram(this.shaderCodeVert, this.shaderCodeFrag)    // Создание программы WebGL.
-
-    this.debug.log('shaders')
 
     // Создание переменных WebGl.
     this.webgl.createVariables('a_position', 'a_color', 'a_size', 'a_shape', 'u_matrix')
@@ -273,40 +273,30 @@ export default class SPlot {
    * Запускает рендеринг и контроль управления.
    */
   public run(): void {
-
-    if (this.isRunning) {
-      return
+    if (!this.isRunning) {
+      this.render()
+      this.control.run()
+      this.isRunning = true
+      this.debug.log('started')
     }
-
-    this.render()
-    this.control.run()
-    this.isRunning = true
-
-    this.debug.log('started')
   }
 
   /**
    * Останавливает рендеринг и контроль управления.
    */
   public stop(): void {
-
-    if (!this.isRunning) {
-      return
+    if (this.isRunning) {
+      this.control.stop()
+      this.isRunning = false
+      this.debug.log('stoped')
     }
-
-    this.control.stop()
-    this.isRunning = false
-
-    this.debug.log('stoped')
   }
 
   /**
    * Очищает фон.
    */
   public clear(): void {
-
     this.webgl.clearBackground()
-
     this.debug.log('cleared')
   }
 }

@@ -35,7 +35,7 @@ scatterPlot.setup({
   colors: colors,
   grid: {
     width: plotWidth,
-    height: plotHeight,
+    height: plotHeight
   },
   debug: {
     isEnable: true,

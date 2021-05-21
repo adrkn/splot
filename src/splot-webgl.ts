@@ -48,6 +48,8 @@ export default class SPlotWebGl {
     this.gpu.hardware = (ext) ? this.gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '[неизвестно]'
     this.gpu.software = this.gl.getParameter(this.gl.VERSION)
 
+    this.splot.debug.log('gpu')
+
     this.glNumberTypes.set('Float32Array', this.gl.FLOAT)
     this.glNumberTypes.set('Uint8Array', this.gl.UNSIGNED_BYTE)
     this.glNumberTypes.set('Uint16Array', this.gl.UNSIGNED_SHORT)
@@ -102,6 +104,8 @@ export default class SPlotWebGl {
     this.gl.attachShader(this.gpuProgram, shaderFrag)
     this.gl.linkProgram(this.gpuProgram)
     this.gl.useProgram(this.gpuProgram)
+
+    this.splot.debug.log('shaders')
   }
 
   public createProgram(shaderCodeVert: string, shaderCodeFrag: string): void {
