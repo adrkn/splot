@@ -59,8 +59,8 @@ export default class SPlot {
 
   /** Статистическая информация. */
   public stats = {
-    objectsCountTotal: 0,
-    objectsCountInGroups: [] as number[],
+    objTotalCount: 0,
+    objInGroupCount: [] as number[],
     groupsCount: 0,
     memUsage: 0
   }
@@ -154,54 +154,48 @@ export default class SPlot {
   }
 
   /**
-   * Создает и заполняет данными обо всех полигонах буферы WebGL.
+   * Создает и заполняет данными обо всех объектах буферы WebGL.
    */
   protected loadData(): void {
 
     this.debug.log('loading')
 
-    let polygonGroup: SPlotPolygonGroup = { vertices: [], colors: [], sizes: [], shapes: [], amountOfVertices: 0 }
-
-    this.stats = {
-      objectsCountTotal: 0,
-      objectsCountInGroups: [] as number[],
-      groupsCount: 0,
-      memUsage: 0
-    }
+    let groups = { vertices: [] as number[], colors: [] as number[], sizes: [] as number[], shapes: [] as number[] }
+    this.stats = { objTotalCount: 0, objInGroupCount: [] as number[], groupsCount: 0, memUsage: 0 }
 
     let object: SPlotObject | null | undefined
-    let k: number = 0
+    let index: number = 0
     let isObjectEnds: boolean = false
 
     while (!isObjectEnds) {
 
       object = this.iterator!()
-      isObjectEnds = (object === null) || (this.stats.objectsCountTotal >= this.globalLimit)
+      isObjectEnds = (object === null) || (this.stats.objTotalCount >= this.globalLimit)
 
       if (!isObjectEnds) {
-        polygonGroup.vertices.push(object!.x, object!.y)
-        polygonGroup.shapes.push(object!.shape)
-        polygonGroup.sizes.push(object!.size)
-        polygonGroup.colors.push(object!.color)
-        k++
-        this.stats.objectsCountTotal++
+        groups.vertices.push(object!.x, object!.y)
+        groups.shapes.push(object!.shape)
+        groups.sizes.push(object!.size)
+        groups.colors.push(object!.color)
+        index++
+        this.stats.objTotalCount++
       }
 
-      if ((k >= this.groupLimit) || isObjectEnds) {
-        this.stats.objectsCountInGroups[this.stats.groupsCount] = k
+      if ((index >= this.groupLimit) || isObjectEnds) {
+        this.stats.objInGroupCount[this.stats.groupsCount] = index
 
         /** Создание и заполнение буферов данными о текущей группе полигонов. */
         this.stats.memUsage +=
-          this.webgl.createBuffer('vertices', new Float32Array(polygonGroup.vertices)) +
-          this.webgl.createBuffer('colors', new Uint8Array(polygonGroup.colors)) +
-          this.webgl.createBuffer('shapes', new Uint8Array(polygonGroup.shapes)) +
-          this.webgl.createBuffer('sizes', new Float32Array(polygonGroup.sizes))
+          this.webgl.createBuffer('vertices', new Float32Array(groups.vertices)) +
+          this.webgl.createBuffer('colors', new Uint8Array(groups.colors)) +
+          this.webgl.createBuffer('shapes', new Uint8Array(groups.shapes)) +
+          this.webgl.createBuffer('sizes', new Float32Array(groups.sizes))
       }
 
-      if ((k >= this.groupLimit) && !isObjectEnds) {
+      if ((index >= this.groupLimit) && !isObjectEnds) {
         this.stats.groupsCount++
-        polygonGroup = { vertices: [], colors: [], sizes: [], shapes: [], amountOfVertices: 0 }
-        k = 0
+        groups = { vertices: [], colors: [], sizes: [], shapes: [] }
+        index = 0
       }
     }
 
@@ -265,7 +259,7 @@ export default class SPlot {
       this.webgl.setBuffer('sizes', i, 'a_size', 1, 0, 0)
       this.webgl.setBuffer('shapes', i, 'a_shape', 1, 0, 0)
 
-      this.webgl.drawPoints(0, this.stats.objectsCountInGroups[i])
+      this.webgl.drawPoints(0, this.stats.objInGroupCount[i])
     }
   }
 

@@ -130,9 +130,9 @@ export default class SPlotDebug {
     console.group('%cЗагрузка данных завершена [' + getCurrentTime() + ']', this.groupStyle)
     console.timeEnd('Длительность')
     console.log('Расход видеопамяти: ' + (this.splot.stats.memUsage / 1000000).toFixed(2).toLocaleString() + ' МБ')
-    console.log('Кол-во объектов: ' + this.splot.stats.objectsCountTotal.toLocaleString())
+    console.log('Кол-во объектов: ' + this.splot.stats.objTotalCount.toLocaleString())
     console.log('Кол-во групп буферов: ' + this.splot.stats.groupsCount.toLocaleString())
-    console.log('Результат: ' + ((this.splot.stats.objectsCountTotal >= this.splot.globalLimit) ?
+    console.log('Результат: ' + ((this.splot.stats.objTotalCount >= this.splot.globalLimit) ?
       'достигнут лимит объектов (' + this.splot.globalLimit.toLocaleString() + ')' :
       'обработаны все объекты'))
     console.groupEnd()

@@ -18,7 +18,7 @@ export default class SPlotContol {
     startMousePos: []
   }
 
-  /** Обработчики событий средств ввода с закрепленными контекстами. */
+  /** Обработчики событий с закрепленными контекстами. */
   protected handleMouseDownWithContext: EventListener = this.handleMouseDown.bind(this) as EventListener
   protected handleMouseWheelWithContext: EventListener = this.handleMouseWheel.bind(this) as EventListener
   protected handleMouseMoveWithContext: EventListener = this.handleMouseMove.bind(this) as EventListener
