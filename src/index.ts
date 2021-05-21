@@ -41,7 +41,7 @@ scatterPlot.setup({
     isEnable: true,
   },
   demo: {
-    isEnable: true
+    isEnable: false
   }
 })
 
