@@ -26,10 +26,10 @@ export default class SPlotWebGl {
   private gpuProgram!: WebGLProgram
 
   /** Переменные для связи приложения с программой WebGL. */
-  private variables: Map<string, any> = new Map()
+  private variables: Map < string, any > = new Map()
 
   /** Буферы видеопамяти WebGL. */
-  public data: Map<string, {buffers: WebGLBuffer[], type: number}> = new Map()
+  public data: Map < string, {buffers: WebGLBuffer[], type: number} > = new Map()
 
   /** Правила соответствия типов типизированных массивов и типов переменных WebGL. */
   private glNumberTypes: Map<string, number> = new Map([

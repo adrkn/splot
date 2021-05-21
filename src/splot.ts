@@ -164,7 +164,7 @@ export default class SPlot {
     this.stats = { objTotalCount: 0, objInGroupCount: [] as number[], groupsCount: 0, memUsage: 0 }
 
     let object: SPlotObject | null | undefined
-    let index: number = 0
+    let i: number = 0
     let isObjectEnds: boolean = false
 
     while (!isObjectEnds) {
@@ -177,12 +177,12 @@ export default class SPlot {
         groups.shapes.push(object!.shape)
         groups.sizes.push(object!.size)
         groups.colors.push(object!.color)
-        index++
         this.stats.objTotalCount++
+        i++
       }
 
-      if ((index >= this.groupLimit) || isObjectEnds) {
-        this.stats.objInGroupCount[this.stats.groupsCount] = index
+      if ((i >= this.groupLimit) || isObjectEnds) {
+        this.stats.objInGroupCount[this.stats.groupsCount] = i
 
         /** Создание и заполнение буферов данными о текущей группе полигонов. */
         this.stats.memUsage +=
@@ -192,10 +192,10 @@ export default class SPlot {
           this.webgl.createBuffer('sizes', new Float32Array(groups.sizes))
       }
 
-      if ((index >= this.groupLimit) && !isObjectEnds) {
+      if ((i >= this.groupLimit) && !isObjectEnds) {
         this.stats.groupsCount++
         groups = { vertices: [], colors: [], sizes: [], shapes: [] }
-        index = 0
+        i = 0
       }
     }
 
