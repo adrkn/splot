@@ -11,14 +11,14 @@ export default class SPlot {
   /** Функция итерирования исходных данных. */
   public iterator: SPlotIterator = undefined
 
+  /** Хелпер WebGL. */
+  public webgl: SPlotWebGl = new SPlotWebGl(this)
+
   /** Хелпер режима демо-данных. */
   public demo: SPlotDemo = new SPlotDemo(this)
 
   /** Хелпер режима отладки. */
   public debug: SPlotDebug = new SPlotDebug(this)
-
-  /** Хелпер WebGL. */
-  public webgl: SPlotWebGl = new SPlotWebGl(this)
 
   /** Признак форсированного запуска рендера. */
   public forceRun: boolean = false
@@ -111,11 +111,7 @@ export default class SPlot {
     this.debug.setup()
     this.demo.setup()
 
-    if (this.debug.isEnable) {
-      this.debug.logIntro()
-      this.debug.logGpuInfo()
-      this.debug.logInstanceInfo()
-    }
+    this.debug.log('intro', 'gpu', 'instance')
 
     this.webgl.setBgColor(this.grid.bgColor!)    // Установка цвета очистки рендеринга
 
@@ -124,9 +120,7 @@ export default class SPlot {
 
     this.webgl.createProgram(this.shaderCodeVert, this.shaderCodeFrag)    // Создание программы WebGL.
 
-    if (this.debug.isEnable) {
-      this.debug.logShadersInfo()
-    }
+    this.debug.log('shaders')
 
     // Создание переменных WebGl.
     this.webgl.createVariables('a_position', 'a_color', 'a_size', 'a_shape', 'u_matrix')
@@ -164,9 +158,7 @@ export default class SPlot {
    */
   protected loadData(): void {
 
-    if (this.debug.isEnable) {
-      this.debug.logDataLoadingStart()
-    }
+    this.debug.log('loading')
 
     let polygonGroup: SPlotPolygonGroup = { vertices: [], colors: [], sizes: [], shapes: [], amountOfVertices: 0 }
 
@@ -213,9 +205,7 @@ export default class SPlot {
       }
     }
 
-    if (this.debug.isEnable) {
-      this.debug.logDataLoadingComplete()
-    }
+    this.debug.log('loaded')
   }
 
   /**
@@ -292,9 +282,7 @@ export default class SPlot {
     this.control.run()
     this.isRunning = true
 
-    if (this.debug.isEnable) {
-      this.debug.logRenderStarted()
-    }
+    this.debug.log('started')
   }
 
   /**
@@ -309,9 +297,7 @@ export default class SPlot {
     this.control.stop()
     this.isRunning = false
 
-    if (this.debug.isEnable) {
-      this.debug.logRenderStoped()
-    }
+    this.debug.log('stoped')
   }
 
   /**
@@ -321,8 +307,6 @@ export default class SPlot {
 
     this.webgl.clearBackground()
 
-    if (this.debug.isEnable) {
-      this.debug.logCanvasCleared(this.grid.bgColor!)
-    }
+    this.debug.log('cleared')
   }
 }

@@ -1,15 +1,6 @@
 import SPlot from './splot'
-import { jsonStringify, getCurrentTime } from './utils'
+import { getCurrentTime } from './utils'
 
-/**
- * Тип для параметров режима отладки.
- *
- * @param isEnable - Признак включения отладочного режима.
- * @param headerStyle - Стиль для заголовка всего отладочного блока.
- * @param groupStyle - Стиль для заголовка группировки отладочных данных.
- *
- * @todo Реализовать дополнительные места вывода output: 'console' | 'document' | 'file'
- */
 export default class SPlotDebug {
 
   /** Признак активации режим отладки. */
@@ -32,7 +23,19 @@ export default class SPlotDebug {
     }
   }
 
-  public logIntro(): void {
+  public log(...logItems: string[]): void {
+    if (this.isEnable) {
+      logItems.forEach(item => {
+        if (typeof (this as any)[item] === 'function') {
+          (this as any)[item]()
+        } else {
+          throw new Error('Отладочного блока ' + item + '" не существует!')
+        }
+      })
+    }
+  }
+
+  public intro(): void {
     console.log('%cОтладка SPlot на объекте #' + this.splot.canvas.id, this.headerStyle)
 
     if (this.splot.demo.isEnable) {
@@ -44,14 +47,14 @@ export default class SPlotDebug {
     console.groupEnd()
   }
 
-  public logGpuInfo(): void {
+  public gpu(): void {
     console.group('%cВидеосистема', this.groupStyle)
     console.log('Графическая карта: ' + this.splot.webgl.gpu.hardware)
     console.log('Версия GL: ' + this.splot.webgl.gpu.software)
     console.groupEnd()
   }
 
-  public logInstanceInfo(): void {
+  public instance(): void {
 
     console.group('%cНастройка параметров экземпляра', this.groupStyle)
     console.dir(this.splot)
@@ -67,7 +70,7 @@ export default class SPlotDebug {
     console.groupEnd()
   }
 
-  public logShadersInfo(): void {
+  public shaders(): void {
     console.group('%cСоздан вершинный шейдер: ', this.groupStyle)
     console.log(this.splot.shaderCodeVert)
     console.groupEnd()
@@ -76,12 +79,12 @@ export default class SPlotDebug {
     console.groupEnd()
   }
 
-  public logDataLoadingStart(): void {
+  public loading(): void {
     console.log('%cЗапущен процесс загрузки данных [' + getCurrentTime() + ']...', this.groupStyle)
     console.time('Длительность')
   }
 
-  public logDataLoadingComplete(): void {
+  public loaded(): void {
     console.group('%cЗагрузка данных завершена [' + getCurrentTime() + ']', this.groupStyle)
     console.timeEnd('Длительность')
     console.log('Расход видеопамяти: ' + (this.splot.stats.memUsage / 1000000).toFixed(2).toLocaleString() + ' МБ')
@@ -93,15 +96,15 @@ export default class SPlotDebug {
     console.groupEnd()
   }
 
-  public logRenderStarted() {
+  public started(): void {
     console.log('%cРендер запущен', this.groupStyle)
   }
 
-  public logRenderStoped() {
+  public stoped(): void {
     console.log('%cРендер остановлен', this.groupStyle)
   }
 
-  public logCanvasCleared(color: string) {
+  public cleared(color: string): void {
     console.log('%cКонтекст рендеринга очищен [' + color + ']', this.groupStyle);
   }
 }
