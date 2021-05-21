@@ -3,7 +3,7 @@ import { getCurrentTime } from './utils'
 
 /** ****************************************************************************
  *
- * Класс, реализующий поддержку режима отладки для класса SPlot.
+ * Класс-хелпер, реализующий поддержку режима отладки для класса SPlot.
  */
 export default class SPlotDebug {
 
@@ -16,13 +16,14 @@ export default class SPlotDebug {
   /** Стиль заголовка группы параметров. */
   public groupStyle: string = 'font-weight: bold; color: #ffffff;'
 
+  /** Хелпер будет иметь полный доступ к экземпляру SPlot. */
   constructor(
     private readonly splot: SPlot
   ) {}
 
   /** ****************************************************************************
    *
-   * Подготавливает к использованию режим отладки.
+   * Подготавливает хелпер к использованию.
    */
   public setup(clearConsole: boolean = false): void {
     if (clearConsole) {

@@ -109,7 +109,7 @@ export default class SPlot {
     this.debug.log('intro')
 
     this.webgl.setup()         // Создание контекста рендеринга.
-    this.control.setup(this)
+    this.control.setup()
     this.debug.setup()
     this.demo.setup()
 
