@@ -6,6 +6,10 @@ import SPlotWebGl from './splot-webgl'
 import SPlotDebug from './splot-debug'
 import SPlotDemo from './splot-demo'
 
+/** ****************************************************************************
+ *
+ * Класс SPlot - реализует график типа скаттерплот средствами WebGL.
+ */
 export default class SPlot {
 
   /** Функция итерирования исходных данных. */
@@ -65,17 +69,19 @@ export default class SPlot {
     memUsage: 0
   }
 
+  /** Объект-канвас контекста рендеринга WebGL. */
+  public canvas: HTMLCanvasElement
+
   /** Хелпер взаимодействия с устройством ввода. */
   protected control: SPlotContol = new SPlotContol(this)
 
-  public canvas: HTMLCanvasElement
-
-  /**
-   * Создает экземпляр класса, инициализирует настройки.
+  /** ****************************************************************************
+   *
+   * Создает экземпляр класса, инициализирует настройки (если переданы).
    *
    * @remarks
    * Если канвас с заданным идентификатором не найден - генерируется ошибка. Настройки могут быть заданы как в
-   * конструкторе, так и в методе {@link setup}. Однако в любом случае настройки должны быть заданы до запуска рендера.
+   * конструкторе, так и в методе {@link setup}. В любом случае настройки должны быть заданы до запуска рендера.
    *
    * @param canvasId - Идентификатор канваса, на котором будет рисоваться график.
    * @param options - Пользовательские настройки экземпляра.
@@ -97,63 +103,73 @@ export default class SPlot {
     }
   }
 
-  /**
+  /** ****************************************************************************
+   *
    * Инициализирует необходимые для рендера параметры экземпляра и WebGL.
    *
-   * @param options - Пользовательские настройки экземпляра.
+   * @param options - Настройки экземпляра.
    */
   public setup(options: SPlotOptions): void {
 
-    this.setOptions(options)    // Применение пользовательских настроек.
+    /** Применение пользовательских настроек. */
+    this.setOptions(options)
 
     this.debug.log('intro')
 
-    this.webgl.setup()         // Создание контекста рендеринга.
+    /** Подготовка всех хелперов. */
+    this.webgl.setup()
     this.control.setup()
     this.debug.setup()
     this.demo.setup()
 
     this.debug.log('instance')
 
-    this.webgl.setBgColor(this.grid.bgColor!)    // Установка цвета очистки рендеринга
+    /** Установка фонового цвета канваса (цвет очистки контекста рендеринга). */
+    this.webgl.setBgColor(this.grid.bgColor!)
 
+    /** Создание шейдеров и программы WebGL. */
     this.shaderCodeVert = SHADER_CODE_VERT_TMPL.replace('{EXT-CODE}', this.genShaderColorCode()).trim()
     this.shaderCodeFrag = SHADER_CODE_FRAG_TMPL.trim()
+    this.webgl.createProgram(this.shaderCodeVert, this.shaderCodeFrag)
 
-    this.webgl.createProgram(this.shaderCodeVert, this.shaderCodeFrag)    // Создание программы WebGL.
-
-    // Создание переменных WebGl.
+    /** Создание переменных WebGl. */
     this.webgl.createVariables('a_position', 'a_color', 'a_size', 'a_shape', 'u_matrix')
 
-    this.loadData()    // Заполнение буферов WebGL.
+    /** Обработка всех данных об объектах и их загрузка в буферы видеопамяти. */
+    this.loadData()
 
     if (this.forceRun) {
-      this.run()                // Форсированный запуск рендеринга (если требуется).
+      /** Форсированный запуск рендеринга (если требуется). */
+      this.run()
     }
   }
 
-  /**
-   * Применяет пользовательские настройки экземпляра.
+  /** ****************************************************************************
    *
-   * @param options - Пользовательские настройки экземпляра.
+   * Применяет настройки экземпляра.
+   *
+   * @param options - Настройки экземпляра.
    */
   protected setOptions(options: SPlotOptions): void {
 
-    copyMatchingKeyValues(this, options)    // Применение пользовательских настроек.
+    /** Применение пользовательских настроек. */
+    copyMatchingKeyValues(this, options)
 
-    // Если задан размер плоскости, но не задано положение области просмотра, то область помещается в центр плоскости.
+    /** Если задан размер плоскости, но не задано положение области просмотра, то она помещается в центр плоскости. */
     if (('grid' in options) && !('camera' in options)) {
       this.camera.x = this.grid.width! / 2
       this.camera.y = this.grid.height! / 2
     }
 
     if (this.demo.isEnable) {
-      this.iterator = this.demo.iterator.bind(this.demo)    // Имитация итерирования для демо-режима.
+      /** Подготовка демо-режима (если требуется). */
+      this.iterator = this.demo.iterator.bind(this.demo)
       this.colors = this.demo.colors
     }
   }
 
-  /**
+  /** ****************************************************************************
+   *
    * Создает и заполняет данными обо всех объектах буферы WebGL.
    */
   protected loadData(): void {
@@ -184,7 +200,7 @@ export default class SPlot {
       if ((i >= this.groupLimit) || isObjectEnds) {
         this.stats.objInGroupCount[this.stats.groupsCount] = i
 
-        /** Создание и заполнение буферов данными о текущей группе полигонов. */
+        /** Создание и заполнение буферов данными о текущей группе объектов. */
         this.stats.memUsage +=
           this.webgl.createBuffer('vertices', new Float32Array(groups.vertices)) +
           this.webgl.createBuffer('colors', new Uint8Array(groups.colors)) +
