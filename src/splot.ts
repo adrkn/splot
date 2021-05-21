@@ -18,7 +18,7 @@ export default class SPlot {
   public debug: SPlotDebug = new SPlotDebug(this)
 
   /** Хелпер WebGL. */
-  public webgl: SPlotWebGl = new SPlotWebGl()
+  public webgl: SPlotWebGl = new SPlotWebGl(this)
 
   /** Признак форсированного запуска рендера. */
   public forceRun: boolean = false
@@ -57,9 +57,6 @@ export default class SPlot {
   public shaderCodeVert: string = ''
   public shaderCodeFrag: string = ''
 
-  /** Хелпер взаимодействия с устройством ввода. */
-  protected control: SPlotContol = new SPlotContol()
-
   /** Статистическая информация. */
   public stats = {
     objectsCountTotal: 0,
@@ -67,6 +64,11 @@ export default class SPlot {
     groupsCount: 0,
     memUsage: 0
   }
+
+  /** Хелпер взаимодействия с устройством ввода. */
+  protected control: SPlotContol = new SPlotContol(this)
+
+  public canvas: HTMLCanvasElement
 
   /**
    * Создает экземпляр класса, инициализирует настройки.
@@ -80,8 +82,11 @@ export default class SPlot {
    */
   constructor(canvasId: string, options?: SPlotOptions) {
 
-    this.webgl.prepare(canvasId)
-    this.control.prepare(this)
+    if (document.getElementById(canvasId)) {
+      this.canvas = document.getElementById(canvasId) as HTMLCanvasElement
+    } else {
+      throw new Error('Канвас с идентификатором "#' + canvasId + '" не найден!')
+    }
 
     if (options) {
       this.setOptions(options)    // Если переданы настройки, то они применяются.
@@ -100,9 +105,11 @@ export default class SPlot {
   public setup(options: SPlotOptions): void {
 
     this.setOptions(options)    // Применение пользовательских настроек.
-    this.webgl.create()         // Создание контекста рендеринга.
-    this.demo.prepare()
-    this.debug.prepare()
+
+    this.webgl.setup()         // Создание контекста рендеринга.
+    this.control.setup(this)
+    this.debug.setup()
+    this.demo.setup()
 
     if (this.debug.isEnable) {
       this.debug.logIntro()

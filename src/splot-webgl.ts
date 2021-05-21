@@ -1,3 +1,4 @@
+import SPlot from './splot'
 import { colorFromHexToGlRgb } from './utils'
 
 export default class SPlotWebGl {
@@ -13,7 +14,6 @@ export default class SPlotWebGl {
   public powerPreference: WebGLPowerPreference = 'high-performance'
 
   public gpu = { hardware: '', software: '' }
-  public canvas!: HTMLCanvasElement
   public gl!: WebGLRenderingContext
   private gpuProgram!: WebGLProgram
 
@@ -23,20 +23,16 @@ export default class SPlotWebGl {
 
   private glNumberTypes: Map<string, number> = new Map()
 
-  public prepare(canvasId: string) {
-    if (document.getElementById(canvasId)) {
-      this.canvas = document.getElementById(canvasId) as HTMLCanvasElement
-    } else {
-      throw new Error('Канвас с идентификатором "#' + canvasId + '" не найден!')
-    }
-  }
+  constructor(
+    private readonly splot: SPlot
+  ) { }
 
   /**
    * Создает контекст рендеринга WebGL и устанавливает корректный размер области просмотра.
    */
-  public create(): void {
+  public setup(): void {
 
-    this.gl = this.canvas.getContext('webgl', {
+    this.gl = this.splot.canvas.getContext('webgl', {
       alpha: this.alpha,
       depth: this.depth,
       stencil: this.stencil,
@@ -58,10 +54,10 @@ export default class SPlotWebGl {
     this.glNumberTypes.set('Int8Array', this.gl.BYTE)
     this.glNumberTypes.set('Int16Array', this.gl.SHORT)
 
-    this.canvas.width = this.canvas.clientWidth
-    this.canvas.height = this.canvas.clientHeight
+    this.splot.canvas.width = this.splot.canvas.clientWidth
+    this.splot.canvas.height = this.splot.canvas.clientHeight
 
-    this.gl.viewport(0, 0, this.canvas.width, this.canvas.height)
+    this.gl.viewport(0, 0, this.splot.canvas.width, this.splot.canvas.height)
   }
 
   public setBgColor(color: string) {

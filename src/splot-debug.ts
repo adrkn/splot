@@ -26,14 +26,14 @@ export default class SPlotDebug {
   ) {}
 
   /** Подготовка к использованию отладочного режима. */
-  public prepare(clearConsole: boolean = false): void {
+  public setup(clearConsole: boolean = false): void {
     if (clearConsole) {
       console.clear()
     }
   }
 
   public logIntro(): void {
-    console.log('%cОтладка SPlot на объекте #' + this.splot.webgl.canvas.id, this.headerStyle)
+    console.log('%cОтладка SPlot на объекте #' + this.splot.canvas.id, this.headerStyle)
 
     if (this.splot.demo.isEnable) {
       console.log('%cВключен демонстрационный режим данных', this.groupStyle)
@@ -55,8 +55,8 @@ export default class SPlotDebug {
 
     console.group('%cНастройка параметров экземпляра', this.groupStyle)
     console.dir(this.splot)
-    console.log('Канвас: #' + this.splot.webgl.canvas.id)
-    console.log('Размер канваса: ' + this.splot.webgl.canvas.width + ' x ' + this.splot.webgl.canvas.height + ' px')
+    console.log('Канвас: #' + this.splot.canvas.id)
+    console.log('Размер канваса: ' + this.splot.canvas.width + ' x ' + this.splot.canvas.height + ' px')
     console.log('Размер плоскости: ' + this.splot.grid.width + ' x ' + this.splot.grid.height + ' px')
 
     if (this.splot.demo.isEnable) {

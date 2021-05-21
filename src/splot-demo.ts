@@ -29,7 +29,7 @@ export default class SPlotDemo {
   ) {}
 
   /** Подготовка к использованию демо-режима. */
-  public prepare(): void {
+  public setup(): void {
     this.index = 0
   }
 

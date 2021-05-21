@@ -4,10 +4,6 @@ import SPlot from './splot'
 
 export default class SPlotContol {
 
-  private canvas!: HTMLCanvasElement
-  private camera!: SPlotCamera
-  private render!: () => void
-
   // Техническая информация, используемая приложением для расчета трансформаций.
   public transform: SPlotTransform = {
     viewProjectionMat: [],
@@ -23,30 +19,32 @@ export default class SPlotContol {
   protected handleMouseMoveWithContext: EventListener = this.handleMouseMove.bind(this) as EventListener
   protected handleMouseUpWithContext: EventListener = this.handleMouseUp.bind(this) as EventListener
 
-  prepare(splot: SPlot) {
-    this.canvas = splot.webgl.canvas
-    this.camera = splot.camera
-    this.render = splot.render.bind(splot)
+  constructor(
+    private readonly splot: SPlot
+  ) { }
+
+  setup(splot: SPlot) {
+    this.splot.camera = splot.camera
   }
 
   public run() {
-    this.canvas.addEventListener('mousedown', this.handleMouseDownWithContext)
-    this.canvas.addEventListener('wheel', this.handleMouseWheelWithContext)
+    this.splot.canvas.addEventListener('mousedown', this.handleMouseDownWithContext)
+    this.splot.canvas.addEventListener('wheel', this.handleMouseWheelWithContext)
   }
 
   public stop() {
-    this.canvas.removeEventListener('mousedown', this.handleMouseDownWithContext)
-    this.canvas.removeEventListener('wheel', this.handleMouseWheelWithContext)
-    this.canvas.removeEventListener('mousemove', this.handleMouseMoveWithContext)
-    this.canvas.removeEventListener('mouseup', this.handleMouseUpWithContext)
+    this.splot.canvas.removeEventListener('mousedown', this.handleMouseDownWithContext)
+    this.splot.canvas.removeEventListener('wheel', this.handleMouseWheelWithContext)
+    this.splot.canvas.removeEventListener('mousemove', this.handleMouseMoveWithContext)
+    this.splot.canvas.removeEventListener('mouseup', this.handleMouseUpWithContext)
   }
 
   protected makeCameraMatrix() {
 
-    const zoomScale = 1 / this.camera.zoom!;
+    const zoomScale = 1 / this.splot.camera.zoom!;
 
     let cameraMat = m3.identity();
-    cameraMat = m3.translate(cameraMat, this.camera.x, this.camera.y);
+    cameraMat = m3.translate(cameraMat, this.splot.camera.x, this.splot.camera.y);
     cameraMat = m3.scale(cameraMat, zoomScale, zoomScale);
 
     return cameraMat;
@@ -62,7 +60,7 @@ export default class SPlotContol {
    */
   public updateViewProjection(): void {
 
-    const projectionMat = m3.projection(this.canvas.width, this.canvas.height);
+    const projectionMat = m3.projection(this.splot.canvas.width, this.splot.canvas.height);
     const cameraMat = this.makeCameraMatrix();
     let viewMat = m3.inverse(cameraMat);
     this.transform.viewProjectionMat = m3.multiply(projectionMat, viewMat);
@@ -74,13 +72,13 @@ export default class SPlotContol {
   protected getClipSpaceMousePosition(event: MouseEvent) {
 
     // get canvas relative css position
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.splot.canvas.getBoundingClientRect();
     const cssX = event.clientX - rect.left;
     const cssY = event.clientY - rect.top;
 
     // get normalized 0 to 1 position across and down canvas
-    const normalizedX = cssX / this.canvas.clientWidth;
-    const normalizedY = cssY / this.canvas.clientHeight;
+    const normalizedX = cssX / this.splot.canvas.clientWidth;
+    const normalizedY = cssY / this.splot.canvas.clientHeight;
 
     // convert to clip space
     const clipX = normalizedX * 2 - 1;
@@ -99,13 +97,13 @@ export default class SPlotContol {
       this.getClipSpaceMousePosition(event)
     );
 
-    this.camera.x =
+    this.splot.camera.x =
       this.transform.startCamera.x! + this.transform.startPos[0] - pos[0];
 
-    this.camera.y =
+    this.splot.camera.y =
       this.transform.startCamera.y! + this.transform.startPos[1] - pos[1];
 
-    this.render();
+    this.splot.render();
   }
 
   /**
@@ -135,7 +133,7 @@ export default class SPlotContol {
    * @param event - Событие мыши/трекпада.
    */
   protected handleMouseUp(event: MouseEvent): void {
-    this.render();
+    this.splot.render();
     event.target!.removeEventListener('mousemove', this.handleMouseMoveWithContext);
     event.target!.removeEventListener('mouseup', this.handleMouseUpWithContext);
   }
@@ -154,16 +152,16 @@ export default class SPlotContol {
   protected handleMouseDown(event: MouseEvent): void {
 
     event.preventDefault();
-    this.canvas.addEventListener('mousemove', this.handleMouseMoveWithContext);
-    this.canvas.addEventListener('mouseup', this.handleMouseUpWithContext);
+    this.splot.canvas.addEventListener('mousemove', this.handleMouseMoveWithContext);
+    this.splot.canvas.addEventListener('mouseup', this.handleMouseUpWithContext);
 
     this.transform.startInvViewProjMat = m3.inverse(this.transform.viewProjectionMat);
-    this.transform.startCamera = Object.assign({}, this.camera);
+    this.transform.startCamera = Object.assign({}, this.splot.camera);
     this.transform.startClipPos = this.getClipSpaceMousePosition.call(this, event);
     this.transform.startPos = m3.transformPoint(this.transform.startInvViewProjMat, this.transform.startClipPos);
     this.transform.startMousePos = [event.clientX, event.clientY];
 
-    this.render();
+    this.splot.render();
   }
 
   /**
@@ -186,8 +184,8 @@ export default class SPlotContol {
     const [preZoomX, preZoomY] = m3.transformPoint(m3.inverse(this.transform.viewProjectionMat), [clipX, clipY]);
 
     // multiply the wheel movement by the current zoom level, so we zoom less when zoomed in and more when zoomed out
-    const newZoom = this.camera.zoom! * Math.pow(2, event.deltaY * -0.01);
-    this.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
+    const newZoom = this.splot.camera.zoom! * Math.pow(2, event.deltaY * -0.01);
+    this.splot.camera.zoom = Math.max(0.002, Math.min(200, newZoom));
 
     this.updateViewProjection.call(this);
 
@@ -195,9 +193,9 @@ export default class SPlotContol {
     const [postZoomX, postZoomY] = m3.transformPoint(m3.inverse(this.transform.viewProjectionMat), [clipX, clipY]);
 
     // camera needs to be moved the difference of before and after
-    this.camera.x! += preZoomX - postZoomX;
-    this.camera.y! += preZoomY - postZoomY;
+    this.splot.camera.x! += preZoomX - postZoomX;
+    this.splot.camera.y! += preZoomY - postZoomY;
 
-    this.render();
+    this.splot.render();
   }
 }
