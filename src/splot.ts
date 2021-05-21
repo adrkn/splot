@@ -53,9 +53,9 @@ export default class SPlot {
   /** Количество различных форм объектов. */
   public shapesCount: number = 2
 
-  /** Шаблоны GLSL-кодов для шейдеров. */
-  protected shaderCodeVert: string = SHADER_CODE_VERT_TMPL
-  protected shaderCodeFrag: string = SHADER_CODE_FRAG_TMPL
+  /** GLSL-коды шейдеров. */
+  public shaderCodeVert: string = ''
+  public shaderCodeFrag: string = ''
 
   /** Хелпер взаимодействия с устройством ввода. */
   protected control: SPlotContol = new SPlotContol()
@@ -102,25 +102,23 @@ export default class SPlot {
     this.setOptions(options)    // Применение пользовательских настроек.
     this.webgl.create()         // Создание контекста рендеринга.
     this.demo.prepare()
-    this.debug.prepare(this.webgl.canvas)
+    this.debug.prepare()
 
     if (this.debug.isEnable) {
       this.debug.logIntro()
-      this.debug.logGpuInfo(this.webgl.gpu.hardware, this.webgl.gpu.software)
-      this.debug.logInstanceInfo(this, this.webgl.canvas, options)
+      this.debug.logGpuInfo()
+      this.debug.logInstanceInfo()
     }
 
     this.webgl.setBgColor(this.grid.bgColor!)    // Установка цвета очистки рендеринга
 
-    // Создание шейдеров WebGL.
-    const shaderCodeVert = this.shaderCodeVert.replace('{EXT-CODE}', this.genShaderColorCode())
-    const shaderCodeFrag = this.shaderCodeFrag
+    this.shaderCodeVert = SHADER_CODE_VERT_TMPL.replace('{EXT-CODE}', this.genShaderColorCode()).trim()
+    this.shaderCodeFrag = SHADER_CODE_FRAG_TMPL.trim()
 
-    this.webgl.createProgram(shaderCodeVert, shaderCodeFrag)    // Создание программы WebGL.
+    this.webgl.createProgram(this.shaderCodeVert, this.shaderCodeFrag)    // Создание программы WebGL.
 
     if (this.debug.isEnable) {
-      this.debug.logShaderInfo('VERTEX_SHADER', shaderCodeVert)
-      this.debug.logShaderInfo('FRAGMENT_SHADER', shaderCodeFrag)
+      this.debug.logShadersInfo()
     }
 
     // Создание переменных WebGl.
@@ -209,8 +207,7 @@ export default class SPlot {
     }
 
     if (this.debug.isEnable) {
-      this.debug.logDataLoadingComplete(this.stats.objectsCountTotal, this.globalLimit)
-      this.debug.logGpuMemStats(this.stats)
+      this.debug.logDataLoadingComplete()
     }
   }
 
