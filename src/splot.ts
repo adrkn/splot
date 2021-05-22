@@ -55,7 +55,7 @@ export default class SPlot {
   public isRunning: boolean = false
 
   /** Количество различных форм объектов. */
-  public shapesCount: number = 2
+  public shapesCount: number = 3
 
   /** GLSL-коды шейдеров. */
   public shaderCodeVert: string = ''
