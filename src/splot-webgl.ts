@@ -80,7 +80,7 @@ export default class SPlotWebGl {
     this.gl.viewport(0, 0, this.splot.canvas.width, this.splot.canvas.height)
 
     /** Если задан размер плоскости, но не задано положение области просмотра, то она помещается в центр плоскости. */
-    if (('grid' in this.splot.lastRequestedOptions) && !('camera' in this.splot.lastRequestedOptions)) {
+    if (('grid' in this.splot.lastRequestedOptions!) && !('camera' in this.splot.lastRequestedOptions)) {
       this.splot.camera.x = this.splot.grid.width! / 2
       this.splot.camera.y = this.splot.grid.height! / 2
     }

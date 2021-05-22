@@ -73,10 +73,13 @@ export default class SPlot {
   public canvas: HTMLCanvasElement
 
   /** Настройки, запрошенные пользователем в конструкторе или при последнем вызове setup. */
-  public lastRequestedOptions: SPlotOptions = {}
+  public lastRequestedOptions: SPlotOptions | undefined = {}
 
   /** Хелпер взаимодействия с устройством ввода. */
   protected control: SPlotContol = new SPlotContol(this)
+
+  /** Признак того, что экземпляр класса был корректно подготовлен к рендеру. */
+  private isSPlotSetuped: boolean = false
 
   /** ****************************************************************************
    *
@@ -116,11 +119,14 @@ export default class SPlot {
    *
    * @param options - Настройки экземпляра.
    */
-  public setup(options: SPlotOptions): void {
+  public setup(options: SPlotOptions = {}): void {
 
     /** Применение пользовательских настроек. */
     copyMatchingKeyValues(this, options)
     this.lastRequestedOptions = options
+
+    this.isSPlotSetuped = true
+    this.checkSetup()
 
     this.debug.log('intro')
 
@@ -231,9 +237,35 @@ export default class SPlot {
 
   /** ****************************************************************************
    *
+   * Проверяет корректность настроек экземпляра.
+   *
+   * @remarks
+   * Используется для проверки корректности логики работы пользователя с экземпляром. Не позволяет работать с
+   * ненастроенным или некорректно настроенным экземпляром.
+   */
+  checkSetup() {
+
+    /**
+     *  Пользователь мог настроить экземпляр в конструкторе и сразу запустить рендер, в таком случае метод setup
+     *  будет вызывается неявно.
+     */
+    if (!this.isSPlotSetuped) {
+      this.setup()
+    }
+
+    if (!this.iterator) {
+      throw new Error('Экземпляр класса SPlot настроен некорректно!')
+    }
+  }
+
+  /** ****************************************************************************
+   *
    * Запускает рендеринг и контроль управления.
    */
   public run(): void {
+
+    this.checkSetup()
+
     if (!this.isRunning) {
       this.render()
       this.control.run()
@@ -247,6 +279,9 @@ export default class SPlot {
    * Останавливает рендеринг и контроль управления.
    */
   public stop(): void {
+
+    this.checkSetup()
+
     if (this.isRunning) {
       this.control.stop()
       this.isRunning = false
@@ -259,6 +294,9 @@ export default class SPlot {
    * Очищает фон.
    */
   public clear(): void {
+
+    this.checkSetup()
+
     this.webgl.clearBackground()
     this.debug.log('cleared')
   }
