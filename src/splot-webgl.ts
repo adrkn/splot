@@ -132,8 +132,6 @@ export default class SPlotWebGl {
     this.gl.attachShader(this.gpuProgram, shaderFrag)
     this.gl.linkProgram(this.gpuProgram)
     this.gl.useProgram(this.gpuProgram)
-
-    this.splot.debug.log('shaders')
   }
 
   /** ****************************************************************************
@@ -144,6 +142,9 @@ export default class SPlotWebGl {
    * @param shaderCodeFrag - Код фрагментного шейдера.
    */
   public createProgram(shaderCodeVert: string, shaderCodeFrag: string): void {
+
+    this.splot.debug.log('shaders')
+
     this.createProgramFromShaders(
       this.createShader('VERTEX_SHADER', shaderCodeVert),
       this.createShader('FRAGMENT_SHADER', shaderCodeFrag)
