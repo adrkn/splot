@@ -160,13 +160,6 @@ export default class SPlot {
       this.camera.x = this.grid.width! / 2
       this.camera.y = this.grid.height! / 2
     }
-
-    if (this.demo.isEnable) {
-
-      /** Подготовка демо-режима (если требуется). */
-      this.iterator = this.demo.iterator.bind(this.demo)
-      this.colors = this.demo.colors
-    }
   }
 
   /** ****************************************************************************

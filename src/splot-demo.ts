@@ -38,7 +38,14 @@ export default class SPlotDemo {
    * Подготавливает хелпер к использованию.
    */
   public setup(): void {
+
     this.index = 0
+
+    /** Подготовка демо-режима (если требуется). */
+    if (this.splot.demo.isEnable) {
+      this.splot.iterator = this.splot.demo.iterator.bind(this)
+      this.splot.colors = this.splot.demo.colors
+    }
   }
 
   /** ****************************************************************************
