@@ -121,11 +121,14 @@ export default class SPlot {
    */
   public setup(options: SPlotOptions = {}): void {
 
+    /** Признак того, что экземпляр как минимум один раз выполнил метод setup. */
+    this.isSPlotSetuped = true
+
     /** Применение пользовательских настроек. */
     copyMatchingKeyValues(this, options)
     this.lastRequestedOptions = options
 
-    this.isSPlotSetuped = true
+    /** Проверка корректности настройки экземпляра. */
     this.checkSetup()
 
     this.debug.log('intro')
@@ -253,6 +256,7 @@ export default class SPlot {
       this.setup()
     }
 
+    /** Проверки коррекстности настроечных параметров экземпляра. */
     if (!this.iterator) {
       throw new Error('Экземпляр класса SPlot настроен некорректно!')
     }
