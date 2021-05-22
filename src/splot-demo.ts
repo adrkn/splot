@@ -39,6 +39,7 @@ export default class SPlotDemo {
    */
   public setup(): void {
 
+    /** Обнуление счетчика итератора. */
     this.index = 0
 
     /** Подготовка демо-режима (если требуется). */

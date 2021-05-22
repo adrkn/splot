@@ -72,6 +72,9 @@ export default class SPlot {
   /** Объект-канвас контекста рендеринга WebGL. */
   public canvas: HTMLCanvasElement
 
+  /** Настройки, запрошенные пользователем в конструкторе или при последнем вызове setup. */
+  public lastRequestedOptions: SPlotOptions = {}
+
   /** Хелпер взаимодействия с устройством ввода. */
   protected control: SPlotContol = new SPlotContol(this)
 
@@ -95,10 +98,14 @@ export default class SPlot {
     }
 
     if (options) {
-      this.setOptions(options)    // Если переданы настройки, то они применяются.
 
+      /** Если переданы пользовательские настройки, то они применяются. */
+      copyMatchingKeyValues(this, options)
+      this.lastRequestedOptions = options
+
+      /** Инициализация всех параметров рендера, если запрошен форсированный запуск. */
       if (this.forceRun) {
-        this.setup(options)       //  Инициализация всех параметров рендера, если запрошен форсированный запуск.
+        this.setup(options)
       }
     }
   }
@@ -112,7 +119,8 @@ export default class SPlot {
   public setup(options: SPlotOptions): void {
 
     /** Применение пользовательских настроек. */
-    this.setOptions(options)
+    copyMatchingKeyValues(this, options)
+    this.lastRequestedOptions = options
 
     this.debug.log('intro')
 
@@ -141,24 +149,6 @@ export default class SPlot {
     if (this.forceRun) {
       /** Форсированный запуск рендеринга (если требуется). */
       this.run()
-    }
-  }
-
-  /** ****************************************************************************
-   *
-   * Применяет настройки экземпляра.
-   *
-   * @param options - Настройки экземпляра.
-   */
-  protected setOptions(options: SPlotOptions): void {
-
-    /** Применение пользовательских настроек. */
-    copyMatchingKeyValues(this, options)
-
-    /** Если задан размер плоскости, но не задано положение области просмотра, то она помещается в центр плоскости. */
-    if (('grid' in options) && !('camera' in options)) {
-      this.camera.x = this.grid.width! / 2
-      this.camera.y = this.grid.height! / 2
     }
   }
 
