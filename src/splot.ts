@@ -128,7 +128,7 @@ export default class SPlot {
     this.webgl.setBgColor(this.grid.bgColor!)
 
     /** Создание шейдеров и программы WebGL. */
-    this.shaderCodeVert = SHADER_CODE_VERT_TMPL.replace('{EXT-CODE}', this.genShaderColorCode()).trim()
+    this.shaderCodeVert = SHADER_CODE_VERT_TMPL.replace('{COLOR-CODE}', this.genShaderColorCode()).trim()
     this.shaderCodeFrag = SHADER_CODE_FRAG_TMPL.trim()
     this.webgl.createProgram(this.shaderCodeVert, this.shaderCodeFrag)
 
