@@ -5,6 +5,7 @@ import SPlotContol from './splot-control'
 import SPlotWebGl from './splot-webgl'
 import SPlotDebug from './splot-debug'
 import SPlotDemo from './splot-demo'
+import SPlotGlsl from './splot-glsl'
 
 /** ****************************************************************************
  *
@@ -78,6 +79,9 @@ export default class SPlot {
   /** Хелпер взаимодействия с устройством ввода. */
   protected control: SPlotContol = new SPlotContol(this)
 
+  /** Хелпер взаимодействия с устройством ввода. */
+  protected glsl: SPlotGlsl = new SPlotGlsl(this)
+
   /** Признак того, что экземпляр класса был корректно подготовлен к рендеру. */
   private isSetuped: boolean = false
 
@@ -138,11 +142,9 @@ export default class SPlot {
     this.control.setup()
     this.debug.setup()
     this.demo.setup()
+    this.glsl.setup()
 
     this.debug.log('instance')
-
-    /** Установка фонового цвета канваса (цвет очистки контекста рендеринга). */
-    this.webgl.setBgColor(this.grid.bgColor!)
 
     /** Создание шейдеров и программы WebGL. */
     this.shaderCodeVert = SHADER_CODE_VERT_TMPL.replace('{COLOR-CODE}', this.genShaderColorCode()).trim()

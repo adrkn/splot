@@ -84,6 +84,9 @@ export default class SPlotWebGl implements SPlotHelper {
       this.splot.camera.x = this.splot.grid.width! / 2
       this.splot.camera.y = this.splot.grid.height! / 2
     }
+
+    /** Установка фонового цвета канваса (цвет очистки контекста рендеринга). */
+    this.setBgColor(this.splot.grid.bgColor!)
   }
 
   /** ****************************************************************************
