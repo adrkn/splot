@@ -116,10 +116,10 @@ export default class SPlotDebug implements SPlotHelper {
    */
   public shaders(): void {
     console.group('%cСоздан вершинный шейдер: ', this.groupStyle)
-    console.log(this.splot.shaderCodeVert)
+    console.log(this.splot.glsl.vertShaderSource)
     console.groupEnd()
     console.group('%cСоздан фрагментный шейдер: ', this.groupStyle)
-    console.log(this.splot.shaderCodeFrag)
+    console.log(this.splot.glsl.fragShaderSource)
     console.groupEnd()
   }
 

@@ -87,6 +87,9 @@ export default class SPlotWebGl implements SPlotHelper {
 
     /** Установка фонового цвета канваса (цвет очистки контекста рендеринга). */
     this.setBgColor(this.splot.grid.bgColor!)
+
+    /** Создание программы WebGL. */
+    this.createProgram(this.splot.glsl.vertShaderSource, this.splot.glsl.fragShaderSource)
   }
 
   /** ****************************************************************************

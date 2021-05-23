@@ -1,4 +1,5 @@
 import SPlot from './splot'
+import * as shaders from './shaders'
 import { colorFromHexToGlRgb } from './utils'
 
 /** ****************************************************************************
@@ -8,8 +9,8 @@ import { colorFromHexToGlRgb } from './utils'
 export default class SPlotGlsl implements SPlotHelper {
 
   /** Коды шейдеров. */
-  public vertex: string = ''
-  public fragment: string = ''
+  public vertShaderSource: string = ''
+  public fragShaderSource: string = ''
 
   /** Хелпер будет иметь полный доступ к экземпляру SPlot. */
   constructor(
@@ -22,6 +23,25 @@ export default class SPlotGlsl implements SPlotHelper {
    */
   public setup(): void {
 
+    /** Сборка кодов шейдеров. */
+    this.vertShaderSource = this.makeVertShaderSource()
+    this.fragShaderSource = this.makeFragShaderSource()
+  }
+
+  /** ****************************************************************************
+   *
+   * Создает код вершинного шейдера.
+   */
+  private makeVertShaderSource() {
+    return shaders.VERTEX_TEMPLATE.replace('{COLOR-CODE}', this.makeColorSource()).trim()
+  }
+
+  /** ****************************************************************************
+   *
+   * Создает код вершинного шейдера.
+   */
+  private makeFragShaderSource() {
+    return shaders.FRAGMENT_TEMPLATE.trim()
   }
 
   /** ****************************************************************************

@@ -1,5 +1,4 @@
 import { copyMatchingKeyValues, colorFromHexToGlRgb } from './utils'
-import SHADER_CODE_VERT_TMPL from './shader-code-vert-tmpl'
 import SHADER_CODE_FRAG_TMPL from './shader-code-frag-tmpl'
 import SPlotContol from './splot-control'
 import SPlotWebGl from './splot-webgl'
@@ -16,14 +15,17 @@ export default class SPlot {
   /** Функция итерирования исходных данных. */
   public iterator: SPlotIterator = undefined
 
+  /** Хелпер режима отладки. */
+  public debug: SPlotDebug = new SPlotDebug(this)
+
+  /** Хелпер, управляющий GLSL-кодом шейдеров. */
+  public glsl: SPlotGlsl = new SPlotGlsl(this)
+
   /** Хелпер WebGL. */
   public webgl: SPlotWebGl = new SPlotWebGl(this)
 
   /** Хелпер режима демо-данных. */
   public demo: SPlotDemo = new SPlotDemo(this)
-
-  /** Хелпер режима отладки. */
-  public debug: SPlotDebug = new SPlotDebug(this)
 
   /** Признак форсированного запуска рендера. */
   public forceRun: boolean = false
@@ -58,10 +60,6 @@ export default class SPlot {
   /** Количество различных форм объектов. */
   public shapesCount: number = 3
 
-  /** GLSL-коды шейдеров. */
-  public shaderCodeVert: string = ''
-  public shaderCodeFrag: string = ''
-
   /** Статистическая информация. */
   public stats = {
     objTotalCount: 0,
@@ -78,9 +76,6 @@ export default class SPlot {
 
   /** Хелпер взаимодействия с устройством ввода. */
   protected control: SPlotContol = new SPlotContol(this)
-
-  /** Хелпер взаимодействия с устройством ввода. */
-  protected glsl: SPlotGlsl = new SPlotGlsl(this)
 
   /** Признак того, что экземпляр класса был корректно подготовлен к рендеру. */
   private isSetuped: boolean = false
@@ -123,7 +118,7 @@ export default class SPlot {
    *
    * @param options - Настройки экземпляра.
    */
-  public setup(options: SPlotOptions = {}): void {
+  public setup( options: SPlotOptions = {} ): void {
 
     /** Признак того, что экземпляр как минимум один раз выполнил метод setup. */
     this.isSetuped = true
@@ -138,18 +133,13 @@ export default class SPlot {
     this.debug.log('intro')
 
     /** Подготовка всех хелперов. */
+    this.debug.setup()
+    this.glsl.setup()
     this.webgl.setup()
     this.control.setup()
-    this.debug.setup()
     this.demo.setup()
-    this.glsl.setup()
 
     this.debug.log('instance')
-
-    /** Создание шейдеров и программы WebGL. */
-    this.shaderCodeVert = SHADER_CODE_VERT_TMPL.replace('{COLOR-CODE}', this.genShaderColorCode()).trim()
-    this.shaderCodeFrag = SHADER_CODE_FRAG_TMPL.trim()
-    this.webgl.createProgram(this.shaderCodeVert, this.shaderCodeFrag)
 
     /** Создание переменных WebGl. */
     this.webgl.createVariables('a_position', 'a_color', 'a_size', 'a_shape', 'u_matrix')
@@ -305,35 +295,5 @@ export default class SPlot {
 
     this.webgl.clearBackground()
     this.debug.log('cleared')
-  }
-
-  /** ****************************************************************************
-   *
-   * Создает дополнение к коду на языке GLSL.
-   *
-   * @remarks
-   * Т.к. шейдер не позволяет использовать в качестве индексов переменные - для задания цвета используется
-   * посоедовательный перебор цветовых индексов.
-   *
-   * @returns Код на языке GLSL.
-   */
-  protected genShaderColorCode(): string {
-
-    /** Временное добавление в палитру вершин цвета направляющих. */
-    this.colors.push(this.grid.rulesColor!)
-
-    let code: string = ''
-
-    /** Формировние GLSL-кода установки цвета по индексу. */
-    this.colors.forEach((value, index) => {
-      let [r, g, b] = colorFromHexToGlRgb(value)
-      code += `else if (a_color == ${index}.0) v_color = vec3(${r}, ${g}, ${b});\n`
-    })
-
-    /** Удаление из палитры вершин временно добавленного цвета направляющих. */
-    this.colors.pop()
-
-    /** Удаление лишнего "else" в начале GLSL-кода. */
-    return code.slice(5)
   }
 }
