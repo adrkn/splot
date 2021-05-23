@@ -26,42 +26,28 @@ export default class SPlotGlsl implements SPlotHelper {
     /** Сборка кодов шейдеров. */
     this.vertShaderSource = this.makeVertShaderSource()
     this.fragShaderSource = this.makeFragShaderSource()
+
+    /** Вычисление количества различных форм объектов. */
+    this.splot.shapesCount = shaders.SHAPES.length
   }
 
   /** ****************************************************************************
    *
    * Создает код вершинного шейдера.
-   */
-  private makeVertShaderSource() {
-    return shaders.VERTEX_TEMPLATE.replace('{COLOR-CODE}', this.makeColorSource()).trim()
-  }
-
-  /** ****************************************************************************
-   *
-   * Создает код вершинного шейдера.
-   */
-  private makeFragShaderSource() {
-    return shaders.FRAGMENT_TEMPLATE.trim()
-  }
-
-  /** ****************************************************************************
-   *
-   * Создает дополнение к коду, устанавливающее цвет объекта по индексу цвета.
    *
    * @remarks
-   * Т.к. шейдер не позволяет использовать в качестве индексов переменные - для задания цвета используется
-   * последовательный перебор цветовых индексов.
-   *
-   * @returns Код дополнения.
+   * В шаблон вершинного шейдера вставляется код выбора цвета объекта по индексу цвета. Т.к.шейдер не позволяет
+   * использовать в качестве индексов переменные - для задания цвета используется последовательный перебор цветовых
+   * индексов.
    */
-  protected makeColorSource(): string {
+  private makeVertShaderSource() {
 
     /** Временное добавление в палитру вершин цвета направляющих. */
     this.splot.colors.push(this.splot.grid.rulesColor!)
 
     let code: string = ''
 
-    /** Формировние кода установки цвета по индексу. */
+    /** Формировние кода установки цвета объекта по индексу. */
     this.splot.colors.forEach((value, index) => {
       let [r, g, b] = colorFromHexToGlRgb(value)
       code += `else if (a_color == ${index}.0) v_color = vec3(${r}, ${g}, ${b});\n`
@@ -71,6 +57,27 @@ export default class SPlotGlsl implements SPlotHelper {
     this.splot.colors.pop()
 
     /** Удаление лишнего "else" в начале кода. */
-    return code.slice(5)
+    code = code.slice(5)
+
+    return shaders.VERTEX_TEMPLATE.replace('{COLOR-CODE}', code).trim()
+  }
+
+  /** ****************************************************************************
+   *
+   * Создает код фрагментного шейдера.
+   */
+  private makeFragShaderSource() {
+
+    let code: string = ''
+
+    /** Формировние кода установки формы объекта по индексу. */
+    shaders.SHAPES.forEach((value, index) => {
+      code += `else if (v_shape == ${index}.0) {\n ${value.trim()}\n} `
+    })
+
+    /** Удаление лишнего "else" в начале кода. */
+    code = code.slice(5)
+
+    return shaders.FRAGMENT_TEMPLATE.replace('{SHAPE-CODE}', code).trim()
   }
 }

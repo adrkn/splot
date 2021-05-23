@@ -14,23 +14,38 @@ void main() {
   {COLOR-CODE}
 }
 `
+
 export const FRAGMENT_TEMPLATE =
 `
 precision lowp float;
 varying vec3 v_color;
 varying float v_shape;
 void main() {
-  if (v_shape == 0.0) {
-    if (length(gl_PointCoord - 0.5) > 0.5) { discard; };
-  } else if (v_shape == 1.0) {
-
-  } else if (v_shape == 2.0) {
-    if ( ((gl_PointCoord.x < 0.3) && (gl_PointCoord.y < 0.3)) ||
-      ((gl_PointCoord.x > 0.7) && (gl_PointCoord.y < 0.3)) ||
-      ((gl_PointCoord.x > 0.7) && (gl_PointCoord.y > 0.7)) ||
-      ((gl_PointCoord.x < 0.3) && (gl_PointCoord.y > 0.7)) )
-      { discard; };
-  }
+  {SHAPE-CODE}
   gl_FragColor = vec4(v_color.rgb, 1.0);
 }
+`
+
+export const SHAPES: string[] = []
+
+SHAPES[0] =
+``
+
+SHAPES[1] =
+`
+if (length(gl_PointCoord - 0.5) > 0.5) {
+  discard;
+};
+`
+
+SHAPES[2] =
+`
+if (
+  ((gl_PointCoord.x < 0.3) && (gl_PointCoord.y < 0.3)) ||
+  ((gl_PointCoord.x > 0.7) && (gl_PointCoord.y < 0.3)) ||
+  ((gl_PointCoord.x > 0.7) && (gl_PointCoord.y > 0.7)) ||
+  ((gl_PointCoord.x < 0.3) && (gl_PointCoord.y > 0.7))
+  ) {
+    discard;
+};
 `

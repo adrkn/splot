@@ -1,5 +1,4 @@
-import { copyMatchingKeyValues, colorFromHexToGlRgb } from './utils'
-import SHADER_CODE_FRAG_TMPL from './shader-code-frag-tmpl'
+import { copyMatchingKeyValues } from './utils'
 import SPlotContol from './splot-control'
 import SPlotWebGl from './splot-webgl'
 import SPlotDebug from './splot-debug'
@@ -57,8 +56,8 @@ export default class SPlot {
   /** Признак необходимости безотлагательного запуска рендера. */
   public isRunning: boolean = false
 
-  /** Количество различных форм объектов. */
-  public shapesCount: number = 3
+  /** Количество различных форм объектов. Вычисляется позже в хелпере glsl. */
+  public shapesCount: number | undefined
 
   /** Статистическая информация. */
   public stats = {
@@ -132,7 +131,7 @@ export default class SPlot {
 
     this.debug.log('intro')
 
-    /** Подготовка всех хелперов. */
+    /** Подготовка всех хелперов. Последовательность подготовки имеет значение. */
     this.debug.setup()
     this.glsl.setup()
     this.webgl.setup()

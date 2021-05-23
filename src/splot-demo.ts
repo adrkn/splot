@@ -59,7 +59,7 @@ export default class SPlotDemo implements SPlotHelper {
       return {
         x: randomInt(this.splot.grid.width!),
         y: randomInt(this.splot.grid.height!),
-        shape: randomInt(this.splot.shapesCount),
+        shape: randomInt(this.splot.shapesCount!),
         size: this.sizeMin + randomInt(this.sizeMax - this.sizeMin + 1),
         color: randomInt(this.colors.length)
       }
