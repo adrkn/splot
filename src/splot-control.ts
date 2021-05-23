@@ -6,7 +6,7 @@ import * as m3 from './math3x3'
  * Класс-хелпер, реализующий обработку средств ввода (мыши, трекпада и т.п.) и математические расчеты технических данных,
  * соответсвующих трансформациям графика для класса Splot.
  */
-export default class SPlotContol {
+export default class SPlotContol implements SPlotHelper {
 
   /** Техническая информация, используемая приложением для расчета трансформаций. */
   public transform: SPlotTransform = {
@@ -26,7 +26,7 @@ export default class SPlotContol {
 
   /** Хелпер будет иметь полный доступ к экземпляру SPlot. */
   constructor(
-    private readonly splot: SPlot
+    readonly splot: SPlot
   ) { }
 
   /** ****************************************************************************

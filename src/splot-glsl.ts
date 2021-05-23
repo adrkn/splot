@@ -5,7 +5,7 @@ import { colorFromHexToGlRgb } from './utils'
  *
  * Класс-хелпер, управляющий GLSL-кодом шейдеров.
  */
-export default class SPlotGlsl {
+export default class SPlotGlsl implements SPlotHelper {
 
   /** Коды шейдеров. */
   public vertex: string = ''
@@ -13,7 +13,7 @@ export default class SPlotGlsl {
 
   /** Хелпер будет иметь полный доступ к экземпляру SPlot. */
   constructor(
-    private readonly splot: SPlot
+    readonly splot: SPlot
   ) {}
 
   /** ****************************************************************************

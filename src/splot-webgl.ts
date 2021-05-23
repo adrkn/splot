@@ -5,7 +5,7 @@ import { colorFromHexToGlRgb } from './utils'
  *
  * Класс-хелпер, реализующий управление контекстом рендеринга WebGL класса Splot.
  */
-export default class SPlotWebGl {
+export default class SPlotWebGl implements SPlotHelper {
 
   /** Параметры инициализации контекста рендеринга WebGL. */
   public alpha: boolean = false
@@ -42,7 +42,7 @@ export default class SPlotWebGl {
 
   /** Хелпер будет иметь полный доступ к экземпляру SPlot. */
   constructor(
-    private readonly splot: SPlot
+    readonly splot: SPlot
   ) { }
 
   /** ****************************************************************************

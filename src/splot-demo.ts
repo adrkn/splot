@@ -5,7 +5,7 @@ import { randomInt } from './utils'
  *
  * Класс-хелпер, реализующий поддержку режима демонстрационных данных для класса SPlot.
  */
-export default class SPlotDemo {
+export default class SPlotDemo implements SPlotHelper {
 
   /** Признак активации демо-режима. */
   public isEnable: boolean = false
@@ -30,7 +30,7 @@ export default class SPlotDemo {
 
   /** Хелпер будет иметь полный доступ к экземпляру SPlot. */
   constructor(
-    private readonly splot: SPlot
+    readonly splot: SPlot
   ) {}
 
   /** ****************************************************************************
