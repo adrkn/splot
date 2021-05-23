@@ -56,10 +56,10 @@ export default class SPlotGlsl implements SPlotHelper {
     /** Удаление из палитры вершин временно добавленного цвета направляющих. */
     this.splot.colors.pop()
 
-    /** Удаление лишнего "else" в начале кода. */
-    code = code.slice(5)
+    /** Удаление лишнего "else" в начале кода и лишнего перевода строки в конце. */
+    code = code.slice(5).slice(0, -1)
 
-    return shaders.VERTEX_TEMPLATE.replace('{COLOR-CODE}', code).trim()
+    return shaders.VERTEX_TEMPLATE.replace('{COLOR-SELECTION}', code).trim()
   }
 
   /** ****************************************************************************
@@ -68,16 +68,27 @@ export default class SPlotGlsl implements SPlotHelper {
    */
   private makeFragShaderSource() {
 
-    let code: string = ''
+    let code1: string = ''
+    let code2: string = ''
 
-    /** Формировние кода установки формы объекта по индексу. */
     shaders.SHAPES.forEach((value, index) => {
-      code += `else if (v_shape == ${index}.0) {\n ${value.trim()}\n} `
+
+      /** Формирование кода функций, описывающих формы объектов. */
+      code1 += `void s${index}() { ${value.trim()} }\n`
+
+      /** Формирование кода установки формы объекта по индексу. */
+      code2 += `else if (v_shape == ${index}.0) { s${index}();}\n`
     })
 
-    /** Удаление лишнего "else" в начале кода. */
-    code = code.slice(5)
+    /** Удаление лишнего перевода строки в конце. */
+    code1 = code1.slice(0, -1)
 
-    return shaders.FRAGMENT_TEMPLATE.replace('{SHAPE-CODE}', code).trim()
+    /** Удаление лишнего "else" в начале кода и лишнего перевода строки в конце. */
+    code2 = code2.slice(5).slice(0, -1)
+
+    return shaders.FRAGMENT_TEMPLATE.
+      replace('{SHAPES-FUNCTIONS}', code1).
+      replace('{SHAPE-SELECTION}', code2).
+      trim()
   }
 }
