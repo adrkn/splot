@@ -30,24 +30,37 @@ void main() {
 
 export const SHAPES: string[] = []
 
-SHAPES[0] =
+SHAPES[0] =  // Квадрат
 `
 `
 
-SHAPES[1] =
+SHAPES[1] =  // Круг
 `
-if (length(gl_PointCoord - 0.5) > 0.5) {
-  discard;
-};
+if (length(gl_PointCoord - 0.5) > 0.5) discard;
 `
 
-SHAPES[2] =
+SHAPES[2] =  // Крест
 `
 if ((all(lessThan(gl_PointCoord, vec2(0.3)))) ||
-   ((gl_PointCoord.x > 0.7) && (gl_PointCoord.y < 0.3)) ||
-   (all(greaterThan(gl_PointCoord, vec2(0.7)))) ||
-   ((gl_PointCoord.x < 0.3) && (gl_PointCoord.y > 0.7))
-   ) {
-    discard;
-};
+  ((gl_PointCoord.x > 0.7) && (gl_PointCoord.y < 0.3)) ||
+  (all(greaterThan(gl_PointCoord, vec2(0.7)))) ||
+  ((gl_PointCoord.x < 0.3) && (gl_PointCoord.y > 0.7))
+  ) discard;
+`
+
+SHAPES[3] =  // Треугольник
+`
+vec2 pos = vec2(gl_PointCoord.x, gl_PointCoord.y - 0.1) - 0.5;
+float a = atan(pos.x, pos.y) + 2.09439510239;
+if (step(0.285, cos(floor(0.5 + a / 2.09439510239) * 2.09439510239 - a) * length(pos)) > 0.9) discard;
+`
+
+SHAPES[4] =  // Шестеренка
+`
+vec2 pos = vec2(0.5) - gl_PointCoord;
+float r = length(pos) * 1.62;
+float a = atan(pos.y, pos.x);
+float f = cos(a * 3.0);
+f = step(0.0, cos(a * 10.0)) * 0.2 + 0.5;
+if ( step(f, r) > 0.5 ) discard;
 `
