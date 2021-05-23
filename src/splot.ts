@@ -79,7 +79,7 @@ export default class SPlot {
   protected control: SPlotContol = new SPlotContol(this)
 
   /** Признак того, что экземпляр класса был корректно подготовлен к рендеру. */
-  private isSPlotSetuped: boolean = false
+  private isSetuped: boolean = false
 
   /** ****************************************************************************
    *
@@ -122,7 +122,7 @@ export default class SPlot {
   public setup(options: SPlotOptions = {}): void {
 
     /** Признак того, что экземпляр как минимум один раз выполнил метод setup. */
-    this.isSPlotSetuped = true
+    this.isSetuped = true
 
     /** Применение пользовательских настроек. */
     copyMatchingKeyValues(this, options)
@@ -252,11 +252,11 @@ export default class SPlot {
      *  Пользователь мог настроить экземпляр в конструкторе и сразу запустить рендер, в таком случае метод setup
      *  будет вызывается неявно.
      */
-    if (!this.isSPlotSetuped) {
+    if (!this.isSetuped) {
       this.setup()
     }
 
-    /** Проверки коррекстности настроечных параметров экземпляра. */
+    /** Набор проверок коррекстности настройки экземпляра. */
     if (!this.iterator) {
       throw new Error('Экземпляр класса SPlot настроен некорректно!')
     }
