@@ -12,6 +12,9 @@ export default class SPlotGlsl implements SPlotHelper {
   public vertShaderSource: string = ''
   public fragShaderSource: string = ''
 
+  /** Признак того, что хелпер уже настроен. */
+  public isSetuped: boolean = false
+
   /** Хелпер будет иметь полный доступ к экземпляру SPlot. */
   constructor(
     readonly splot: SPlot
@@ -23,12 +26,17 @@ export default class SPlotGlsl implements SPlotHelper {
    */
   public setup(): void {
 
-    /** Сборка кодов шейдеров. */
-    this.vertShaderSource = this.makeVertShaderSource()
-    this.fragShaderSource = this.makeFragShaderSource()
+    if (!this.isSetuped) {
 
-    /** Вычисление количества различных форм объектов. */
-    this.splot.shapesCount = shaders.SHAPES.length
+      /** Сборка кодов шейдеров. */
+      this.vertShaderSource = this.makeVertShaderSource()
+      this.fragShaderSource = this.makeFragShaderSource()
+
+      /** Вычисление количества различных форм объектов. */
+      this.splot.shapesCount = shaders.SHAPES.length
+
+      this.isSetuped = true
+    }
   }
 
   /** ****************************************************************************

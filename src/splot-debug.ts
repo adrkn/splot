@@ -16,6 +16,9 @@ export default class SPlotDebug implements SPlotHelper {
   /** Стиль заголовка группы параметров. */
   public groupStyle: string = 'font-weight: bold; color: #ffffff;'
 
+  /** Признак того, что хелпер уже настроен. */
+  public isSetuped: boolean = false
+
   /** Хелпер будет иметь полный доступ к экземпляру SPlot. */
   constructor(
     readonly splot: SPlot
@@ -26,8 +29,14 @@ export default class SPlotDebug implements SPlotHelper {
    * Подготавливает хелпер к использованию.
    */
   public setup(clearConsole: boolean = false): void {
-    if (clearConsole) {
-      console.clear()
+
+    if (!this.isSetuped) {
+
+      if (clearConsole) {
+        console.clear()
+      }
+
+      this.isSetuped = true
     }
   }
 

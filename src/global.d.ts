@@ -116,9 +116,11 @@ interface SPlotTransform {
  * пользовательская логика скаттерплота. Хелперы имеют доступ как к экземпляру SPlot, так через него и друг к другу.
  *
  * @param splot - Экземпляр класса SPlot, к которому привязан хелпер.
+ * @param isSetuped - Признак того, что все необходимые параметры хелпера уже установлены.
  * @param setup - Метод установки всех необходимых параметров хелпера.
  */
 interface SPlotHelper {
   readonly splot: SPlot
+  isSetuped: boolean
   setup(): void
 }

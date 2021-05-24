@@ -18,6 +18,9 @@ export default class SPlotContol implements SPlotHelper {
     startMousePos: []
   }
 
+  /** Признак того, что хелпер уже настроен. */
+  public isSetuped: boolean = false
+
   /** Обработчики событий с закрепленными контекстами. */
   protected handleMouseDownWithContext: EventListener = this.handleMouseDown.bind(this) as EventListener
   protected handleMouseWheelWithContext: EventListener = this.handleMouseWheel.bind(this) as EventListener
@@ -34,7 +37,9 @@ export default class SPlotContol implements SPlotHelper {
    * Подготавливает хелпер к использованию.
    */
   setup(): void {
-
+    if (!this.isSetuped) {
+      this.isSetuped = true
+    }
   }
 
   /** ****************************************************************************

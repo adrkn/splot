@@ -25,6 +25,9 @@ export default class SPlotDemo implements SPlotHelper {
     '#228B22', '#90EE90', '#4169E1', '#00BFFF', '#8B4513', '#00CED1'
   ]
 
+  /** Признак того, что хелпер уже настроен. */
+  public isSetuped: boolean = false
+
   /** Счетчик итерируемых объектов. */
   private index: number = 0
 
@@ -38,6 +41,11 @@ export default class SPlotDemo implements SPlotHelper {
    * Подготавливает хелпер к использованию.
    */
   public setup(): void {
+
+    /** Хелпер демо-режима выполняет настройку всех своих параметров даже если она уже выполнялась. */
+    if (!this.isSetuped) {
+      this.isSetuped = true
+    }
 
     /** Обнуление счетчика итератора. */
     this.index = 0

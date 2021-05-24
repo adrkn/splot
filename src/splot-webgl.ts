@@ -31,6 +31,9 @@ export default class SPlotWebGl implements SPlotHelper {
   /** Буферы видеопамяти WebGL. */
   public data: Map < string, {buffers: WebGLBuffer[], type: number} > = new Map()
 
+  /** Признак того, что хелпер уже настроен. */
+  public isSetuped: boolean = false
+
   /** Правила соответствия типов типизированных массивов и типов переменных WebGL. */
   private glNumberTypes: Map<string, number> = new Map([
     ['Int8Array', 0x1400],       // gl.BYTE
@@ -51,28 +54,39 @@ export default class SPlotWebGl implements SPlotHelper {
    */
   public setup(): void {
 
-    this.gl = this.splot.canvas.getContext('webgl', {
-      alpha: this.alpha,
-      depth: this.depth,
-      stencil: this.stencil,
-      antialias: this.antialias,
-      desynchronized: this.desynchronized,
-      premultipliedAlpha: this.premultipliedAlpha,
-      preserveDrawingBuffer: this.preserveDrawingBuffer,
-      failIfMajorPerformanceCaveat: this.failIfMajorPerformanceCaveat,
-      powerPreference: this.powerPreference
-    })!
+    /** Часть параметров хелпера WebGL инициализируется только один раз. */
+    if (!this.isSetuped) {
 
-    if (this.gl === null) {
-      throw new Error('Ошибка создания контекста рендеринга WebGL!')
+      this.gl = this.splot.canvas.getContext('webgl', {
+        alpha: this.alpha,
+        depth: this.depth,
+        stencil: this.stencil,
+        antialias: this.antialias,
+        desynchronized: this.desynchronized,
+        premultipliedAlpha: this.premultipliedAlpha,
+        preserveDrawingBuffer: this.preserveDrawingBuffer,
+        failIfMajorPerformanceCaveat: this.failIfMajorPerformanceCaveat,
+        powerPreference: this.powerPreference
+      })!
+
+      if (this.gl === null) {
+        throw new Error('Ошибка создания контекста рендеринга WebGL!')
+      }
+
+      /** Получение информации о графической системе клиента. */
+      let ext = this.gl.getExtension('WEBGL_debug_renderer_info')
+      this.gpu.hardware = (ext) ? this.gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '[неизвестно]'
+      this.gpu.software = this.gl.getParameter(this.gl.VERSION)
+
+      this.splot.debug.log('gpu')
+
+      /** Создание программы WebGL. */
+      this.createProgram(this.splot.glsl.vertShaderSource, this.splot.glsl.fragShaderSource)
+
+      this.isSetuped = true
     }
 
-    /** Получение информации о графической системе клиента. */
-    let ext = this.gl.getExtension('WEBGL_debug_renderer_info')
-    this.gpu.hardware = (ext) ? this.gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '[неизвестно]'
-    this.gpu.software = this.gl.getParameter(this.gl.VERSION)
-
-    this.splot.debug.log('gpu')
+    /** Другая часть параметров хелпера WebGL инициализируется при каждом вызове метода setup. */
 
     /** Кооректировка размера области просмотра. */
     this.splot.canvas.width = this.splot.canvas.clientWidth
@@ -87,9 +101,6 @@ export default class SPlotWebGl implements SPlotHelper {
 
     /** Установка фонового цвета канваса (цвет очистки контекста рендеринга). */
     this.setBgColor(this.splot.grid.bgColor!)
-
-    /** Создание программы WebGL. */
-    this.createProgram(this.splot.glsl.vertShaderSource, this.splot.glsl.fragShaderSource)
   }
 
   /** ****************************************************************************

@@ -53,6 +53,9 @@ export default class SPlot {
     zoom: 1
   }
 
+  /** Признак необходимости загрузки данных об объектах. */
+  public loadData: boolean = true
+
   /** Признак необходимости безотлагательного запуска рендера. */
   public isRunning: boolean = false
 
@@ -119,15 +122,9 @@ export default class SPlot {
    */
   public setup( options: SPlotOptions = {} ): void {
 
-    /** Признак того, что экземпляр как минимум один раз выполнил метод setup. */
-    this.isSetuped = true
-
     /** Применение пользовательских настроек. */
     copyMatchingKeyValues(this, options)
     this.lastRequestedOptions = options
-
-    /** Проверка корректности настройки экземпляра. */
-    this.checkSetup()
 
     this.debug.log('intro')
 
@@ -140,11 +137,26 @@ export default class SPlot {
 
     this.debug.log('instance')
 
-    /** Создание переменных WebGl. */
-    this.webgl.createVariables('a_position', 'a_color', 'a_size', 'a_shape', 'u_matrix')
-
     /** Обработка всех данных об объектах и их загрузка в буферы видеопамяти. */
-    this.loadData()
+    if (this.loadData) {
+      this.createObjects()
+
+      /** По умолчанию при повторном вызове метода setup новое чтение объектов не производится. */
+      this.loadData = false
+    }
+
+    /** Действия, которые выполняются только при первом вызове метода setup. */
+    if (!this.isSetuped) {
+
+      /** Создание переменных WebGl. */
+      this.webgl.createVariables('a_position', 'a_color', 'a_size', 'a_shape', 'u_matrix')
+
+      /** Признак того, что экземпляр как минимум один раз выполнил метод setup. */
+      this.isSetuped = true
+    }
+
+    /** Проверка корректности настройки экземпляра. */
+    this.checkSetup()
 
     if (this.forceRun) {
       /** Форсированный запуск рендеринга (если требуется). */
@@ -156,7 +168,7 @@ export default class SPlot {
    *
    * Создает и заполняет данными обо всех объектах буферы WebGL.
    */
-  protected loadData(): void {
+  protected createObjects(): void {
 
     this.debug.log('loading')
 
