@@ -18,7 +18,7 @@ function readNextObject() {
       x: randomInt(width),
       y: randomInt(height),
       shape: randomInt(5),
-      size: 30,
+      size: 10 + randomInt(21),
       color: randomInt(colors.length)
     }
   } else {
