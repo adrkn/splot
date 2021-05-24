@@ -1,4 +1,3 @@
-import { randomInt } from '@/utils'
 import SPlot from '@/splot'
 import '@/style'
 
@@ -27,6 +26,10 @@ function readNextObject() {
   }
 }
 
+function randomInt(range) {
+  return Math.floor(Math.random() * range)
+}
+
 /** ************************************************************************* */
 
 let scatterPlot = new SPlot('canvas1')
@@ -47,5 +50,3 @@ scatterPlot.setup({
 })
 
 scatterPlot.run()
-
-//setTimeout(() => scatterPlot.stop(), 3000)
