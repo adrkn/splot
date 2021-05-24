@@ -46,6 +46,9 @@ scatterPlot.setup({
   },
   demo: {
     isEnable: false
+  },
+  webgl: {
+    failIfMajorPerformanceCaveat: true
   }
 })
 
