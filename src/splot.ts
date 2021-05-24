@@ -1,9 +1,9 @@
-import { copyMatchingKeyValues } from './utils'
-import SPlotContol from './splot-control'
-import SPlotWebGl from './splot-webgl'
-import SPlotDebug from './splot-debug'
-import SPlotDemo from './splot-demo'
-import SPlotGlsl from './splot-glsl'
+import { copyMatchingKeyValues } from '@/utils'
+import SPlotContol from '@/splot-control'
+import SPlotWebGl from '@/splot-webgl'
+import SPlotDebug from '@/splot-debug'
+import SPlotDemo from '@/splot-demo'
+import SPlotGlsl from '@/splot-glsl'
 
 /** ****************************************************************************
  *

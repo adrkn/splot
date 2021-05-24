@@ -1,5 +1,5 @@
-import SPlot from './splot'
-import * as m3 from './math3x3'
+import SPlot from '@/splot'
+import * as m3 from '@/math3x3'
 
 /** ****************************************************************************
  *

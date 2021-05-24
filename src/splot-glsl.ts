@@ -1,6 +1,6 @@
-import SPlot from './splot'
-import * as shaders from './shaders'
-import { colorFromHexToGlRgb } from './utils'
+import SPlot from '@/splot'
+import * as shaders from '@/shaders'
+import { colorFromHexToGlRgb } from '@/utils'
 
 /** ****************************************************************************
  *

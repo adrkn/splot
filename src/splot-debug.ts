@@ -1,5 +1,5 @@
-import SPlot from './splot'
-import { getCurrentTime } from './utils'
+import SPlot from '@/splot'
+import { getCurrentTime } from '@/utils'
 
 /** ****************************************************************************
  *

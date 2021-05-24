@@ -1,5 +1,5 @@
-import SPlot from './splot'
-import { colorFromHexToGlRgb } from './utils'
+import SPlot from '@/splot'
+import { colorFromHexToGlRgb } from '@/utils'
 
 /** ****************************************************************************
  *
