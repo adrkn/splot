@@ -120,7 +120,9 @@ export default class SPlot {
    *
    * @param options - Настройки экземпляра.
    */
-  public setup( options: SPlotOptions = {} ): void {
+  public setup(options?: SPlotOptions): void {
+
+    if (!options) options = {}
 
     /** Применение пользовательских настроек. */
     copyMatchingKeyValues(this, options)
