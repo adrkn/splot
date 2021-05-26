@@ -184,13 +184,17 @@ export default class SPlot {
     while (!isObjectEnds) {
 
       object = this.iterator!()
+
       isObjectEnds = (object === null) || (this.stats.objTotalCount >= this.globalLimit)
 
       if (!isObjectEnds) {
-        groups.vertices.push(object!.x, object!.y)
-        groups.shapes.push(object!.shape)
-        groups.sizes.push(object!.size)
-        groups.colors.push(object!.color)
+
+        object = this.checkObject(object!)
+
+        groups.vertices.push(object.x, object.y)
+        groups.shapes.push(object.shape)
+        groups.sizes.push(object.size)
+        groups.colors.push(object.color)
         this.stats.objTotalCount++
         i++
       }
@@ -214,6 +218,25 @@ export default class SPlot {
     }
 
     this.debug.log('loaded')
+  }
+
+  /** ****************************************************************************
+   *
+   * Проверяет корректность параметров объекта и в случае необходимости вносит в них изменения.
+   */
+  checkObject(object: SPlotObject): SPlotObject {
+
+    /** Проверка корректности расположения объекта. */
+    if (object.x > this.grid.width!) object.x = this.grid.width!
+    if (object.y > this.grid.height!) object.y = this.grid.height!
+    if (object.x < 0) object.x = 0
+    if (object.y < 0) object.y = 0
+
+    /** Проверка корректности формы и цвета объекта объекта. */
+    if ((object.shape >= this.shapesCount!) || (object.shape < 0)) object.shape = 0
+    if ((object.color >= this.colors.length) || (object.color < 0)) object.color = 0
+
+    return object
   }
 
   /** ****************************************************************************
