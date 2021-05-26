@@ -104,10 +104,7 @@ interface SPlotTransform {
   startInvViewProjMat: number[],
   startCamera: SPlotCamera,
   startPos: number[],
-  startClipPos: number[],
-  startMousePos: number[]
 }
-
 
 /** ****************************************************************************
  *
