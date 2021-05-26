@@ -141,7 +141,7 @@ export default class SPlot {
 
     /** Обработка всех данных об объектах и их загрузка в буферы видеопамяти. */
     if (this.loadData) {
-      this.createObjects()
+      this.load()
 
       /** По умолчанию при повторном вызове метода setup новое чтение объектов не производится. */
       this.loadData = false
@@ -170,7 +170,7 @@ export default class SPlot {
    *
    * Создает и заполняет данными обо всех объектах буферы WebGL.
    */
-  protected createObjects(): void {
+  protected load(): void {
 
     this.debug.log('loading')
 
