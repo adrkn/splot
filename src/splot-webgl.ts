@@ -26,13 +26,15 @@ export default class SPlotWebGl implements SPlotHelper {
   private gpuProgram!: WebGLProgram
 
   /** Переменные для связи приложения с программой WebGL. */
-  private variables: Map < string, any > = new Map()
-
-  /** Буферы видеопамяти WebGL. */
-  public data: Map < string, {buffers: WebGLBuffer[], type: number} > = new Map()
+  private variables: Map<string, any> = new Map()
 
   /** Признак того, что хелпер уже настроен. */
   public isSetuped: boolean = false
+
+  /** Буферы видеопамяти WebGL. */
+  public data: any[] = []
+
+  private groupType: number[] = []
 
   /** Правила соответствия типов типизированных массивов и типов переменных WebGL. */
   private glNumberTypes: Map<string, number> = new Map([
@@ -101,6 +103,20 @@ export default class SPlotWebGl implements SPlotHelper {
 
     /** Установка фонового цвета канваса (цвет очистки контекста рендеринга). */
     this.setBgColor(this.splot.grid.bgColor!)
+  }
+
+  clearData() {
+
+    for (let dx = 0; dx < this.splot.area.dxCount; dx++) {
+      this.data[dx] = []
+      for (let dy = 0; dy < this.splot.area.dyCount; dy++) {
+        this.data[dx][dy] = []
+        for (let dz = 0; dz < this.splot.area.groups[dx][dy].length; dz++) {
+          this.data[dx][dy][dz] = []
+        }
+      }
+    }
+
   }
 
   /** ****************************************************************************
@@ -221,22 +237,21 @@ export default class SPlotWebGl implements SPlotHelper {
    * GLSL-тип. Тип группы определяется автоматически на основе типа типизированного массива. Правила соответствия типов
    * определяются переменной {@link glNumberTypes}.
    *
-   * @param groupName - Название группы буферов, в которую будет добавлен новый буфер.
+   * @param groupCode - Название группы буферов, в которую будет добавлен новый буфер.
+   * @param dx - Горизонтальный индекс буферной группы.
+   * @param dy - Вертикальный индекс буферной группы.
    * @param data - Данные в виде типизированного массива для записи в создаваемый буфер.
    * @returns Объем памяти, занятый новым буфером (в байтах).
    */
-  public createBuffer(groupName: string, data: TypedArray): number {
+  public createBuffer(dx: number, dy: number, dz: number, groupCode: number, data: TypedArray): number {
 
     const buffer = this.gl.createBuffer()!
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
     this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW)
 
-    /** Если группы с указанным названием не существует, то она создается. */
-    if (!this.data.has(groupName)) {
-      this.data.set(groupName, { buffers: [], type: this.glNumberTypes.get(data.constructor.name)!})
-    }
+    this.data[dx][dy][dz][groupCode] = buffer
 
-    this.data.get(groupName)!.buffers.push(buffer)
+    this.groupType[groupCode] = this.glNumberTypes.get(data.constructor.name)!
 
     return data.length * data.BYTES_PER_ELEMENT
   }
@@ -257,21 +272,22 @@ export default class SPlotWebGl implements SPlotHelper {
    *
    * Делает буфер WebGl "активным".
    *
-   * @param groupName - Название группы буферов, в котором хранится необходимый буфер.
-   * @param index - Индекс буфера в группе.
+   * @param groupCode - Название группы буферов, в котором хранится необходимый буфер.
+   * @param dx - Горизонтальный индекс буферной группы.
+   * @param dy - Вертикальный индекс буферной группы.
+   * @param dz - Глубинный индекс буфера в группе.
    * @param varName - Имя переменной (из массива {@link variables}), с которой будет связан буфер.
    * @param size - Количество элементов в буфере, соответствующих одной  GL-вершине.
    * @param stride - Размер шага обработки элементов буфера (значение 0 задает размещение элементов друг за другом).
    * @param offset - Смещение относительно начала буфера, начиная с которого будет происходить обработка элементов.
    */
-  public setBuffer(groupName: string, index: number, varName: string, size: number, stride: number, offset: number): void {
+  public setBuffer(dx: number, dy: number, dz: number, groupCode: number, varName: string, size: number, stride: number, offset: number): void {
 
-    const group = this.data.get(groupName)!
     const variable = this.variables.get(varName)
 
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, group.buffers[index])
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.data[dx][dy][dz][groupCode])
     this.gl.enableVertexAttribArray(variable)
-    this.gl.vertexAttribPointer(variable, size, group.type, false, stride, offset)
+    this.gl.vertexAttribPointer(variable, size, this.groupType[groupCode], false, stride, offset)
   }
 
   /** ****************************************************************************

@@ -65,7 +65,7 @@ export default class SPlot {
   /** Статистическая информация. */
   public stats = {
     objTotalCount: 0,
-    objInGroupCount: [] as number[],
+    objInGroupCount: [],
     groupsCount: 0,
     memUsage: 0
   }
@@ -81,6 +81,14 @@ export default class SPlot {
 
   /** Признак того, что экземпляр класса был корректно подготовлен к рендеру. */
   private isSetuped: boolean = false
+
+  public area = {
+    groups: [] as any[],
+    dxStep: 0,
+    dyStep: 0,
+    dxCount: 0,
+    dyCount: 0
+  }
 
   /** ****************************************************************************
    *
@@ -174,46 +182,96 @@ export default class SPlot {
 
     this.debug.log('loading')
 
-    let groups = { vertices: [] as number[], colors: [] as number[], sizes: [] as number[], shapes: [] as number[] }
-    this.stats = { objTotalCount: 0, objInGroupCount: [] as number[], groupsCount: 0, memUsage: 0 }
+    this.stats = { objTotalCount: 0, objInGroupCount: [], groupsCount: 0, memUsage: 0 }
 
-    let object: SPlotObject | null | undefined
-    let i: number = 0
+    let dx, dy, dz = 0
+    let object: SPlotObject | null
     let isObjectEnds: boolean = false
+
+    this.area.dxStep = 250.001
+    this.area.dyStep = 250.001
+    this.area.dxCount = Math.trunc(this.grid.width! / this.area.dxStep) + 1
+    this.area.dyCount = Math.trunc(this.grid.height! / this.area.dyStep) + 1
+
+    let groups: any[] = []
+
+    for (let dx = 0; dx < this.area.dxCount; dx++) {
+      groups[dx] = []
+      for (let dy = 0; dy < this.area.dyCount; dy++) {
+        groups[dx][dy] = []
+      }
+    }
 
     while (!isObjectEnds) {
 
       object = this.iterator!()
 
+      /** Объекты закончились, если итератор вернул null или если достигнут лимит числа объектов. */
       isObjectEnds = (object === null) || (this.stats.objTotalCount >= this.globalLimit)
 
       if (!isObjectEnds) {
 
         object = this.checkObject(object!)
 
-        groups.vertices.push(object.x, object.y)
-        groups.shapes.push(object.shape)
-        groups.sizes.push(object.size)
-        groups.colors.push(object.color)
+        dx = Math.trunc(object.x / this.area.dxStep)
+        dy = Math.trunc(object.y / this.area.dyStep)
+
+        if (Array.isArray(groups[dx][dy][dz])) {
+          dz = groups[dx][dy].length - 1
+          if (groups[dx][dy][dz][1].length >= this.groupLimit) {
+            dz++
+            groups[dx][dy][dz] = []
+            groups[dx][dy][dz][0] = []    // Массив вершин
+            groups[dx][dy][dz][1] = []    // Массив форм
+            groups[dx][dy][dz][2] = []    // Массив цветов
+            groups[dx][dy][dz][3] = []    // Массив размеров
+          }
+        } else {
+          dz = 0
+          groups[dx][dy][dz] = []
+          groups[dx][dy][dz][0] = []    // Массив вершин
+          groups[dx][dy][dz][1] = []    // Массив форм
+          groups[dx][dy][dz][2] = []    // Массив цветов
+          groups[dx][dy][dz][3] = []    // Массив размеров
+        }
+
+        groups[dx][dy][dz][0].push(object.x, object.y)
+        groups[dx][dy][dz][1].push(object.shape)
+        groups[dx][dy][dz][2].push(object.color)
+        groups[dx][dy][dz][3].push(object.size)
+
         this.stats.objTotalCount++
-        i++
       }
 
-      if ((i >= this.groupLimit) || isObjectEnds) {
-        this.stats.objInGroupCount[this.stats.groupsCount] = i
+      // if ((count >= this.groupLimit) || isObjectEnds) {
+      //   (this.stats.objInGroupCount[dx][dy][this.stats.groupsCount] as any) = count
+      // }
 
-        /** Создание и заполнение буферов данными о текущей группе объектов. */
-        this.stats.memUsage +=
-          this.webgl.createBuffer('vertices', new Float32Array(groups.vertices)) +
-          this.webgl.createBuffer('colors', new Uint8Array(groups.colors)) +
-          this.webgl.createBuffer('shapes', new Uint8Array(groups.shapes)) +
-          this.webgl.createBuffer('sizes', new Float32Array(groups.sizes))
-      }
+      // if ((count >= this.groupLimit) && !isObjectEnds) {
+      //   this.stats.groupsCount++
+      //   count = 0
+      //   dz++
+      //   groups[0][0][dz] = []
+      // }
+    }
 
-      if ((i >= this.groupLimit) && !isObjectEnds) {
-        this.stats.groupsCount++
-        groups = { vertices: [], colors: [], sizes: [], shapes: [] }
-        i = 0
+    this.area.groups = groups
+
+    this.webgl.clearData()
+
+    /** Итерирование и занесение данных в буферы WebGL. */
+    for (let dx = 0; dx < this.area.dxCount; dx++) {
+      for (let dy = 0; dy < this.area.dyCount; dy++) {
+        if (Array.isArray(groups[dx][dy])) {
+          for (let dz = 0; dz < groups[dx][dy].length; dz++) {
+
+            this.webgl.createBuffer(dx, dy, dz, 0, new Float32Array(groups[dx][dy][dz][0]))
+            this.webgl.createBuffer(dx, dy, dz, 1, new Uint8Array(groups[dx][dy][dz][1]))
+            this.webgl.createBuffer(dx, dy, dz, 2, new Uint8Array(groups[dx][dy][dz][2]))
+            this.webgl.createBuffer(dx, dy, dz, 3, new Float32Array(groups[dx][dy][dz][3]))
+
+          }
+        }
       }
     }
 
@@ -255,14 +313,20 @@ export default class SPlot {
     this.webgl.setVariable('u_matrix', this.control.transform.viewProjectionMat)
 
     /** Итерирование и рендеринг групп буферов WebGL. */
-    for (let i = 0; i < this.stats.groupsCount; i++) {
+    for (let dx = 0; dx < this.area.dxCount; dx++) {
+      for (let dy = 0; dy < this.area.dyCount; dy++) {
+        if (Array.isArray(this.area.groups[dx][dy])) {
+          for (let dz = 0; dz < this.area.groups[dx][dy].length; dz++) {
 
-      this.webgl.setBuffer('vertices', i, 'a_position', 2, 0, 0)
-      this.webgl.setBuffer('colors', i, 'a_color', 1, 0, 0)
-      this.webgl.setBuffer('sizes', i, 'a_size', 1, 0, 0)
-      this.webgl.setBuffer('shapes', i, 'a_shape', 1, 0, 0)
+            this.webgl.setBuffer(dx, dy, dz, 0, 'a_position', 2, 0, 0)
+            this.webgl.setBuffer(dx, dy, dz, 1, 'a_shape', 1, 0, 0)
+            this.webgl.setBuffer(dx, dy, dz, 2, 'a_color', 1, 0, 0)
+            this.webgl.setBuffer(dx, dy, dz, 3, 'a_size', 1, 0, 0)
 
-      this.webgl.drawPoints(0, this.stats.objInGroupCount[i])
+            this.webgl.drawPoints(0, this.area.groups[dx][dy][dz][1].length)
+          }
+        }
+      }
     }
   }
 
