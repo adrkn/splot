@@ -3,10 +3,8 @@ import '@/style'
 
 /** ************************************************************************* */
 
-let n = 1_000_000
+let n = 10_000
 let colors = ['#D81C01', '#E9967A', '#BA55D3', '#FFD700', '#FFE4B5', '#FF8C00', '#228B22', '#90EE90', '#4169E1', '#00BFFF', '#8B4513', '#00CED1']
-let width = 32_000
-let height = 16_000
 
 /** Синтетическая итерирующая функция. */
 let i = 0
@@ -14,10 +12,10 @@ function readNextObject() {
   if (i < n) {
     i++
     return {
-      x: randomInt(width),
-      y: randomInt(height),
+      x: Math.random(),
+      y: Math.random(),
       shape: randomInt(5),
-      size: 10 + randomInt(21),
+      size: 30,
       color: randomInt(colors.length)
     }
   } else {
@@ -37,10 +35,6 @@ let scatterPlot = new SPlot('canvas1')
 scatterPlot.setup({
   iterator: readNextObject,
   colors: colors,
-  grid: {
-    width: width,
-    height: height
-  },
   debug: {
     isEnable: true,
   },

@@ -22,7 +22,7 @@ export default class SPlotWebGl implements SPlotHelper {
   public gpu = { hardware: '-', software: '-' }
 
   /** Контекст рендеринга и программа WebGL. */
-  private gl!: WebGLRenderingContext
+  public gl!: WebGLRenderingContext
   private gpuProgram!: WebGLProgram
 
   /** Переменные для связи приложения с программой WebGL. */
@@ -97,8 +97,8 @@ export default class SPlotWebGl implements SPlotHelper {
 
     /** Если задан размер плоскости, но не задано положение области просмотра, то она помещается в центр плоскости. */
     if (('grid' in this.splot.lastRequestedOptions!) && !('camera' in this.splot.lastRequestedOptions)) {
-      this.splot.camera.x = this.splot.grid.width! / 2
-      this.splot.camera.y = this.splot.grid.height! / 2
+      this.splot.camera.x = 0.5
+      this.splot.camera.y = 0.5
     }
 
     /** Установка фонового цвета канваса (цвет очистки контекста рендеринга). */
@@ -106,17 +106,15 @@ export default class SPlotWebGl implements SPlotHelper {
   }
 
   clearData() {
-
-    for (let dx = 0; dx < this.splot.area.dxCount; dx++) {
+    for (let dx = 0; dx < this.splot.area.count; dx++) {
       this.data[dx] = []
-      for (let dy = 0; dy < this.splot.area.dyCount; dy++) {
+      for (let dy = 0; dy < this.splot.area.count; dy++) {
         this.data[dx][dy] = []
         for (let dz = 0; dz < this.splot.area.groups[dx][dy].length; dz++) {
           this.data[dx][dy][dz] = []
         }
       }
     }
-
   }
 
   /** ****************************************************************************
@@ -252,6 +250,10 @@ export default class SPlotWebGl implements SPlotHelper {
     this.data[dx][dy][dz][groupCode] = buffer
 
     this.groupType[groupCode] = this.glNumberTypes.get(data.constructor.name)!
+    //console.log('BUFFER_SIZE = ', this.gl.getBufferParameter(this.gl.ARRAY_BUFFER, this.gl.BUFFER_SIZE));
+
+    if (this.gl.getBufferParameter(this.gl.ARRAY_BUFFER, this.gl.BUFFER_SIZE) !== data.length * data.BYTES_PER_ELEMENT)
+      throw new Error(`${this.gl.ARRAY_BUFFER, this.gl.BUFFER_SIZE} !== ${data.length * data.BYTES_PER_ELEMENT}`)
 
     return data.length * data.BYTES_PER_ELEMENT
   }

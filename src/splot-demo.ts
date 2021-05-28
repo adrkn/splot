@@ -65,8 +65,8 @@ export default class SPlotDemo implements SPlotHelper {
     if (this.index < this.amount) {
       this.index++
       return {
-        x: randomInt(this.splot.grid.width!),
-        y: randomInt(this.splot.grid.height!),
+        x: Math.random(),
+        y: Math.random(),
         shape: randomInt(this.splot.shapesCount!),
         size: this.sizeMin + randomInt(this.sizeMax - this.sizeMin + 1),
         color: randomInt(this.colors.length)

@@ -40,17 +40,15 @@ export default class SPlot {
 
   /** Параметры координатной плоскости. */
   public grid: SPlotGrid = {
-    width: 32_000,
-    height: 16_000,
     bgColor: '#ffffff',
     rulesColor: '#c0c0c0'
   }
 
   /** Параметры области просмотра. */
   public camera: SPlotCamera = {
-    x: this.grid.width! / 2,
-    y: this.grid.height! / 2,
-    zoom: 1
+    x: 0.5,
+    y: 0.5,
+    zoom: 3000
   }
 
   /** Признак необходимости загрузки данных об объектах. */
@@ -65,7 +63,6 @@ export default class SPlot {
   /** Статистическая информация. */
   public stats = {
     objTotalCount: 0,
-    objInGroupCount: [],
     groupsCount: 0,
     memUsage: 0
   }
@@ -84,10 +81,8 @@ export default class SPlot {
 
   public area = {
     groups: [] as any[],
-    dxStep: 0,
-    dyStep: 0,
-    dxCount: 0,
-    dyCount: 0
+    step: 0,
+    count: 0
   }
 
   /** ****************************************************************************
@@ -182,22 +177,20 @@ export default class SPlot {
 
     this.debug.log('loading')
 
-    this.stats = { objTotalCount: 0, objInGroupCount: [], groupsCount: 0, memUsage: 0 }
+    this.stats = { objTotalCount: 0, groupsCount: 0, memUsage: 0 }
 
     let dx, dy, dz = 0
     let object: SPlotObject | null
     let isObjectEnds: boolean = false
 
-    this.area.dxStep = 250.001
-    this.area.dyStep = 250.001
-    this.area.dxCount = Math.trunc(this.grid.width! / this.area.dxStep) + 1
-    this.area.dyCount = Math.trunc(this.grid.height! / this.area.dyStep) + 1
+    this.area.step = 0.02
+    this.area.count = Math.trunc(1 / this.area.step) + 1
 
     let groups: any[] = []
 
-    for (let dx = 0; dx < this.area.dxCount; dx++) {
+    for (let dx = 0; dx < this.area.count; dx++) {
       groups[dx] = []
-      for (let dy = 0; dy < this.area.dyCount; dy++) {
+      for (let dy = 0; dy < this.area.count; dy++) {
         groups[dx][dy] = []
       }
     }
@@ -213,26 +206,20 @@ export default class SPlot {
 
         object = this.checkObject(object!)
 
-        dx = Math.trunc(object.x / this.area.dxStep)
-        dy = Math.trunc(object.y / this.area.dyStep)
+        dx = Math.trunc(object.x / this.area.step)
+        dy = Math.trunc(object.y / this.area.step)
 
         if (Array.isArray(groups[dx][dy][dz])) {
           dz = groups[dx][dy].length - 1
           if (groups[dx][dy][dz][1].length >= this.groupLimit) {
             dz++
             groups[dx][dy][dz] = []
-            groups[dx][dy][dz][0] = []    // Массив вершин
-            groups[dx][dy][dz][1] = []    // Массив форм
-            groups[dx][dy][dz][2] = []    // Массив цветов
-            groups[dx][dy][dz][3] = []    // Массив размеров
+            for (let i = 0; i < 4; i++) { groups[dx][dy][dz][i] = [] }
           }
         } else {
           dz = 0
           groups[dx][dy][dz] = []
-          groups[dx][dy][dz][0] = []    // Массив вершин
-          groups[dx][dy][dz][1] = []    // Массив форм
-          groups[dx][dy][dz][2] = []    // Массив цветов
-          groups[dx][dy][dz][3] = []    // Массив размеров
+          for (let i = 0; i < 4; i++) { groups[dx][dy][dz][i] = [] } // Массив: 0- вершины, 1 - формы, 2 - цвета, 3 - размеры
         }
 
         groups[dx][dy][dz][0].push(object.x, object.y)
@@ -242,17 +229,6 @@ export default class SPlot {
 
         this.stats.objTotalCount++
       }
-
-      // if ((count >= this.groupLimit) || isObjectEnds) {
-      //   (this.stats.objInGroupCount[dx][dy][this.stats.groupsCount] as any) = count
-      // }
-
-      // if ((count >= this.groupLimit) && !isObjectEnds) {
-      //   this.stats.groupsCount++
-      //   count = 0
-      //   dz++
-      //   groups[0][0][dz] = []
-      // }
     }
 
     this.area.groups = groups
@@ -260,15 +236,18 @@ export default class SPlot {
     this.webgl.clearData()
 
     /** Итерирование и занесение данных в буферы WebGL. */
-    for (let dx = 0; dx < this.area.dxCount; dx++) {
-      for (let dy = 0; dy < this.area.dyCount; dy++) {
+    for (let dx = 0; dx < this.area.count; dx++) {
+      for (let dy = 0; dy < this.area.count; dy++) {
         if (Array.isArray(groups[dx][dy])) {
           for (let dz = 0; dz < groups[dx][dy].length; dz++) {
 
-            this.webgl.createBuffer(dx, dy, dz, 0, new Float32Array(groups[dx][dy][dz][0]))
-            this.webgl.createBuffer(dx, dy, dz, 1, new Uint8Array(groups[dx][dy][dz][1]))
-            this.webgl.createBuffer(dx, dy, dz, 2, new Uint8Array(groups[dx][dy][dz][2]))
-            this.webgl.createBuffer(dx, dy, dz, 3, new Float32Array(groups[dx][dy][dz][3]))
+            this.stats.memUsage +=
+              this.webgl.createBuffer(dx, dy, dz, 0, new Float32Array(groups[dx][dy][dz][0])) +
+              this.webgl.createBuffer(dx, dy, dz, 1, new Uint8Array(groups[dx][dy][dz][1])) +
+              this.webgl.createBuffer(dx, dy, dz, 2, new Uint8Array(groups[dx][dy][dz][2])) +
+              this.webgl.createBuffer(dx, dy, dz, 3, new Uint8Array(groups[dx][dy][dz][3]))
+
+            this.stats.groupsCount += 4
 
           }
         }
@@ -285,10 +264,17 @@ export default class SPlot {
   checkObject(object: SPlotObject): SPlotObject {
 
     /** Проверка корректности расположения объекта. */
-    if (object.x > this.grid.width!) object.x = this.grid.width!
-    if (object.y > this.grid.height!) object.y = this.grid.height!
-    if (object.x < 0) object.x = 0
-    if (object.y < 0) object.y = 0
+    if (object.x > 1) {
+      object.x = 1
+    } else if (object.x < 0) {
+      object.x = 0
+    }
+
+    if (object.y > 1) {
+      object.y = 1
+    } else if (object.y < 0) {
+      object.y = 0
+    }
 
     /** Проверка корректности формы и цвета объекта объекта. */
     if ((object.shape >= this.shapesCount!) || (object.shape < 0)) object.shape = 0
@@ -313,17 +299,19 @@ export default class SPlot {
     this.webgl.setVariable('u_matrix', this.control.transform.viewProjectionMat)
 
     /** Итерирование и рендеринг групп буферов WebGL. */
-    for (let dx = 0; dx < this.area.dxCount; dx++) {
-      for (let dy = 0; dy < this.area.dyCount; dy++) {
-        if (Array.isArray(this.area.groups[dx][dy])) {
-          for (let dz = 0; dz < this.area.groups[dx][dy].length; dz++) {
+    for (let dx = 0; dx < this.area.count; dx++) {
+      for (let dy = 0; dy < this.area.count; dy++) {
+        const gr = this.area.groups[dx][dy]
+        if (Array.isArray(gr)) {
+          const gr_len = gr.length
+          for (let dz = 0; dz < gr_len; dz++) {
 
             this.webgl.setBuffer(dx, dy, dz, 0, 'a_position', 2, 0, 0)
             this.webgl.setBuffer(dx, dy, dz, 1, 'a_shape', 1, 0, 0)
             this.webgl.setBuffer(dx, dy, dz, 2, 'a_color', 1, 0, 0)
             this.webgl.setBuffer(dx, dy, dz, 3, 'a_size', 1, 0, 0)
 
-            this.webgl.drawPoints(0, this.area.groups[dx][dy][dz][1].length)
+            this.webgl.drawPoints(0, gr[dz][1].length)
           }
         }
       }

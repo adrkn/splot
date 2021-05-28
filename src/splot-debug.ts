@@ -109,7 +109,6 @@ export default class SPlotDebug implements SPlotHelper {
     console.group('%cНастройка параметров экземпляра', this.groupStyle)
     console.dir(this.splot)
     console.log('Размер канваса: ' + this.splot.canvas.width + ' x ' + this.splot.canvas.height + ' px')
-    console.log('Размер плоскости: ' + this.splot.grid.width + ' x ' + this.splot.grid.height + ' px')
 
     if (this.splot.demo.isEnable) {
       console.log('Способ получения данных: ' + 'демо-данные')
@@ -150,7 +149,9 @@ export default class SPlotDebug implements SPlotHelper {
     console.timeEnd('Длительность')
     console.log('Расход видеопамяти: ' + (this.splot.stats.memUsage / 1000000).toFixed(2).toLocaleString() + ' МБ')
     console.log('Кол-во объектов: ' + this.splot.stats.objTotalCount.toLocaleString())
-    console.log('Кол-во групп буферов: ' + this.splot.stats.groupsCount.toLocaleString())
+    console.log('Создано видеобуферов: ' + this.splot.stats.groupsCount.toLocaleString())
+    console.log(`Группировка видеобуферов: ${this.splot.area.count} x ${this.splot.area.count}`)
+    console.log(`Шаг деления на группы: ${this.splot.area.step}`)
     console.log('Результат: ' + ((this.splot.stats.objTotalCount >= this.splot.globalLimit) ?
       'достигнут лимит объектов (' + this.splot.globalLimit.toLocaleString() + ')' :
       'обработаны все объекты'))

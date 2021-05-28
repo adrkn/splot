@@ -171,7 +171,7 @@ export default class SPlotContol implements SPlotHelper {
     const newZoom = camera.zoom! * Math.pow(2, event.deltaY * -0.01)
 
     /** Максимальное и минимальное значения зума области просмотра. */
-    camera.zoom = Math.max(0.002, Math.min(200, newZoom))
+    camera.zoom = Math.max(500, Math.min(1000000, newZoom))
 
     /** Обновление матрицы трансформации. */
     this.updateViewProjection()
