@@ -16,6 +16,7 @@ type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array
  * Интерфейс - настройки приложения.
  *
  * @param iterator - Функция итерирования исходных объектов.
+ * @param data - Данные об объектах графика.
  * @param demo - Параметры демо-режима. Класс `SPlotDemo` описан в модуле {@link splot-demo}.
  * @param debug - Параметры режима отладки. Класс `SPlotDebug` описан в модуле {@link splot-debug}.
  * @param webgl - Параметры контекста рендеринга WebGL. Класс `SPlotWebGl` описан в модуле {@link splot-webgl}.
@@ -28,6 +29,7 @@ type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array
  */
 interface SPlotOptions {
   iterator?: SPlotIterator,
+  data?: SPlotObject[],
   demo?: SPlotDemo,
   debug?: SPlotDebug,
   webgl?: SPlotWebGl,

@@ -14,6 +14,9 @@ export default class SPlot {
   /** Функция итерирования исходных данных. */
   public iterator: SPlotIterator = undefined
 
+  /** Данные об объектах графика. */
+  public data: SPlotObject[] | undefined = undefined
+
   /** Хелпер режима отладки. */
   public debug: SPlotDebug = new SPlotDebug(this)
 
@@ -46,9 +49,9 @@ export default class SPlot {
 
   /** Параметры области просмотра. */
   public camera: SPlotCamera = {
-    x: 0.5,
-    y: 0.5,
-    zoom: 3000
+    x: 0,
+    y: 0,
+    zoom: 500
   }
 
   /** Признак необходимости загрузки данных об объектах. */
@@ -79,10 +82,18 @@ export default class SPlot {
   /** Признак того, что экземпляр класса был корректно подготовлен к рендеру. */
   private isSetuped: boolean = false
 
+  /** Переменная для перебора индексов массива данных data. */
+  private arrayIndex: number = 0
+
   public area = {
     groups: [] as any[],
     step: 0,
-    count: 0
+    count: 0,
+    dxVisibleFrom: 0,
+    dxVisibleTo: 0,
+    dyVisibleFrom: 0,
+    dyVisibleTo: 0,
+    dzVisibleFrom: 0
   }
 
   /** ****************************************************************************
@@ -132,6 +143,11 @@ export default class SPlot {
     this.lastRequestedOptions = options
 
     this.debug.log('intro')
+
+    if (options.data) {
+      this.iterator = this.arrayIterator
+      this.arrayIndex = 0
+    }
 
     /** Подготовка всех хелперов. Последовательность подготовки имеет значение. */
     this.debug.setup()
@@ -185,6 +201,12 @@ export default class SPlot {
 
     this.area.step = 0.02
     this.area.count = Math.trunc(1 / this.area.step) + 1
+
+    this.area.dxVisibleFrom = 0
+    this.area.dxVisibleTo = this.area.count
+    this.area.dyVisibleFrom = 0
+    this.area.dyVisibleTo = this.area.count
+    this.area.dzVisibleFrom = 0
 
     let groups: any[] = []
 
@@ -283,6 +305,26 @@ export default class SPlot {
     return object
   }
 
+  updateVisibleArea() {
+    const k = this.canvas.width / (2 * this.camera.zoom!)
+    const cameraLeft = this.camera.x!
+    const cameraRight = this.camera.x! + 2*k
+    const cameraTop = this.camera.y! - k
+    const cameraBottom = this.camera.y! + k
+
+    this.area.dxVisibleFrom = Math.trunc(cameraLeft / this.area.step)
+    this.area.dxVisibleTo = this.area.count - Math.trunc((1 - cameraRight) / this.area.step) - 1
+    this.area.dyVisibleFrom = Math.trunc(cameraTop / this.area.step)
+    this.area.dyVisibleTo = this.area.count - Math.trunc((1 - cameraBottom) / this.area.step) - 1
+
+    this.area.dzVisibleFrom = 0;
+
+    if (this.area.dxVisibleFrom < 0) this.area.dxVisibleFrom = 0
+    if (this.area.dyVisibleFrom < 0) this.area.dyVisibleFrom = 0
+    if (this.area.dxVisibleTo < 0) this.area.dxVisibleTo = 0
+    if (this.area.dyVisibleTo < 0) this.area.dyVisibleTo = 0
+  }
+
   /** ****************************************************************************
    *
    * Производит рендеринг графика в соответствии с текущими параметрами трансформации.
@@ -298,13 +340,16 @@ export default class SPlot {
     /** Привязка матрицы трансформации к переменной шейдера. */
     this.webgl.setVariable('u_matrix', this.control.transform.viewProjectionMat)
 
+    this.updateVisibleArea()
+
+    let zz = 0
     /** Итерирование и рендеринг групп буферов WebGL. */
-    for (let dx = 0; dx < this.area.count; dx++) {
-      for (let dy = 0; dy < this.area.count; dy++) {
+    for (let dx = this.area.dxVisibleFrom; dx <= this.area.dxVisibleTo; dx++) {
+      for (let dy = this.area.dyVisibleFrom; dy <= this.area.dyVisibleTo; dy++) {
         const gr = this.area.groups[dx][dy]
         if (Array.isArray(gr)) {
           const gr_len = gr.length
-          for (let dz = 0; dz < gr_len; dz++) {
+          for (let dz = this.area.dzVisibleFrom; dz < gr_len; dz++) {
 
             this.webgl.setBuffer(dx, dy, dz, 0, 'a_position', 2, 0, 0)
             this.webgl.setBuffer(dx, dy, dz, 1, 'a_shape', 1, 0, 0)
@@ -312,10 +357,16 @@ export default class SPlot {
             this.webgl.setBuffer(dx, dy, dz, 3, 'a_size', 1, 0, 0)
 
             this.webgl.drawPoints(0, gr[dz][1].length)
+
+            zz++
+            //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
           }
         }
       }
     }
+    console.log('zz = ', zz);
+    //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
+
   }
 
   /** ****************************************************************************
@@ -339,6 +390,14 @@ export default class SPlot {
     /** Набор проверок корректности настройки экземпляра. */
     if (!this.iterator) {
       throw new Error('Не задана функция итерирования объектов!')
+    }
+  }
+
+  arrayIterator() {
+    if (this.data![this.arrayIndex]) {
+      return this.data![this.arrayIndex++]
+    } else {
+      return null
     }
   }
 
