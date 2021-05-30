@@ -51,7 +51,7 @@ export default class SPlot {
   public camera: SPlotCamera = {
     x: 0,
     y: 0,
-    zoom: 500
+    zoom: 470
   }
 
   /** Признак необходимости загрузки данных об объектах. */
@@ -67,7 +67,9 @@ export default class SPlot {
   public stats = {
     objTotalCount: 0,
     groupsCount: 0,
-    memUsage: 0
+    memUsage: 0,
+    minObjectSize: 1_000_000,
+    maxObjectSize: 0,
   }
 
   /** Объект-канвас контекста рендеринга WebGL. */
@@ -166,6 +168,8 @@ export default class SPlot {
       this.loadData = false
     }
 
+    this.camera.zoom = Math.min(this.canvas.width, this.canvas.height) - this.stats.maxObjectSize
+
     /** Действия, которые выполняются только при первом вызове метода setup. */
     if (!this.isSetuped) {
 
@@ -193,7 +197,7 @@ export default class SPlot {
 
     this.debug.log('loading')
 
-    this.stats = { objTotalCount: 0, groupsCount: 0, memUsage: 0 }
+    this.stats = { objTotalCount: 0, groupsCount: 0, memUsage: 0, minObjectSize: 1_000_000, maxObjectSize: 0 }
 
     let dx, dy, dz = 0
     let object: SPlotObject | null
@@ -248,6 +252,14 @@ export default class SPlot {
         groups[dx][dy][dz][1].push(object.shape)
         groups[dx][dy][dz][2].push(object.color)
         groups[dx][dy][dz][3].push(object.size)
+
+        if (object.size > this.stats.maxObjectSize) {
+          this.stats.maxObjectSize = object.size
+        }
+
+        if (object.size < this.stats.minObjectSize) {
+          this.stats.minObjectSize = object.size
+        }
 
         this.stats.objTotalCount++
       }
@@ -306,11 +318,12 @@ export default class SPlot {
   }
 
   updateVisibleArea() {
-    const k = this.canvas.width / (2 * this.camera.zoom!)
+    const kx = this.canvas.width / (2 * this.camera.zoom!)
+    const ky = this.canvas.height / (2 * this.camera.zoom!)
     const cameraLeft = this.camera.x!
-    const cameraRight = this.camera.x! + 2*k
-    const cameraTop = this.camera.y! - k
-    const cameraBottom = this.camera.y! + k
+    const cameraRight = this.camera.x! + 2*kx
+    const cameraTop = this.camera.y! - ky
+    const cameraBottom = this.camera.y! + ky
 
     if ( (cameraLeft < 1) && (cameraRight > 0) && (cameraTop < 1) && (cameraBottom > 0) ) {
       this.area.dxVisibleFrom = (cameraLeft < 0) ? 0 : Math.trunc(cameraLeft / this.area.step)

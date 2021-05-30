@@ -147,14 +147,15 @@ export default class SPlotDebug implements SPlotHelper {
   public loaded(): void {
     console.group('%cЗагрузка данных завершена [' + getCurrentTime() + ']', this.groupStyle)
     console.timeEnd('Длительность')
+    console.log('Результат: ' + ((this.splot.stats.objTotalCount >= this.splot.globalLimit) ?
+      'достигнут лимит объектов (' + this.splot.globalLimit.toLocaleString() + ')' :
+      'обработаны все объекты'))
     console.log('Расход видеопамяти: ' + (this.splot.stats.memUsage / 1000000).toFixed(2).toLocaleString() + ' МБ')
     console.log('Кол-во объектов: ' + this.splot.stats.objTotalCount.toLocaleString())
     console.log('Создано видеобуферов: ' + this.splot.stats.groupsCount.toLocaleString())
     console.log(`Группировка видеобуферов: ${this.splot.area.count} x ${this.splot.area.count}`)
     console.log(`Шаг деления на группы: ${this.splot.area.step}`)
-    console.log('Результат: ' + ((this.splot.stats.objTotalCount >= this.splot.globalLimit) ?
-      'достигнут лимит объектов (' + this.splot.globalLimit.toLocaleString() + ')' :
-      'обработаны все объекты'))
+    console.log('Размеры объектов: min = ' + this.splot.stats.minObjectSize + '; max = ' + this.splot.stats.maxObjectSize)
     console.groupEnd()
   }
 
