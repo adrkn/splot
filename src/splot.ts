@@ -312,17 +312,20 @@ export default class SPlot {
     const cameraTop = this.camera.y! - k
     const cameraBottom = this.camera.y! + k
 
-    this.area.dxVisibleFrom = Math.trunc(cameraLeft / this.area.step)
-    this.area.dxVisibleTo = this.area.count - Math.trunc((1 - cameraRight) / this.area.step) - 1
-    this.area.dyVisibleFrom = Math.trunc(cameraTop / this.area.step)
-    this.area.dyVisibleTo = this.area.count - Math.trunc((1 - cameraBottom) / this.area.step) - 1
+    if ( (cameraLeft < 1) && (cameraRight > 0) && (cameraTop < 1) && (cameraBottom > 0) ) {
+      this.area.dxVisibleFrom = (cameraLeft < 0) ? 0 : Math.trunc(cameraLeft / this.area.step)
+      this.area.dxVisibleTo = (cameraRight > 1) ? this.area.count : this.area.count - Math.trunc((1 - cameraRight) / this.area.step)
+      this.area.dyVisibleFrom = (cameraTop < 0) ? 0 : Math.trunc(cameraTop / this.area.step)
+      this.area.dyVisibleTo = (cameraBottom > 1) ? this.area.count : this.area.count - Math.trunc((1 - cameraBottom) / this.area.step)
+
+    } else {
+      this.area.dxVisibleFrom = 1
+      this.area.dxVisibleTo = 0
+      this.area.dyVisibleFrom = 1
+      this.area.dyVisibleTo = 0
+    }
 
     this.area.dzVisibleFrom = 0;
-
-    if (this.area.dxVisibleFrom < 0) this.area.dxVisibleFrom = 0
-    if (this.area.dyVisibleFrom < 0) this.area.dyVisibleFrom = 0
-    if (this.area.dxVisibleTo < 0) this.area.dxVisibleTo = 0
-    if (this.area.dyVisibleTo < 0) this.area.dyVisibleTo = 0
   }
 
   /** ****************************************************************************
@@ -344,8 +347,8 @@ export default class SPlot {
 
     let zz = 0
     /** Итерирование и рендеринг групп буферов WebGL. */
-    for (let dx = this.area.dxVisibleFrom; dx <= this.area.dxVisibleTo; dx++) {
-      for (let dy = this.area.dyVisibleFrom; dy <= this.area.dyVisibleTo; dy++) {
+    for (let dx = this.area.dxVisibleFrom; dx < this.area.dxVisibleTo; dx++) {
+      for (let dy = this.area.dyVisibleFrom; dy < this.area.dyVisibleTo; dy++) {
         const gr = this.area.groups[dx][dy]
         if (Array.isArray(gr)) {
           const gr_len = gr.length
