@@ -69,7 +69,6 @@ export default class SPlot {
   public stats = {
     objTotalCount: 0,
     groupsCount: 0,
-    maxDepthCount: 0,
     memUsage: 0,
     minObjectSize: 1_000_000,
     maxObjectSize: 0,
@@ -98,7 +97,6 @@ export default class SPlot {
     dxVisibleTo: 0,
     dyVisibleFrom: 0,
     dyVisibleTo: 0,
-    dzVisibleFrom: 0
   }
 
   /** ****************************************************************************
@@ -202,20 +200,14 @@ export default class SPlot {
 
     this.debug.log('loading')
 
-    this.stats = { objTotalCount: 0, groupsCount: 0, maxDepthCount:0, memUsage: 0, minObjectSize: 1_000_000, maxObjectSize: 0 }
+    this.stats = { objTotalCount: 0, groupsCount: 0, memUsage: 0, minObjectSize: 1_000_000, maxObjectSize: 0 }
 
-    let dx, dy, dz = 0
+    let dx, dy = 0
     let object: SPlotObject | null
     let isObjectEnds: boolean = false
 
     this.area.step = 0.02
     this.area.count = Math.trunc(1 / this.area.step) + 1
-
-    this.area.dxVisibleFrom = 0
-    this.area.dxVisibleTo = this.area.count
-    this.area.dyVisibleFrom = 0
-    this.area.dyVisibleTo = this.area.count
-    this.area.dzVisibleFrom = 0
 
     let groups: any[] = []
 
@@ -223,6 +215,7 @@ export default class SPlot {
       groups[dx] = []
       for (let dy = 0; dy < this.area.count; dy++) {
         groups[dx][dy] = []
+        for (let i = 0; i < 4; i++) { groups[dx][dy][i] = [] }
       }
     }
 
@@ -240,23 +233,10 @@ export default class SPlot {
         dx = Math.trunc(object.x / this.area.step)
         dy = Math.trunc(object.y / this.area.step)
 
-        if (Array.isArray(groups[dx][dy][dz])) {
-          dz = groups[dx][dy].length - 1
-          if (groups[dx][dy][dz][1].length >= this.groupLimit) {
-            dz++
-            groups[dx][dy][dz] = []
-            for (let i = 0; i < 4; i++) { groups[dx][dy][dz][i] = [] }
-          }
-        } else {
-          dz = 0
-          groups[dx][dy][dz] = []
-          for (let i = 0; i < 4; i++) { groups[dx][dy][dz][i] = [] } // Массив: 0- вершины, 1 - формы, 2 - цвета, 3 - размеры
-        }
-
-        groups[dx][dy][dz][0].push(object.x, object.y)
-        groups[dx][dy][dz][1].push(object.shape)
-        groups[dx][dy][dz][2].push(object.color)
-        groups[dx][dy][dz][3].push(object.size)
+        groups[dx][dy][0].push(object.x, object.y)
+        groups[dx][dy][1].push(object.shape)
+        groups[dx][dy][2].push(object.color)
+        groups[dx][dy][3].push(object.size)
 
         if (object.size > this.stats.maxObjectSize) {
           this.stats.maxObjectSize = object.size
@@ -277,20 +257,14 @@ export default class SPlot {
     /** Итерирование и занесение данных в буферы WebGL. */
     for (let dx = 0; dx < this.area.count; dx++) {
       for (let dy = 0; dy < this.area.count; dy++) {
-        if (Array.isArray(groups[dx][dy])) {
-          for (let dz = 0; dz < groups[dx][dy].length; dz++) {
+        if (groups[dx][dy][1].length > 0) {
+          this.stats.memUsage +=
+            this.webgl.createBuffer(dx, dy, 0, new Float32Array(groups[dx][dy][0])) +
+            this.webgl.createBuffer(dx, dy, 1, new Uint8Array(groups[dx][dy][1])) +
+            this.webgl.createBuffer(dx, dy, 2, new Uint8Array(groups[dx][dy][2])) +
+            this.webgl.createBuffer(dx, dy, 3, new Uint8Array(groups[dx][dy][3]))
 
-            this.stats.memUsage +=
-              this.webgl.createBuffer(dx, dy, dz, 0, new Float32Array(groups[dx][dy][dz][0])) +
-              this.webgl.createBuffer(dx, dy, dz, 1, new Uint8Array(groups[dx][dy][dz][1])) +
-              this.webgl.createBuffer(dx, dy, dz, 2, new Uint8Array(groups[dx][dy][dz][2])) +
-              this.webgl.createBuffer(dx, dy, dz, 3, new Uint8Array(groups[dx][dy][dz][3]))
-
-            this.stats.groupsCount += 4
-            if (groups[dx][dy].length > this.stats.maxDepthCount) {
-              this.stats.maxDepthCount = groups[dx][dy].length
-            }
-          }
+          this.stats.groupsCount += 4
         }
       }
     }
@@ -344,8 +318,6 @@ export default class SPlot {
       this.area.dyVisibleFrom = 1
       this.area.dyVisibleTo = 0
     }
-
-    this.area.dzVisibleFrom = 0;
   }
 
   /** ****************************************************************************
@@ -369,21 +341,16 @@ export default class SPlot {
     /** Итерирование и рендеринг групп буферов WebGL. */
     for (let dx = this.area.dxVisibleFrom; dx < this.area.dxVisibleTo; dx++) {
       for (let dy = this.area.dyVisibleFrom; dy < this.area.dyVisibleTo; dy++) {
-        const gr = this.area.groups[dx][dy]
-        if (Array.isArray(gr)) {
-          const gr_len = gr.length
-          for (let dz = this.area.dzVisibleFrom; dz < gr_len; dz++) {
+        if (this.area.groups[dx][dy][1].length > 0) {
+          this.webgl.setBuffer(dx, dy, 0, 'a_position', 2, 0, 0)
+          this.webgl.setBuffer(dx, dy, 1, 'a_shape', 1, 0, 0)
+          this.webgl.setBuffer(dx, dy, 2, 'a_color', 1, 0, 0)
+          this.webgl.setBuffer(dx, dy, 3, 'a_size', 1, 0, 0)
 
-            this.webgl.setBuffer(dx, dy, dz, 0, 'a_position', 2, 0, 0)
-            this.webgl.setBuffer(dx, dy, dz, 1, 'a_shape', 1, 0, 0)
-            this.webgl.setBuffer(dx, dy, dz, 2, 'a_color', 1, 0, 0)
-            this.webgl.setBuffer(dx, dy, dz, 3, 'a_size', 1, 0, 0)
+          this.webgl.drawPoints(0, this.area.groups[dx][dy][1].length)
 
-            this.webgl.drawPoints(0, gr[dz][1].length)
-
-            //zz++
-            //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
-          }
+          //zz++
+          //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
         }
       }
     }

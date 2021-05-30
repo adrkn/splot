@@ -110,9 +110,6 @@ export default class SPlotWebGl implements SPlotHelper {
       this.data[dx] = []
       for (let dy = 0; dy < this.splot.area.count; dy++) {
         this.data[dx][dy] = []
-        for (let dz = 0; dz < this.splot.area.groups[dx][dy].length; dz++) {
-          this.data[dx][dy][dz] = []
-        }
       }
     }
   }
@@ -241,19 +238,16 @@ export default class SPlotWebGl implements SPlotHelper {
    * @param data - Данные в виде типизированного массива для записи в создаваемый буфер.
    * @returns Объем памяти, занятый новым буфером (в байтах).
    */
-  public createBuffer(dx: number, dy: number, dz: number, groupCode: number, data: TypedArray): number {
+  public createBuffer(dx: number, dy: number, groupCode: number, data: TypedArray): number {
 
     const buffer = this.gl.createBuffer()!
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
     this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW)
 
-    this.data[dx][dy][dz][groupCode] = buffer
+    this.data[dx][dy][groupCode] = buffer
 
     this.groupType[groupCode] = this.glNumberTypes.get(data.constructor.name)!
     //console.log('BUFFER_SIZE = ', this.gl.getBufferParameter(this.gl.ARRAY_BUFFER, this.gl.BUFFER_SIZE));
-
-    if (this.gl.getBufferParameter(this.gl.ARRAY_BUFFER, this.gl.BUFFER_SIZE) !== data.length * data.BYTES_PER_ELEMENT)
-      throw new Error(`${this.gl.ARRAY_BUFFER, this.gl.BUFFER_SIZE} !== ${data.length * data.BYTES_PER_ELEMENT}`)
 
     return data.length * data.BYTES_PER_ELEMENT
   }
@@ -277,17 +271,16 @@ export default class SPlotWebGl implements SPlotHelper {
    * @param groupCode - Название группы буферов, в котором хранится необходимый буфер.
    * @param dx - Горизонтальный индекс буферной группы.
    * @param dy - Вертикальный индекс буферной группы.
-   * @param dz - Глубинный индекс буфера в группе.
    * @param varName - Имя переменной (из массива {@link variables}), с которой будет связан буфер.
    * @param size - Количество элементов в буфере, соответствующих одной  GL-вершине.
    * @param stride - Размер шага обработки элементов буфера (значение 0 задает размещение элементов друг за другом).
    * @param offset - Смещение относительно начала буфера, начиная с которого будет происходить обработка элементов.
    */
-  public setBuffer(dx: number, dy: number, dz: number, groupCode: number, varName: string, size: number, stride: number, offset: number): void {
+  public setBuffer(dx: number, dy: number, groupCode: number, varName: string, size: number, stride: number, offset: number): void {
 
     const variable = this.variables.get(varName)
 
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.data[dx][dy][dz][groupCode])
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.data[dx][dy][groupCode])
     this.gl.enableVertexAttribArray(variable)
     this.gl.vertexAttribPointer(variable, size, this.groupType[groupCode], false, stride, offset)
   }
