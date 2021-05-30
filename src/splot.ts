@@ -320,6 +320,30 @@ export default class SPlot {
     }
   }
 
+  getVisibleObjectsParams(totalCount: number, ratio: number): number[] {
+
+    let first: number = 0
+    let count: number = 0
+
+    // TODO: Изменить алгоритм расчета отображаемых в группе объектов. Возможно ориентироваться на количество объектов
+    // на единицу площади группы.
+    if (ratio > 0.1) {
+      count = 20 / ratio
+    } else if (ratio > 0.05) {
+      count = 40 / ratio
+    } else if (ratio > 0.03) {
+      count = (totalCount - 40 / ratio) * (1 - 2 * ratio) + 40 / ratio
+    } else {
+      count = totalCount
+    }
+
+    count = Math.min(totalCount, Math.trunc(count))
+
+    first = totalCount - count
+
+    return [first, count]
+  }
+
   /** ****************************************************************************
    *
    * Производит рендеринг графика в соответствии с текущими параметрами трансформации.
@@ -337,6 +361,10 @@ export default class SPlot {
 
     this.updateVisibleArea()
 
+    const ratioObjectGroup = this.stats.minObjectSize / (this.camera.zoom! * this.area.step) // !!! max -> min
+    let first: number = 0
+    let count: number = 0
+
     //let zz = 0
     /** Итерирование и рендеринг групп буферов WebGL. */
     for (let dx = this.area.dxVisibleFrom; dx < this.area.dxVisibleTo; dx++) {
@@ -345,15 +373,18 @@ export default class SPlot {
           this.webgl.setBuffer(dx, dy, 0, 'a_position', 2, 0, 0)
           this.webgl.setBuffer(dx, dy, 1, 'a_shape', 1, 0, 0)
           this.webgl.setBuffer(dx, dy, 2, 'a_color', 1, 0, 0)
-          this.webgl.setBuffer(dx, dy, 3, 'a_size', 1, 0, 0)
+          this.webgl.setBuffer(dx, dy, 3, 'a_size', 1, 0, 0);
 
-          this.webgl.drawPoints(0, this.area.groups[dx][dy][1].length)
+          [first, count] = this.getVisibleObjectsParams(this.area.groups[dx][dy][1].length, ratioObjectGroup)
+          this.webgl.drawPoints(first, count)
 
           //zz++
           //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
         }
       }
     }
+    console.log('ratio = ' + ratioObjectGroup);
+    console.log('first = ' + first + '; count = ' + count);
     //console.log('zz = ', zz);
     //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
   }

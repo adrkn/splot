@@ -290,7 +290,7 @@ export default class SPlotWebGl implements SPlotHelper {
    * Выполняет отрисовку контекста рендеринга WebGL методом примитивных точек.
    *
    * @param first - Индекс GL-вершины, с которой начнетя отрисовка.
-   * @param count - Количество орисовываемых GL-вершин.
+   * @param count - Количество отрисовываемых GL-вершин.
    */
   public drawPoints(first: number, count: number): void {
     this.gl.drawArrays(this.gl.POINTS, first, count)
