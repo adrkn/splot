@@ -86,7 +86,9 @@ interface SPlotGrid {
 interface SPlotCamera {
   x?: number,
   y?: number,
-  zoom?: number
+  zoom?: number,
+  minZoom?: number,
+  maxZoom?: number
 }
 
 /** ****************************************************************************

@@ -51,7 +51,9 @@ export default class SPlot {
   public camera: SPlotCamera = {
     x: 0,
     y: 0,
-    zoom: 470
+    zoom: 1,
+    minZoom: 1,
+    maxZoom: 10_000_000
   }
 
   /** Признак необходимости загрузки данных об объектах. */
@@ -67,6 +69,7 @@ export default class SPlot {
   public stats = {
     objTotalCount: 0,
     groupsCount: 0,
+    maxDepthCount: 0,
     memUsage: 0,
     minObjectSize: 1_000_000,
     maxObjectSize: 0,
@@ -169,6 +172,8 @@ export default class SPlot {
     }
 
     this.camera.zoom = Math.min(this.canvas.width, this.canvas.height) - this.stats.maxObjectSize
+    this.camera.x = 0.5 - this.canvas.width / (2 * this.camera.zoom)
+    this.camera.y = 0.5
 
     /** Действия, которые выполняются только при первом вызове метода setup. */
     if (!this.isSetuped) {
@@ -197,7 +202,7 @@ export default class SPlot {
 
     this.debug.log('loading')
 
-    this.stats = { objTotalCount: 0, groupsCount: 0, memUsage: 0, minObjectSize: 1_000_000, maxObjectSize: 0 }
+    this.stats = { objTotalCount: 0, groupsCount: 0, maxDepthCount:0, memUsage: 0, minObjectSize: 1_000_000, maxObjectSize: 0 }
 
     let dx, dy, dz = 0
     let object: SPlotObject | null
@@ -282,7 +287,9 @@ export default class SPlot {
               this.webgl.createBuffer(dx, dy, dz, 3, new Uint8Array(groups[dx][dy][dz][3]))
 
             this.stats.groupsCount += 4
-
+            if (groups[dx][dy].length > this.stats.maxDepthCount) {
+              this.stats.maxDepthCount = groups[dx][dy].length
+            }
           }
         }
       }
@@ -358,7 +365,7 @@ export default class SPlot {
 
     this.updateVisibleArea()
 
-    let zz = 0
+    //let zz = 0
     /** Итерирование и рендеринг групп буферов WebGL. */
     for (let dx = this.area.dxVisibleFrom; dx < this.area.dxVisibleTo; dx++) {
       for (let dy = this.area.dyVisibleFrom; dy < this.area.dyVisibleTo; dy++) {
@@ -374,15 +381,14 @@ export default class SPlot {
 
             this.webgl.drawPoints(0, gr[dz][1].length)
 
-            zz++
+            //zz++
             //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
           }
         }
       }
     }
-    console.log('zz = ', zz);
+    //console.log('zz = ', zz);
     //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
-
   }
 
   /** ****************************************************************************

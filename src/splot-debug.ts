@@ -154,6 +154,7 @@ export default class SPlotDebug implements SPlotHelper {
     console.log('Кол-во объектов: ' + this.splot.stats.objTotalCount.toLocaleString())
     console.log('Создано видеобуферов: ' + this.splot.stats.groupsCount.toLocaleString())
     console.log(`Группировка видеобуферов: ${this.splot.area.count} x ${this.splot.area.count}`)
+    console.log(`Максимальное кол-во z-групп: ${this.splot.stats.maxDepthCount}`)
     console.log(`Шаг деления на группы: ${this.splot.area.step}`)
     console.log('Размеры объектов: min = ' + this.splot.stats.minObjectSize + '; max = ' + this.splot.stats.maxObjectSize)
     console.groupEnd()
