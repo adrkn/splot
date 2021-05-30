@@ -337,7 +337,7 @@ export default class SPlot {
       count = totalCount
     }
 
-    count = Math.min(totalCount, Math.trunc(count))
+    count = Math.max(2, Math.min(totalCount, Math.trunc(count)))
 
     first = totalCount - count
 
@@ -383,8 +383,8 @@ export default class SPlot {
         }
       }
     }
-    console.log('ratio = ' + ratioObjectGroup);
-    console.log('first = ' + first + '; count = ' + count);
+    //console.log('ratio = ' + ratioObjectGroup);
+    //console.log('first = ' + first + '; count = ' + count);
     //console.log('zz = ', zz);
     //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
   }
