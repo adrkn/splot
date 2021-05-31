@@ -11,11 +11,11 @@ export default class SPlotWebGl implements SPlotHelper {
   public alpha: boolean = false
   public depth: boolean = false
   public stencil: boolean = false
-  public antialias: boolean = false
+  public antialias: boolean = true
   public desynchronized: boolean = true
   public premultipliedAlpha: boolean = false
   public preserveDrawingBuffer: boolean = false
-  public failIfMajorPerformanceCaveat: boolean = true
+  public failIfMajorPerformanceCaveat: boolean = false
   public powerPreference: WebGLPowerPreference = 'high-performance'
 
   /** Названия элементов графической системы клиента. */

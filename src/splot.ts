@@ -325,20 +325,17 @@ export default class SPlot {
     let first: number = 0
     let count: number = 0
 
-    // TODO: Изменить алгоритм расчета отображаемых в группе объектов. Возможно ориентироваться на количество объектов
-    // на единицу площади группы.
-    if (ratio > 0.1) {
-      count = 20 / ratio
-    } else if (ratio > 0.05) {
-      count = 40 / ratio
-    } else if (ratio > 0.03) {
-      count = (totalCount - 40 / ratio) * (1 - 2 * ratio) + 40 / ratio
+    if (ratio < 5) {
+      count = 40 * ratio
+    } else if (ratio < 10) {
+      count = 70 * ratio
     } else {
       count = totalCount
     }
 
-    count = Math.max(2, Math.min(totalCount, Math.trunc(count)))
-
+    count = Math.trunc(count)
+    if (count > totalCount) { count = totalCount }
+    if (count < 1) { count = 1 }
     first = totalCount - count
 
     return [first, count]
@@ -361,7 +358,7 @@ export default class SPlot {
 
     this.updateVisibleArea()
 
-    const ratioObjectGroup = this.stats.minObjectSize / (this.camera.zoom! * this.area.step) // !!! max -> min
+    const ratioObjectGroup = (2 * this.camera.zoom! * this.area.step) / (this.stats.minObjectSize + this.stats.maxObjectSize) // !!! max -> min
     let first: number = 0
     let count: number = 0
 
