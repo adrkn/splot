@@ -78,3 +78,33 @@ export function getCurrentTime(): string {
     today.getSeconds().toString().padStart(2, '0')
   ].join(':')
 }
+
+export function shuffleArray(array: any[]): any[] {
+
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]]
+  }
+  return array
+}
+
+export function shuffleMatrix(matrix: any[]): any[] {
+
+  let array: any[] = []
+
+  for (let i = 0; i < matrix.length; i++) {
+    for (let j = 0; j < matrix[i].length; j++) {
+      array.push(matrix[i][j])
+    }
+  }
+
+  shuffleArray(array)
+
+  for (let i = 0; i < matrix.length; i++) {
+    for (let j = 0; j < matrix[i].length; j++) {
+      matrix[i][j] = array.pop()
+    }
+  }
+
+  return matrix
+}

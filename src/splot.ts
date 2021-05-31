@@ -1,4 +1,4 @@
-import { copyMatchingKeyValues } from '@/utils'
+import { copyMatchingKeyValues, shuffleMatrix } from '@/utils'
 import SPlotContol from '@/splot-control'
 import SPlotWebGl from '@/splot-webgl'
 import SPlotDebug from '@/splot-debug'
@@ -98,6 +98,8 @@ export default class SPlot {
     dyVisibleFrom: 0,
     dyVisibleTo: 0,
   }
+
+  private indices: any[] = []
 
   /** ****************************************************************************
    *
@@ -213,11 +215,15 @@ export default class SPlot {
 
     for (let dx = 0; dx < this.area.count; dx++) {
       groups[dx] = []
+      this.indices[dx] = []
       for (let dy = 0; dy < this.area.count; dy++) {
         groups[dx][dy] = []
+        this.indices[dx][dy] = [dx, dy]
         for (let i = 0; i < 4; i++) { groups[dx][dy][i] = [] }
       }
     }
+
+    shuffleMatrix(this.indices)
 
     while (!isObjectEnds) {
 
@@ -364,8 +370,14 @@ export default class SPlot {
 
     //let zz = 0
     /** Итерирование и рендеринг групп буферов WebGL. */
-    for (let dx = this.area.dxVisibleFrom; dx < this.area.dxVisibleTo; dx++) {
-      for (let dy = this.area.dyVisibleFrom; dy < this.area.dyVisibleTo; dy++) {
+//    for (let dx = this.area.dxVisibleFrom; dx < this.area.dxVisibleTo; dx++) {
+//      for (let dy = this.area.dyVisibleFrom; dy < this.area.dyVisibleTo; dy++) {
+    for (let i = 0; i < this.area.count; i++) {
+      for (let j = 0; j < this.area.count; j++) {
+        const [dx, dy] = this.indices[i][j]
+
+        if ( (dx < this.area.dxVisibleFrom) || (dx > this.area.dxVisibleTo) || (dy < this.area.dyVisibleFrom) || (dy > this.area.dyVisibleTo)) continue
+
         if (this.area.groups[dx][dy][1].length > 0) {
           this.webgl.setBuffer(dx, dy, 0, 'a_position', 2, 0, 0)
           this.webgl.setBuffer(dx, dy, 1, 'a_shape', 1, 0, 0)
