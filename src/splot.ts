@@ -35,16 +35,13 @@ export default class SPlot {
   /** Ограничение кол-ва объектов на графике. */
   public globalLimit: number = 1_000_000_000
 
-  /** Ограничение кол-ва объектов в группе. */
-  public groupLimit: number = 10_000
-
   /** Цветовая палитра объектов. */
   public colors: string[] = []
 
   /** Параметры координатной плоскости. */
   public grid: SPlotGrid = {
     bgColor: '#ffffff',
-    rulesColor: '#c0c0c0'
+    guideColor: '#c0c0c0'
   }
 
   /** Параметры области просмотра. */
@@ -70,8 +67,8 @@ export default class SPlot {
     objTotalCount: 0,
     groupsCount: 0,
     memUsage: 0,
-    minObjectSize: 1_000_000,
-    maxObjectSize: 0,
+    minObjectSize: 1_000_000,  // Значение заведомо превышающее любой размер объекта.
+    maxObjectSize: 0,          // Значение заведомо меньше любого объекта.
   }
 
   /** Объект-канвас контекста рендеринга WebGL. */
@@ -89,17 +86,19 @@ export default class SPlot {
   /** Переменная для перебора индексов массива данных data. */
   private arrayIndex: number = 0
 
+  /** Информация о группировке и области видимости данных. */
   public area = {
-    groups: [] as any[],
-    step: 0,
-    count: 0,
-    dxVisibleFrom: 0,
+    groups: [] as any[],  // Групповая матрица.
+    step: 0.02,           // Делитель графика.
+    count: 0,             // Количество частей графика по каждой размерности.
+    dxVisibleFrom: 0,     // Ограничители видимой области групповой матрицы.
     dxVisibleTo: 0,
     dyVisibleFrom: 0,
     dyVisibleTo: 0,
+    shuffledIndices: [] as any[],  // Перемешанные индексы групповой матрицы.
+    objParamCount: 4,              // Количество параметров объекта (координаты, форма, размер, цвет и т.п.).
+    objSignParamIndex: 1           // Индекс того параметра, у которого на один объект приходится одно значение.
   }
-
-  private indices: any[] = []
 
   /** ****************************************************************************
    *
@@ -119,6 +118,9 @@ export default class SPlot {
     } else {
       throw new Error('Канвас с идентификатором "#' + canvasId + '" не найден!')
     }
+
+    /** Вычисление размерности групповой матрицы (кол-во частей графика по каждой размерности). */
+    this.area.count = Math.trunc(1 / this.area.step) + 1
 
     if (options) {
 
@@ -149,6 +151,7 @@ export default class SPlot {
 
     this.debug.log('intro')
 
+    /** Если предоставлен массив с данными об объектах, то устанавливается итератор перебора массива. */
     if (options.data) {
       this.iterator = this.arrayIterator
       this.arrayIndex = 0
@@ -171,9 +174,16 @@ export default class SPlot {
       this.loadData = false
     }
 
-    this.camera.zoom = Math.min(this.canvas.width, this.canvas.height) - this.stats.maxObjectSize
-    this.camera.x = 0.5 - this.canvas.width / (2 * this.camera.zoom)
-    this.camera.y = 0.5
+    /**
+     * Если начальное положение области видимости и зумирование не были заданы явно, то эти параметры устанавливается
+     * таким образом, чтобы при первом отображении область видимости была в центре графика и включала в себя все
+     * объекты.
+     */
+    if (!('camera' in this.lastRequestedOptions)) {
+      this.camera.zoom = Math.min(this.canvas.width, this.canvas.height) - this.stats.maxObjectSize
+      this.camera.x = 0.5 - this.canvas.width / (2 * this.camera.zoom)
+      this.camera.y = 0.5
+    }
 
     /** Действия, которые выполняются только при первом вызове метода setup. */
     if (!this.isSetuped) {
@@ -202,31 +212,32 @@ export default class SPlot {
 
     this.debug.log('loading')
 
+    /** При каждом обновлении данных об объектах статистика сбрасывается. */
     this.stats = { objTotalCount: 0, groupsCount: 0, memUsage: 0, minObjectSize: 1_000_000, maxObjectSize: 0 }
 
     let dx, dy = 0
+    let groups: any[] = []
     let object: SPlotObject | null
     let isObjectEnds: boolean = false
 
-    this.area.step = 0.02
-    this.area.count = Math.trunc(1 / this.area.step) + 1
-
-    let groups: any[] = []
-
+    /** Подготовка группировочной матрицы и матрицы случайных индексов. */
     for (let dx = 0; dx < this.area.count; dx++) {
       groups[dx] = []
-      this.indices[dx] = []
+      this.area.shuffledIndices[dx] = []
       for (let dy = 0; dy < this.area.count; dy++) {
         groups[dx][dy] = []
-        this.indices[dx][dy] = [dx, dy]
-        for (let i = 0; i < 4; i++) { groups[dx][dy][i] = [] }
+        this.area.shuffledIndices[dx][dy] = [dx, dy]
+        for (let i = 0; i < this.area.objParamCount; i++) { groups[dx][dy][i] = [] }
       }
     }
 
-    shuffleMatrix(this.indices)
+    /** Перемешивание матрицы случайных индексов. */
+    shuffleMatrix(this.area.shuffledIndices)
 
+    /** Цикл чтения и подготовки данных об объектах. */
     while (!isObjectEnds) {
 
+      /** Получение данных об очередном объекте. */
       object = this.iterator!()
 
       /** Объекты закончились, если итератор вернул null или если достигнут лимит числа объектов. */
@@ -234,23 +245,22 @@ export default class SPlot {
 
       if (!isObjectEnds) {
 
+        /** Проверка корректности и подготовка данных объекта. */
         object = this.checkObject(object!)
 
+        /** Вычисление группы, в которую запишется объект. */
         dx = Math.trunc(object.x / this.area.step)
         dy = Math.trunc(object.y / this.area.step)
 
+        /** Запись объекта. */
         groups[dx][dy][0].push(object.x, object.y)
         groups[dx][dy][1].push(object.shape)
         groups[dx][dy][2].push(object.color)
         groups[dx][dy][3].push(object.size)
 
-        if (object.size > this.stats.maxObjectSize) {
-          this.stats.maxObjectSize = object.size
-        }
-
-        if (object.size < this.stats.minObjectSize) {
-          this.stats.minObjectSize = object.size
-        }
+        /** Нахождение минимального и максимального размеров объектов. */
+        if (object.size > this.stats.maxObjectSize) { this.stats.maxObjectSize = object.size }
+        if (object.size < this.stats.minObjectSize) { this.stats.minObjectSize = object.size }
 
         this.stats.objTotalCount++
       }
@@ -258,19 +268,20 @@ export default class SPlot {
 
     this.area.groups = groups
 
-    this.webgl.clearData()
-
-    /** Итерирование и занесение данных в буферы WebGL. */
+    /** Цикл копирования данных в видеопамять. */
     for (let dx = 0; dx < this.area.count; dx++) {
       for (let dy = 0; dy < this.area.count; dy++) {
-        if (groups[dx][dy][1].length > 0) {
+        if (groups[dx][dy][this.area.objSignParamIndex].length > 0) {
+
+          /** Создание видеобуферов, совмещенное с подсчетом занимаемой ими памяти. */
           this.stats.memUsage +=
             this.webgl.createBuffer(dx, dy, 0, new Float32Array(groups[dx][dy][0])) +
             this.webgl.createBuffer(dx, dy, 1, new Uint8Array(groups[dx][dy][1])) +
             this.webgl.createBuffer(dx, dy, 2, new Uint8Array(groups[dx][dy][2])) +
             this.webgl.createBuffer(dx, dy, 3, new Uint8Array(groups[dx][dy][3]))
 
-          this.stats.groupsCount += 4
+          /** Количество созданных групп (буферов). */
+          this.stats.groupsCount += this.area.objParamCount
         }
       }
     }
@@ -281,6 +292,9 @@ export default class SPlot {
   /** ****************************************************************************
    *
    * Проверяет корректность параметров объекта и в случае необходимости вносит в них изменения.
+   *
+   * @param object - Данные об объекте.
+   * @returns Скорректированные данные об объекте.
    */
   checkObject(object: SPlotObject): SPlotObject {
 
@@ -297,28 +311,38 @@ export default class SPlot {
       object.y = 0
     }
 
-    /** Проверка корректности формы и цвета объекта объекта. */
+    /** Проверка корректности формы и цвета объекта. */
     if ((object.shape >= this.shapesCount!) || (object.shape < 0)) object.shape = 0
     if ((object.color >= this.colors.length) || (object.color < 0)) object.color = 0
 
     return object
   }
 
-  updateVisibleArea() {
+  /** ****************************************************************************
+   *
+   * Вычисляет видимую область групповой матрицы на основе области видимости скаттерплота.
+   */
+  updateVisibleArea(): void {
+
     const kx = this.canvas.width / (2 * this.camera.zoom!)
     const ky = this.canvas.height / (2 * this.camera.zoom!)
+
+    /** Расчет границ области видимости в единичных координатах скаттерплота. */
     const cameraLeft = this.camera.x!
     const cameraRight = this.camera.x! + 2*kx
     const cameraTop = this.camera.y! - ky
     const cameraBottom = this.camera.y! + ky
 
     if ( (cameraLeft < 1) && (cameraRight > 0) && (cameraTop < 1) && (cameraBottom > 0) ) {
+
+      /** Расчет видимой области матрицы, если область видимости скаттерплота находится в пределах графика. */
       this.area.dxVisibleFrom = (cameraLeft < 0) ? 0 : Math.trunc(cameraLeft / this.area.step)
       this.area.dxVisibleTo = (cameraRight > 1) ? this.area.count : this.area.count - Math.trunc((1 - cameraRight) / this.area.step)
       this.area.dyVisibleFrom = (cameraTop < 0) ? 0 : Math.trunc(cameraTop / this.area.step)
       this.area.dyVisibleTo = (cameraBottom > 1) ? this.area.count : this.area.count - Math.trunc((1 - cameraBottom) / this.area.step)
-
     } else {
+
+      /** Если область видимости вне пределов графика, то групповая матрица не требует обхода. */
       this.area.dxVisibleFrom = 1
       this.area.dxVisibleTo = 0
       this.area.dyVisibleFrom = 1
@@ -326,11 +350,21 @@ export default class SPlot {
     }
   }
 
+  /** ****************************************************************************
+   *
+   * Вычисляет отображаемую глубину группы объектов.
+   *
+   * @param totalCount - Общее количество объектов в группе.
+   * @param ratio - Размерный коэффициент, показывающий соотношение между средним размером объектов и линейным размером
+   *     группы объектов при текущем значении зумирования.
+   * @returns Два параметра глубины отображаемой группы: [0] - индекс, с которого будет начинаться отображение объектов
+   *     группы, [1] - количество отбражаемых объектов группы.
+   */
   getVisibleObjectsParams(totalCount: number, ratio: number): number[] {
 
-    let first: number = 0
     let count: number = 0
 
+    /** Расчет количества отображаемых объектов на основе размерного коэффициента. */
     if (ratio < 5) {
       count = 40 * ratio
     } else if (ratio < 10) {
@@ -339,12 +373,12 @@ export default class SPlot {
       count = totalCount
     }
 
+    /** Корректировка полученного количества. */
     count = Math.trunc(count)
     if (count > totalCount) { count = totalCount }
     if (count < 1) { count = 1 }
-    first = totalCount - count
 
-    return [first, count]
+    return [totalCount - count, count]
   }
 
   /** ****************************************************************************
@@ -362,40 +396,49 @@ export default class SPlot {
     /** Привязка матрицы трансформации к переменной шейдера. */
     this.webgl.setVariable('u_matrix', this.control.transform.viewProjectionMat)
 
+    /** Вычисление видимой области групповой матрицы. */
     this.updateVisibleArea()
 
-    const ratioObjectGroup = (2 * this.camera.zoom! * this.area.step) / (this.stats.minObjectSize + this.stats.maxObjectSize) // !!! max -> min
+    /**
+     * Вычисление размерного коэффициента, показывающего соотношение между средним размером объектов и линейным
+     * размером группы объектов при текущем значении зумирования.
+     */
+    const ratioObjectGroup = (2 * this.camera.zoom! * this.area.step) / (this.stats.minObjectSize + this.stats.maxObjectSize)
+
     let first: number = 0
     let count: number = 0
 
-    //let zz = 0
-    /** Итерирование и рендеринг групп буферов WebGL. */
-//    for (let dx = this.area.dxVisibleFrom; dx < this.area.dxVisibleTo; dx++) {
-//      for (let dy = this.area.dyVisibleFrom; dy < this.area.dyVisibleTo; dy++) {
     for (let i = 0; i < this.area.count; i++) {
       for (let j = 0; j < this.area.count; j++) {
-        const [dx, dy] = this.indices[i][j]
 
-        if ( (dx < this.area.dxVisibleFrom) || (dx > this.area.dxVisibleTo) || (dy < this.area.dyVisibleFrom) || (dy > this.area.dyVisibleTo)) continue
+        /** Индексы извлекаются из матрицы перемешанных индексов. */
+        const [dx, dy] = this.area.shuffledIndices[i][j]
 
-        if (this.area.groups[dx][dy][1].length > 0) {
+        /** Если текущий индекс лежит вне видимой области групповой матрицы, то он не итерируется. */
+        if ( (dx < this.area.dxVisibleFrom) ||
+          (dx > this.area.dxVisibleTo) ||
+          (dy < this.area.dyVisibleFrom) ||
+          (dy > this.area.dyVisibleTo) ) { continue }
+
+        if (this.area.groups[dx][dy][this.area.objSignParamIndex].length > 0) {
+
+          /** Если в текущей группе есть объекты, то делаем соответсвующие буферы активными. */
           this.webgl.setBuffer(dx, dy, 0, 'a_position', 2, 0, 0)
           this.webgl.setBuffer(dx, dy, 1, 'a_shape', 1, 0, 0)
           this.webgl.setBuffer(dx, dy, 2, 'a_color', 1, 0, 0)
-          this.webgl.setBuffer(dx, dy, 3, 'a_size', 1, 0, 0);
+          this.webgl.setBuffer(dx, dy, 3, 'a_size', 1, 0, 0); // Точка с запятой без которой ничего не работает ;-)
 
-          [first, count] = this.getVisibleObjectsParams(this.area.groups[dx][dy][1].length, ratioObjectGroup)
+          /** Вычисление отображаемой глубины текущей группы. */
+          [first, count] = this.getVisibleObjectsParams(
+            this.area.groups[dx][dy][this.area.objSignParamIndex].length,
+            ratioObjectGroup
+          )
+
+          /** Рендер группы. */
           this.webgl.drawPoints(first, count)
-
-          //zz++
-          //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
         }
       }
     }
-    //console.log('ratio = ' + ratioObjectGroup);
-    //console.log('first = ' + first + '; count = ' + count);
-    //console.log('zz = ', zz);
-    //console.log(`x=${this.camera.x}, y=${this.camera.y}, zoom=${this.camera.zoom}`)
   }
 
   /** ****************************************************************************
@@ -406,7 +449,7 @@ export default class SPlot {
    * Используется для проверки корректности логики работы пользователя с экземпляром. Не позволяет работать с
    * ненастроенным или некорректно настроенным экземпляром.
    */
-  checkSetup() {
+  checkSetup(): void {
 
     /**
      *  Пользователь мог настроить экземпляр в конструкторе и сразу запустить рендер, в таком случае метод setup
@@ -422,7 +465,14 @@ export default class SPlot {
     }
   }
 
-  arrayIterator() {
+  /** ****************************************************************************
+   *
+   * Функция итерирования массива данных об объектах {@link this.data}. При каждом вызове возвращает очередной элемент
+   * массива объектов.
+   *
+   * @returns Данные об очередном объекте или null, если массив закончился.
+   */
+  arrayIterator(): SPlotObject | null {
     if (this.data![this.arrayIndex]) {
       return this.data![this.arrayIndex++]
     } else {

@@ -79,32 +79,43 @@ export function getCurrentTime(): string {
   ].join(':')
 }
 
-export function shuffleArray(array: any[]): any[] {
-
+/** ****************************************************************************
+ *
+ * Перемешивает элементы одномерного массива случайным образом.
+ *
+ * @param array - Целевой массив.
+ */
+export function shuffleArray(array: any[]): void {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]]
   }
-  return array
 }
 
-export function shuffleMatrix(matrix: any[]): any[] {
+/** ****************************************************************************
+ *
+ * Перемешивает элементы матрицы случайным образом.
+ *
+ * @param matrix - Целевая матрица.
+ */
+export function shuffleMatrix(matrix: any[]) {
 
   let array: any[] = []
 
+  /** Матрица развертывается в одномерный массив. */
   for (let i = 0; i < matrix.length; i++) {
     for (let j = 0; j < matrix[i].length; j++) {
       array.push(matrix[i][j])
     }
   }
 
+  /** Перемешивание массива. */
   shuffleArray(array)
 
+  /** Массив собирается в матрицу. */
   for (let i = 0; i < matrix.length; i++) {
     for (let j = 0; j < matrix[i].length; j++) {
       matrix[i][j] = array.pop()
     }
   }
-
-  return matrix
 }

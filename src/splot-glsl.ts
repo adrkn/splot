@@ -46,12 +46,14 @@ export default class SPlotGlsl implements SPlotHelper {
    * @remarks
    * В шаблон вершинного шейдера вставляется код выбора цвета объекта по индексу цвета. Т.к.шейдер не позволяет
    * использовать в качестве индексов переменные - для задания цвета используется последовательный перебор цветовых
-   * индексов.
+   * индексов. Место вставки кода обозначается в шаблоне вершинного шейдера словом "{COLOR-SELECTION}".
+   *
+   * @returns Строка с кодом.
    */
-  private makeVertShaderSource() {
+  private makeVertShaderSource(): string {
 
     /** Временное добавление в палитру вершин цвета направляющих. */
-    this.splot.colors.push(this.splot.grid.rulesColor!)
+    this.splot.colors.push(this.splot.grid.guideColor!)
 
     let code: string = ''
 
@@ -73,8 +75,17 @@ export default class SPlotGlsl implements SPlotHelper {
   /** ****************************************************************************
    *
    * Создает код фрагментного шейдера.
+   *
+   * @remarks
+   * В шаблон фрагментного шейдера вставляется код выбора формы объекта по индексу формы. Т.к.шейдер не позволяет
+   * использовать в качестве индексов переменные - для задания формы используется последовательный перебор индексов
+   * форм. Каждая форма описывается функцией, которые создаются из перечисляемых GLSL-алгоритмов (константы SHAPES).
+   * Место вставки кода функций в шаблоне фрагментного шейдера обозначается словом "{SHAPES-FUNCTIONS}". Место вставки
+   * перебора индексов форм обозначается словом "{SHAPE-SELECTION}".
+   *
+   * @returns Строка с кодом.
    */
-  private makeFragShaderSource() {
+  private makeFragShaderSource(): string {
 
     let code1: string = ''
     let code2: string = ''
@@ -88,10 +99,10 @@ export default class SPlotGlsl implements SPlotHelper {
       code2 += `else if (v_shape == ${index}.0) { s${index}();}\n`
     })
 
-    /** Удаление лишнего перевода строки в конце. */
+    /** Удаление лишнего перевода строки в конце кода функций. */
     code1 = code1.slice(0, -1)
 
-    /** Удаление лишнего "else" в начале кода и лишнего перевода строки в конце. */
+    /** Удаление лишнего "else" в начале кода перебора и лишнего перевода строки в конце кода. */
     code2 = code2.slice(5).slice(0, -1)
 
     return shaders.FRAGMENT_TEMPLATE.

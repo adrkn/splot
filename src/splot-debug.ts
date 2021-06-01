@@ -27,6 +27,8 @@ export default class SPlotDebug implements SPlotHelper {
   /** ****************************************************************************
    *
    * Подготавливает хелпер к использованию.
+   *
+   * @param clearConsole - Признак необходимости очистки консоли браузера перед началом рендера.
    */
   public setup(clearConsole: boolean = false): void {
 
@@ -108,7 +110,7 @@ export default class SPlotDebug implements SPlotHelper {
 
     console.group('%cНастройка параметров экземпляра', this.groupStyle)
     console.dir(this.splot)
-    console.log('Размер канваса: ' + this.splot.canvas.width + ' x ' + this.splot.canvas.height + ' px')
+    console.log(`Размер канваса: ${this.splot.canvas.width} x ${this.splot.canvas.height} px`)
 
     if (this.splot.demo.isEnable) {
       console.log('Способ получения данных: ' + 'демо-данные')
@@ -136,7 +138,7 @@ export default class SPlotDebug implements SPlotHelper {
    * Выводит сообщение о начале процессе загрузки данных.
    */
   public loading(): void {
-    console.log('%cЗапущен процесс загрузки данных [' + getCurrentTime() + ']...', this.groupStyle)
+    console.log(`%cЗапущен процесс загрузки данных [${getCurrentTime()}]...`, this.groupStyle)
     console.time('Длительность')
   }
 
@@ -145,7 +147,7 @@ export default class SPlotDebug implements SPlotHelper {
    * Выводит статистику по завершении процесса загрузки данных.
    */
   public loaded(): void {
-    console.group('%cЗагрузка данных завершена [' + getCurrentTime() + ']', this.groupStyle)
+    console.group(`%cЗагрузка данных завершена [${getCurrentTime()}]`, this.groupStyle)
     console.timeEnd('Длительность')
     console.log('Результат: ' + ((this.splot.stats.objTotalCount >= this.splot.globalLimit) ?
       'достигнут лимит объектов (' + this.splot.globalLimit.toLocaleString() + ')' :
@@ -180,6 +182,6 @@ export default class SPlotDebug implements SPlotHelper {
    * Выводит сообшение об очистке области рендера.
    */
   public cleared(color: string): void {
-    console.log('%cОбласть рендера очищена [' + color + ']', this.groupStyle);
+    console.log(`%cОбласть рендера очищена [${color}]`, this.groupStyle);
   }
 }

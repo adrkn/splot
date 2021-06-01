@@ -60,6 +60,8 @@ export default class SPlotDemo implements SPlotHelper {
   /** ****************************************************************************
    *
    * Имитирует итератор исходных объектов.
+   *
+   * @returns Данные об объекте.
    */
   public iterator(): SPlotObject | null {
     if (this.index < this.amount) {

@@ -11,7 +11,7 @@ export default class SPlotContol implements SPlotHelper {
   public transform: SPlotTransform = {
     viewProjectionMat: [],
     startInvViewProjMat: [],
-    startCamera: { x: 0, y: 0, zoom: 1 },
+    startCamera: {},
     startPos: [],
   }
 

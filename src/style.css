@@ -4,5 +4,12 @@ canvas {
   width: 800px;
   height: 500px;
   margin: 0 auto;
-  margin-top: 100px;
+  margin-top: 50px;
+}
+
+p {
+  font: normal 15px "Arial";
+  color: #707070;
+  text-align: center;
+  margin-top: 20px;
 }

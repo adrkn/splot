@@ -21,8 +21,8 @@ type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array
  * @param debug - Параметры режима отладки. Класс `SPlotDebug` описан в модуле {@link splot-debug}.
  * @param webgl - Параметры контекста рендеринга WebGL. Класс `SPlotWebGl` описан в модуле {@link splot-webgl}.
  * @param forceRun - Признак необходимости ускоренного запуска рендера - сразу после задания настроек.
+ * @param loadData - Признак необходимости загрузки данных об объектах.
  * @param globalLimit - Ограничение максимального количества объектов на графике.
- * @param groupLimit - Ограничение максимального количества объектов в группе.
  * @param colors - Цветовая палитра объектов.
  * @param grid - Параметры координатной плоскости.
  * @param camera - Параметры области просмотра.
@@ -34,8 +34,8 @@ interface SPlotOptions {
   debug?: SPlotDebug,
   webgl?: SPlotWebGl,
   forceRun?: boolean,
+  loadData?: boolean,
   globalLimit?: number,
-  groupLimit?: number,
   colors?: string[],
   grid?: SPlotGrid,
   camera?: SPlotCamera
@@ -63,16 +63,12 @@ interface SPlotObject {
  *
  * Интерфейс - Координатная плоскость.
  *
- * @param width - Ширина в пикселях.
- * @param height - Высота в пикселях.
  * @param bgColor - Фоновый цвет (строка в формате "#ffffff").
- * @param rulesColor - Цвет направляющих (строка в формате "#ffffff").
+ * @param guideColor - Цвет направляющих (строка в формате "#ffffff").
  */
 interface SPlotGrid {
-  width?: number,
-  height?: number,
   bgColor?: string,
-  rulesColor?: string
+  guideColor?: string
 }
 
 /** ****************************************************************************
