@@ -3,7 +3,11 @@ import '@/style'
 
 /** ************************************************************************* */
 
-let n = 1_000_000
+const urlParams = new URLSearchParams(window.location.search)
+const userN = urlParams.get('n')
+
+let n = (userN)? userN : 1_000_000
+
 let colors = ['#D81C01', '#E9967A', '#BA55D3', '#FFD700', '#FFE4B5', '#FF8C00', '#228B22', '#90EE90', '#4169E1', '#00BFFF', '#8B4513', '#00CED1']
 
 /** Синтетическая итерирующая функция. */
@@ -28,8 +32,6 @@ function randomInt(range) {
   return Math.floor(Math.random() * range)
 }
 
-const size = 30
-
 /** ************************************************************************* */
 
 let scatterPlot = new SPlot('canvas1')
@@ -46,3 +48,7 @@ scatterPlot.setup({
 })
 
 scatterPlot.run()
+
+/** ************************************************************************* */
+
+document.getElementById('obj-count').innerHTML = scatterPlot.stats.objTotalCount.toLocaleString()
